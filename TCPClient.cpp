@@ -2,7 +2,7 @@
 
 
 /**
- *  @brief Builds a TCPClient and initialize and starts its socket.
+ *  @brief Builds a TCPClient and initializes and starts its socket.
  *
  *  @param socketfd  The socketfd of the socket's client
  */
@@ -11,7 +11,7 @@ TCPClient::TCPClient(socketfd) : _socket(socketfd) {
 }
 
 /**
- *  @brief Closes the client's socket and destroys the socket.
+ *  @brief Closes the client's socket and destroys the client.
  */
 TCPClient::~TCPClient() {
 	_socket.close();
