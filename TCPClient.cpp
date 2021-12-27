@@ -27,7 +27,7 @@ TCPClient::~TCPClient() {
  *  @return A list of the messages received.
  */
 std::list <std::string> TCPClient::receive_from() {
-	std::string received_data = _socket.recv();
+	std::string received_data = _socket.receive();
 	_buffer += received_data;
 
 	size_t pos;
@@ -41,7 +41,6 @@ std::list <std::string> TCPClient::receive_from() {
 	}
 	return messages;
 }
-
 
 /**
  *  @brief Sends a message to the client.
