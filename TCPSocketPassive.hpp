@@ -9,13 +9,12 @@ class TCPSocketPassive : public TCPSocket
 
 		TCPSocketPassive(int port);
 		~TCPSocketPassive();
-		void start();
-		void close_fd();
-		int accept_connection();
+
+		void    start();
+		void    close_fd();
+		int     accept_connection();
 
         int     get_socket_fd(void) const;
-struct sockaddr_in     get_address(void) const {return _address;}
-
 
 	protected:
 

@@ -74,30 +74,13 @@ void    TCPServer::_run(void) {
                     _add_clients();
                 else
                 {
-                    std::map<int, TCPClient*>::iterator it_client = _clients.find(it->fd);
-                    std::list<std::string> msg = it_client->second->receive_from();
-                    std::list<std::string>::iterator it_list = msg.begin();
-                    // ****************** A changer permet de capter une déconnexion *********************
-                    std::string q = "quit";
-                    if (*it_list == q)
-                    {
-                        std::cout << "*********** DECONNEXION CLIENT ***************" << std::endl;
-                        _remove_client(it->fd);
-                        if ((it + 1) == ite)
-                            break;
-                    }
-                    else
-                    {
-                    // ****************** A changer *********************
-                    for (; it_list != msg.end(); it_list++)
-                        _send_to_all(*it_list);
-                    }
-                    msg.clear();
+                    _handle_reception(it);
+                    if ((it + 1) == ite)
+                        break;
                 }
             }
             else if (it->revents == POLLHUP && it->fd != _socket.get_socket_fd())
                 std::cout << "*********** DECONNEXION CLIENT ***************" << std::endl;
-
         }
         it = _pollfds.begin();
         for (; it != _pollfds.end(); it++)
@@ -111,35 +94,14 @@ void    TCPServer::_run(void) {
 void    TCPServer::_add_clients(void) {
 
     int new_fd;
-    //try {
-        while (true)
-        {
-            new_fd = _socket.accept_connection();
-            if (new_fd < 0)
-                break ;
-            _add_client(new_fd);
-        }
-    //}
-    /*catch (TCPSocket::Cexception & e) {
-
-        if (errno != EWOULDBLOCK)
-            std::cout << e.what() << std::endl;
-    }*/
-}
-/*void    TCPServer::_add_clients(void) {
-
-    int new_fd;
-    socklen_t   size_addr;
-    struct sockaddr_in  tmp_addr = _socket.get_address();
-    do
+    while (true)
     {
-        new_fd = accept(_socket.get_socket_fd(), (struct sockaddr *)& tmp_addr, &size_addr);
+        new_fd = _socket.accept_connection();
         if (new_fd < 0)
             break ;
         _add_client(new_fd);
-    } while (new_fd != -1);
-}*/
-
+    }
+}
 
 /**
  *  @brief Creates a new TCPClient and insert it in the map _clients.
@@ -180,6 +142,27 @@ void    TCPServer::_remove_client(int socket_fd) {
     _clients[socket_fd]->get_socket().close_fd();
     delete  _clients[socket_fd];
     _clients.erase(socket_fd);
+}
+
+void    TCPServer::_handle_reception(std::vector<struct pollfd>::iterator & it) {
+
+    std::map<int, TCPClient*>::iterator it_client = _clients.find(it->fd);
+    std::list<std::string> msg = it_client->second->receive_from();
+    std::list<std::string>::iterator it_list = msg.begin();
+    // ****************** A changer permet de capter une déconnexion *********************
+    std::string q = "quit";
+    if (*it_list == q)
+    {
+        std::cout << "*********** DECONNEXION CLIENT ***************" << std::endl;
+        _remove_client(it->fd);
+    }
+    else
+    {
+    // ****************** A changer *********************
+        for (; it_list != msg.end(); it_list++)
+            _send_to_all(*it_list);
+    }
+    msg.clear();
 }
 
 /**

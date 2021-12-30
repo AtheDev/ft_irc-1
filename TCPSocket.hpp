@@ -11,8 +11,10 @@ class TCPSocket
 {
 	public:
 
-		virtual void start() = 0;
-		virtual void close_fd() = 0;
+		virtual void    start() = 0;
+		virtual void    close_fd() = 0;
+        virtual int     get_socket_fd() const = 0;
+
 		class Cexception : public std::exception
 		{
 			public:

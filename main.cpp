@@ -23,18 +23,6 @@ int main(int ac, char **av)
 
         server.start();
     }
-    /*catch (TCPSocketPassive::ErrorGetAddrInfoException & e) {
-        std::cout << e.what() << std::endl;
-    }
-    catch (TCPSocketPassive::ErrorSocketException & e) {
-        std::cout << e.what() << std::endl;
-    }
-    catch (TCPSocketPassive::ErrorBindException & e) {
-        std::cout << e.what() << std::endl;
-    }
-    catch (TCPSocketPassive::ErrorListenException & e) {
-        std::cout << e.what() << std::endl;
-    }*/
     catch (TCPServer::ErrorPollException & e) {
         std::cout << e.what() << std::endl;
     }

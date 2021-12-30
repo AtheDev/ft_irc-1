@@ -7,17 +7,19 @@
 #include "TCPSocket.hpp"
 
 class TCPClient {
-public:
-	TCPClient(int socketfd);
-	virtual ~TCPClient();
 
-	std::list<std::string> receive_from();
-	void send_to(std::string message);
-    TCPSocketActive     get_socket(void) const;
+	public:
+		TCPClient(int socketfd);
+		virtual ~TCPClient();
 
-private:
-	std::string _buffer;
-	TCPSocketActive _socket;
+		std::list<std::string>	receive_from();
+		void					send_to(std::string message);
+    	TCPSocketActive			get_socket(void) const;
+
+	private:
+
+		std::string		_buffer;
+		TCPSocketActive	_socket;
 };
 
 

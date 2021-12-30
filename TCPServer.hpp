@@ -44,6 +44,7 @@ class   TCPServer
         void    _add_client(int socket_fd);
         void    _remove_client(int socket_fd);
         void    _send_to_all(std::string str);
+        void    _handle_reception(std::vector<struct pollfd>::iterator & it);
 
         TCPServer();
         TCPServer(TCPServer const & cpy);
