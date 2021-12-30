@@ -1,11 +1,12 @@
 #include "TCPServer.hpp"
+#include "TCPSocket.hpp"
 
 /**
  *  @brief Buils the TCPServer and initializes its socket.
  *
  *  @param port Port number on which your server will accept incoming connections.
  */
-TCPServer::TCPServer(std::string port): _socket(port) {}
+TCPServer::TCPServer(std::string port): _socket(atoi(port.c_str())) {}
 
 /**
  *  @brief Destroys the TCPServer.
@@ -17,15 +18,18 @@ TCPServer::~TCPServer() {}
  */
 void    TCPServer::start(void) {
 
+	signal(SIGINT, handler_signal);
+	signal(SIGQUIT, handler_signal);
+
     struct pollfd   new_pollfd;
 
-    new_pollfd.fd = _socket.getSocketFd();
+    new_pollfd.fd = _socket.get_socket_fd();
     new_pollfd.events = POLLIN;
     new_pollfd.revents = 0;
     _pollfds.push_back(new_pollfd);
 
     std::cout << "\033[0;34m" << "Server opened" << "\033[0m" << std::endl;
-
+    _socket.start();
     _run();
 }
 
@@ -34,15 +38,14 @@ void    TCPServer::start(void) {
  */
 void    TCPServer::stop(void) {
 
-    if (_pollfds.size() != 0)
-        _pollfds.clear();
-    if (_clients.size() != 0)
+    _pollfds.clear();
+    if (!(_clients.empty()))
     {
         std::map<int, TCPClient*>::iterator it = _clients.begin();
         for (; it != _clients.end(); it++)
         {
-            it->second->getSocket().close_fd();
-            delete  _clients[it->second->getSocket().getSocketFd()];
+            it->second->get_socket().close_fd();
+            delete  _clients[it->second->get_socket().get_socket_fd()];
         }
         _clients.clear();
     }
@@ -57,23 +60,17 @@ void    TCPServer::stop(void) {
  */
 void    TCPServer::_run(void) {
 
-    int number_revents;
     while (1)
     {
-	    signal(SIGINT, handler_signal);
-	    signal(SIGQUIT, handler_signal);
-
-        number_revents = 0;
-        if ((number_revents = poll(&(*_pollfds.begin()), _pollfds.size(), -1) == -1))
+        if (poll(&(*_pollfds.begin()), _pollfds.size(), -1) == -1)
             throw ErrorPollException();
-
         std::vector<struct pollfd>::iterator it = _pollfds.begin();
         std::vector<struct pollfd>::iterator ite = _pollfds.end();
         for (; it != ite; it++)
         {
             if (it->revents == POLLIN)
             {
-                if (it->fd == _socket.getSocketFd())
+                if (it->fd == _socket.get_socket_fd())
                     _add_clients();
                 else
                 {
@@ -98,7 +95,7 @@ void    TCPServer::_run(void) {
                     msg.clear();
                 }
             }
-            else if (it->revents == POLLHUP && it->fd != _socket.getSocketFd())
+            else if (it->revents == POLLHUP && it->fd != _socket.get_socket_fd())
                 std::cout << "*********** DECONNEXION CLIENT ***************" << std::endl;
 
         }
@@ -114,16 +111,35 @@ void    TCPServer::_run(void) {
 void    TCPServer::_add_clients(void) {
 
     int new_fd;
+    //try {
+        while (true)
+        {
+            new_fd = _socket.accept_connection();
+            if (new_fd < 0)
+                break ;
+            _add_client(new_fd);
+        }
+    //}
+    /*catch (TCPSocket::Cexception & e) {
+
+        if (errno != EWOULDBLOCK)
+            std::cout << e.what() << std::endl;
+    }*/
+}
+/*void    TCPServer::_add_clients(void) {
+
+    int new_fd;
     socklen_t   size_addr;
-    struct sockaddr_in  tmp_addr = _socket.getAddress();
+    struct sockaddr_in  tmp_addr = _socket.get_address();
     do
     {
-        new_fd = accept(_socket.getSocketFd(), (struct sockaddr *)& tmp_addr, &size_addr);
+        new_fd = accept(_socket.get_socket_fd(), (struct sockaddr *)& tmp_addr, &size_addr);
         if (new_fd < 0)
             break ;
         _add_client(new_fd);
     } while (new_fd != -1);
-}
+}*/
+
 
 /**
  *  @brief Creates a new TCPClient and insert it in the map _clients.
@@ -161,7 +177,7 @@ void    TCPServer::_remove_client(int socket_fd) {
             _pollfds.erase(it);
             break;
         }
-    _clients[socket_fd]->getSocket().close_fd();
+    _clients[socket_fd]->get_socket().close_fd();
     delete  _clients[socket_fd];
     _clients.erase(socket_fd);
 }
@@ -174,14 +190,8 @@ void    TCPServer::_remove_client(int socket_fd) {
 void    TCPServer::_send_to_all(std::string str) {
 
     std::vector<struct pollfd>::iterator it = _pollfds.begin() + 1;
-    std::string n = "\n";
     for (; it != _pollfds.end(); it++)
-    {
-        if (send(it->fd, str.c_str(), str.size(), 0) != (ssize_t)str.size())
-                std::cout << "Error sending response\n" << std::endl;
-        if (send(it->fd, n.c_str(), n.size(), 0) != (ssize_t)n.size())
-                std::cout << "Error sending response\n" << std::endl;
-    }
+        _clients[it->fd]->send_to(str);
 }
 
 const char *    TCPServer::ErrorSignalException::what() const throw() {

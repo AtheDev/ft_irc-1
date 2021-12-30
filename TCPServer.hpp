@@ -9,6 +9,7 @@
 #include "TCPSocketPassive.hpp"
 #include "TCPClient.hpp"
 #include <signal.h>
+#include <cstdlib>
 
 void	handler_signal(int num);
 

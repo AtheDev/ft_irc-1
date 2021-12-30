@@ -1,5 +1,7 @@
 #include "TCPServer.hpp"
 #include "TCPSocketPassive.hpp"
+#include "TCPSocketActive.hpp"
+#include "TCPSocket.hpp"
 #include <iostream>
 
 
@@ -21,7 +23,7 @@ int main(int ac, char **av)
 
         server.start();
     }
-    catch (TCPSocketPassive::ErrorGetAddrInfoException & e) {
+    /*catch (TCPSocketPassive::ErrorGetAddrInfoException & e) {
         std::cout << e.what() << std::endl;
     }
     catch (TCPSocketPassive::ErrorSocketException & e) {
@@ -32,12 +34,15 @@ int main(int ac, char **av)
     }
     catch (TCPSocketPassive::ErrorListenException & e) {
         std::cout << e.what() << std::endl;
+    }*/
+    catch (TCPServer::ErrorPollException & e) {
+        std::cout << e.what() << std::endl;
     }
     catch (TCPServer::ErrorSignalException & e) {
         server.stop();
         std::cout << e.what() << std::endl;
     }
-    catch (TCPSocketPassive::ErrorSetSockOptException & e) {
+    catch (TCPSocket::Cexception & e) {
         std::cout << e.what() << std::endl;
     }
 

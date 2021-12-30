@@ -1,12 +1,16 @@
-NAME_SERVER = server
+NAME_SERVER = ircserv
 
-SRCS_SERVER = main.cpp TCPServer.cpp TCPSocketPassive.cpp TCPSocketActive.cpp TCPClient.cpp
+SRCS_SERVER =	main.cpp \
+				TCPServer.cpp \
+				TCPClient.cpp \
+				TCPSocket.cpp
+
 
 OBJS_SERVER = $(SRCS_SERVER:.cpp=.o)
 
 CXX = clang++
 
-CXXFLAGS = -Wall -Wextra 
+CXXFLAGS = -Wall -Wextra -Werror
 
 RM = rm -rf
 

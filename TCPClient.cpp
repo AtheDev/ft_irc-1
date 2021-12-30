@@ -6,7 +6,7 @@
  *
  *  @param socketfd  The socketfd of the socket's client
  */
-TCPClient::TCPClient(socketfd) : _socket(socketfd) {
+TCPClient::TCPClient(int socketfd) : _socket(socketfd) {
 	_socket.start();
 }
 
@@ -14,7 +14,7 @@ TCPClient::TCPClient(socketfd) : _socket(socketfd) {
  *  @brief Closes the client's socket and destroys the client.
  */
 TCPClient::~TCPClient() {
-	_socket.close();
+	_socket.close_fd();
 }
 
 /**
@@ -47,6 +47,8 @@ std::list <std::string> TCPClient::receive_from() {
  *
  *  @param message  The message to be sent.
  */
-void send_to(std::string message) {
-	_socket.send(message);
+void TCPClient::send_to(std::string message) {
+	_socket.send_data(message);
 }
+
+TCPSocketActive     TCPClient::get_socket(void) const {return _socket;}
