@@ -12,7 +12,7 @@ class TCPSocketActive : public TCPSocket
 
 		void        start();
 		void        close_fd();
-		std::string receive();
+		std::string receive_data();
 		void        send_data(std::string s);
 
         int         get_socket_fd(void) const;

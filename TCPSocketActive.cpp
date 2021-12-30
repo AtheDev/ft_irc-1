@@ -20,7 +20,7 @@
 
 TCPSocketActive::TCPSocketActive(int socketfd)
 {
-    _socket = socketfd;
+    _socketfd = socketfd;
 }
 
 TCPSocketActive::~TCPSocketActive() {}
@@ -28,23 +28,23 @@ TCPSocketActive::~TCPSocketActive() {}
 void
 	TCPSocketActive::start()
 {
-	fcntl(_socket, F_SETFL, O_NONBLOCK); //Does this need to be after connect?
+	fcntl(_socketfd, F_SETFL, O_NONBLOCK); //Does this need to be after connect?
 }
 
 void
 	TCPSocketActive::close_fd()
 {
 	//Close socket how?
-    close(_socket);
+    close(_socketfd);
 }
 
 std::string
-	TCPSocketActive::receive()
+	TCPSocketActive::receive_data()
 {
 	char buf[BUFFER_SIZE];
 
     memset(buf, 0, BUFFER_SIZE);
-	if (recv(_socket, &buf, BUFFER_SIZE, 0) == -1)
+	if (recv(_socketfd, &buf, BUFFER_SIZE, 0) == -1)
 		throw Cexception();
 	std::string r (buf);
 	return r;
@@ -54,10 +54,10 @@ void
 	TCPSocketActive::send_data(std::string s)
 {
     std::string n = "\n";
-	if (send(_socket, s.c_str(), s.size(), 0) == -1)
+	if (send(_socketfd, s.c_str(), s.size(), 0) == -1)
 		throw Cexception();
-	if (send(_socket, n.c_str(), n.size(), 0) == -1)
+	if (send(_socketfd, n.c_str(), n.size(), 0) == -1)
 		throw Cexception();
 }
 
-int     TCPSocketActive::get_socket_fd(void) const {return _socket;}
+int     TCPSocketActive::get_socket_fd(void) const {return _socketfd;}

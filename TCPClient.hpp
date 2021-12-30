@@ -9,6 +9,7 @@
 class TCPClient {
 
 	public:
+
 		TCPClient(int socketfd);
 		virtual ~TCPClient();
 

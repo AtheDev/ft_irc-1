@@ -23,7 +23,7 @@ class TCPSocket
 
 	protected:
 
-		int					_socket;
+		int					_socketfd;
 		struct sockaddr_in	_address;
 
 	private:
