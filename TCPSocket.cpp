@@ -6,7 +6,7 @@
 #include <fcntl.h>
 
 #define MAX_CONNECTIONS 42
-#define BUFFER_SIZE 64
+#define BUFFER_SIZE 65535
 
 //FORBIDDEN EXTERNAL FUNCTIONS
 #include <string.h>

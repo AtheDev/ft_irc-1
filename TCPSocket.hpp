@@ -54,8 +54,8 @@ class TCPSocketActive : public TCPSocket
 		~TCPSocketActive();
 		void start();
 		void close();
-		std::string receive();
-		void send(std::string s);
+		std::string receive_data();
+		void send_data(std::string s);
 
 	protected:
 
