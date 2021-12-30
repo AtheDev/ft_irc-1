@@ -8,7 +8,7 @@
 class TCPClient {
 public:
 	TCPClient(int socketfd);
-	virtual ~TCPClient()
+	virtual ~TCPClient();
 
 	std::list<std::string> receive_from();
 	void send_to(std::string message);

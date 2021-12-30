@@ -32,9 +32,9 @@ std::list <std::string> TCPClient::receive_from() {
 
 	size_t pos;
 	std::string substring;
-	std::string delimiter = "\r\n"; // CRLF
+	std::string delimiter = "\n"; //"\r\n"; // CRLF
 	std::list <std::string> messages;
-	while ((pos = _buffer.find(delimiter)) != _buffer::npos) {
+	while ((pos = _buffer.find(delimiter)) != std::string::npos) {
 		substring = _buffer.substr(0, pos);
 		messages.push_back(substring);
 		_buffer.erase(0, pos + delimiter.length());
