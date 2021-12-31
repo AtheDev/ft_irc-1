@@ -2,12 +2,17 @@
 
 
 /**
- *  @brief Exception class for C function errors that return -1 and edit errno
+ *  @brief Exception class for C function errors that return -1 and edit errno.
  *
- *  @return The raised error's string
+ *  @return The raised error's string.
  */
 const char * TCPSocket::Cexception::what() const throw() { return strerror(errno); }
 
+/**
+ *  @brief Construct a new TCPSocketPassive from a port.
+ *
+ *  @param port The TCPSocketPassive's bound port.
+ */
 TCPSocketPassive::TCPSocketPassive(int port) {
 	int opt = 1;
 
@@ -29,16 +34,27 @@ TCPSocketPassive::TCPSocketPassive(int port) {
 
 TCPSocketPassive::~TCPSocketPassive() {}
 
+/**
+ *  @brief Start the socket listening.
+ */
 void TCPSocketPassive::start() {
 	if (listen(_socketfd, MAX_CONNECTIONS) == -1) {
 		throw Cexception();
 	}
 }
 
+/**
+ *  @brief Closes the socket.
+ */
 void TCPSocketPassive::close_fd() {
 	close(_socketfd);
 }
 
+/**
+ *  @brief Accepts a new connection and returns the new socketfd.
+ *
+ *  @return The new socketfd.
+ */
 int TCPSocketPassive::accept_connection() {
 	int new_socketfd;
 	int addrlen = sizeof(_address);
@@ -47,4 +63,9 @@ int TCPSocketPassive::accept_connection() {
 	return new_socketfd;
 }
 
+/**
+ *  @brief Getter for the socketfd
+ *
+ *  @return The socket's socketfd.
+ */
 int TCPSocketPassive::get_socket_fd(void) const { return _socketfd; }
