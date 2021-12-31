@@ -11,44 +11,44 @@
 #include <signal.h>
 #include <cstdlib>
 
-void	handler_signal(int num);
 
-class   TCPServer
-{
-    public:
+void handler_signal(int num);
 
-        TCPServer(std::string port);
-        ~TCPServer();
+class TCPServer {
+	public:
 
-        void    start();
-        void    stop();
+		TCPServer(std::string port);
+		~TCPServer();
 
-        class ErrorSignalException : public std::exception {
-            public:
-                virtual const char *    what() const throw();
-        };
+		void start();
+		void stop();
 
-        class ErrorPollException : public std::exception {
-            public:
-                virtual const char *    what() const throw();
-        };
+		class ErrorSignalException : public std::exception {
+			public:
+				virtual const char * what() const throw();
+		};
 
-    private:
+		class ErrorPollException : public std::exception {
+			public:
+				virtual const char * what() const throw();
+		};
 
-        TCPSocketPassive            _socket;
-        std::vector<struct pollfd>  _pollfds;
-        std::map<int, TCPClient*>   _clients;
+	private:
 
-        void    _run();
-        void    _add_clients();
-        void    _add_client(int socket_fd);
-        void    _remove_client(int socket_fd);
-        void    _send_to_all(std::string str);
-        void    _handle_reception(std::vector<struct pollfd>::iterator & it);
+		TCPSocketPassive _socket;
+		std::vector<struct pollfd> _pollfds;
+		std::map<int, TCPClient *> _clients;
 
-        TCPServer();
-        TCPServer(TCPServer const & cpy);
-        TCPServer & operator=(TCPServer const & rhs);
+		void _run();
+		void _add_clients();
+		void _add_client(int socket_fd);
+		void _remove_client(int socket_fd);
+		void _send_to_all(std::string str);
+		void _handle_reception(std::vector<struct pollfd>::iterator & it);
+
+		TCPServer();
+		TCPServer(TCPServer const & cpy);
+		TCPServer & operator=(TCPServer const & rhs);
 };
 
 #endif

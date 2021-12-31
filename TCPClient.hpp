@@ -6,6 +6,7 @@
 #include "TCPSocketActive.hpp"
 #include "TCPSocket.hpp"
 
+
 class TCPClient {
 
 	public:
@@ -13,14 +14,14 @@ class TCPClient {
 		TCPClient(int socketfd);
 		virtual ~TCPClient();
 
-		std::list<std::string>	receive_from();
-		void					send_to(std::string message);
-    	TCPSocketActive			get_socket(void) const;
+		std::list<std::string> receive_from();
+		void send_to(std::string message);
+		TCPSocketActive get_socket(void) const;
 
 	private:
 
-		std::string		_buffer;
-		TCPSocketActive	_socket;
+		std::string _buffer;
+		TCPSocketActive _socket;
 };
 
 

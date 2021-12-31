@@ -26,14 +26,14 @@ TCPClient::~TCPClient() {
  *
  *  @return A list of the messages received.
  */
-std::list <std::string> TCPClient::receive_from() {
+std::list<std::string> TCPClient::receive_from() {
 	std::string received_data = _socket.receive_data();
 	_buffer += received_data;
 
 	size_t pos;
 	std::string substring;
 	std::string delimiter = "\n"; //"\r\n"; // CRLF
-	std::list <std::string> messages;
+	std::list<std::string> messages;
 	while ((pos = _buffer.find(delimiter)) != std::string::npos) {
 		substring = _buffer.substr(0, pos);
 		messages.push_back(substring);
@@ -51,4 +51,4 @@ void TCPClient::send_to(std::string message) {
 	_socket.send_data(message);
 }
 
-TCPSocketActive     TCPClient::get_socket(void) const {return _socket;}
+TCPSocketActive TCPClient::get_socket(void) const { return _socket; }
