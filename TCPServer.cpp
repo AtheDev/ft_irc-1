@@ -145,16 +145,16 @@ void TCPServer::_handle_reception(std::vector<struct pollfd>::iterator & it) {
 
 	std::map<int, TCPClient *>::iterator it_client = _clients.find(it->fd);
 	std::list<std::string> messages = it_client->second->receive_from();
-	std::list<std::string>::iterator it_list = messages.begin();
+	std::list<std::string>::iterator it_messages = messages.begin();
 	// ****************** A changer permet de capter une déconnexion *********************
 	std::string q = "quit";
-	if (*it_list == q) {
+	if (*it_messages == q) {
 		std::cout << "*********** DECONNEXION CLIENT ***************" << std::endl;
 		_remove_client(it->fd);
 	} else {
 		// ****************** A changer *********************
-		for (; it_list != messages.end(); it_list++) {
-			_send_to_all(*it_list);
+		for (; it_messages != messages.end(); it_messages++) {
+			_send_to_all(*it_messages);
 		}
 	}
 	messages.clear();
