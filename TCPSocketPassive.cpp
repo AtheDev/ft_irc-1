@@ -36,7 +36,6 @@ void TCPSocketPassive::start() {
 }
 
 void TCPSocketPassive::close_fd() {
-	//Close socket how?
 	close(_socketfd);
 }
 

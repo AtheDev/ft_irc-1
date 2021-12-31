@@ -7,11 +7,10 @@ TCPSocketActive::TCPSocketActive(int socketfd) {
 TCPSocketActive::~TCPSocketActive() {}
 
 void TCPSocketActive::start() {
-	fcntl(_socketfd, F_SETFL, O_NONBLOCK); //Does this need to be after connect?
+	fcntl(_socketfd, F_SETFL, O_NONBLOCK);
 }
 
 void TCPSocketActive::close_fd() {
-	//Close socket how?
 	close(_socketfd);
 }
 
