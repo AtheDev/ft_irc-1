@@ -51,4 +51,4 @@ void TCPClient::send_to(std::string message) {
 	_socket.send_data(message);
 }
 
-TCPSocketActive TCPClient::get_socket(void) const { return _socket; }
+TCPSocketActive & TCPClient::get_socket() { return _socket; }

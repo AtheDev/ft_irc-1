@@ -1,19 +1,4 @@
 #include "TCPSocketActive.hpp"
-#include "TCPSocketPassive.hpp"
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-
-#define MAX_CONNECTIONS 42
-#define BUFFER_SIZE 65535
-
-//FORBIDDEN EXTERNAL FUNCTIONS
-#include <string.h>
-#include <errno.h>
-//FORBIDDEN EXTERNAL FUNCTIONS
 
 TCPSocketActive::TCPSocketActive(int socketfd) {
 	_socketfd = socketfd;

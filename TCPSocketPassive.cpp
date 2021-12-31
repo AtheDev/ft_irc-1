@@ -1,25 +1,11 @@
 #include "TCPSocketPassive.hpp"
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-
-#define MAX_CONNECTIONS 42
-#define BUFFER_SIZE 65535
-
-//FORBIDDEN EXTERNAL FUNCTIONS
-#include <string.h>
-#include <errno.h>
-//FORBIDDEN EXTERNAL FUNCTIONS
 
 /**
  *  @brief Exception class for C function errors that return -1 and edit errno
  *
  *  @return The raised error's string
  */
-
 const char * TCPSocket::Cexception::what() const throw() { return strerror(errno); }
 
 TCPSocketPassive::TCPSocketPassive(int port) {

@@ -1,5 +1,5 @@
 #ifndef TCPSERVER_HPP
-# define TCPSERVER_HPP
+#define TCPSERVER_HPP
 
 #include <csignal>
 #include <cstdlib>

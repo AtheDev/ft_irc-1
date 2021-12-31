@@ -16,7 +16,7 @@ class TCPClient {
 
 		std::list<std::string> receive_from();
 		void send_to(std::string message);
-		TCPSocketActive get_socket(void) const;
+		TCPSocketActive & get_socket();
 
 	private:
 

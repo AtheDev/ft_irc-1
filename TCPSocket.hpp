@@ -1,11 +1,19 @@
 #ifndef TCPSOCKET_HPP
-# define TCPSOCKET_HPP
+#define TCPSOCKET_HPP
 
-# include <netinet/in.h>
-# include <sys/types.h>
-# include <sys/socket.h>
-# include <netdb.h>
-# include <string>
+#include <cstring>
+#include <cerrno>
+#include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <string>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+
+#define MAX_CONNECTIONS 42
+#define BUFFER_SIZE 65535
 
 
 class TCPSocket {
@@ -26,6 +34,7 @@ class TCPSocket {
 		struct sockaddr_in _address;
 
 	private:
+
 
 };
 
