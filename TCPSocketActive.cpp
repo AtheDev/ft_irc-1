@@ -7,16 +7,12 @@
 #include <fcntl.h>
 
 #define MAX_CONNECTIONS 42
-#define BUFFER_SIZE 64
+#define BUFFER_SIZE 65535
 
 //FORBIDDEN EXTERNAL FUNCTIONS
 #include <string.h>
 #include <errno.h>
 //FORBIDDEN EXTERNAL FUNCTIONS
-
-/*
-**	This is to handle c functions that edit errno global variable
-*/
 
 TCPSocketActive::TCPSocketActive(int socketfd)
 {
@@ -53,10 +49,8 @@ std::string
 void
 	TCPSocketActive::send_data(std::string s)
 {
-    std::string n = "\n";
+	s += "\n";
 	if (send(_socketfd, s.c_str(), s.size(), 0) == -1)
-		throw Cexception();
-	if (send(_socketfd, n.c_str(), n.size(), 0) == -1)
 		throw Cexception();
 }
 

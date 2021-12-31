@@ -13,9 +13,11 @@
 #include <errno.h>
 //FORBIDDEN EXTERNAL FUNCTIONS
 
-/*
-**	This is to handle c functions that edit errno global variable
-*/
+/**
+ *  @brief Exception class for C function errors that return -1 and edit errno
+ *
+ *  @return The raised error's string
+ */
 
 const char*
 	TCPSocket::Cexception::what() const throw() { return strerror(errno); }
