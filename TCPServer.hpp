@@ -1,15 +1,18 @@
 #ifndef TCPSERVER_HPP
 # define TCPSERVER_HPP
 
-#include <vector>
-#include <map>
+#include <csignal>
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
+#include <map>
 #include <poll.h>
+#include <vector>
 
+
+#include "TCPSocket.hpp"
 #include "TCPSocketPassive.hpp"
 #include "TCPClient.hpp"
-#include <signal.h>
-#include <cstdlib>
 
 
 void handler_signal(int num);
@@ -17,7 +20,7 @@ void handler_signal(int num);
 class TCPServer {
 	public:
 
-		TCPServer(std::string port);
+		TCPServer(const std::string & port);
 		~TCPServer();
 
 		void start();

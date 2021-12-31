@@ -1,13 +1,12 @@
 #include "TCPServer.hpp"
-#include "TCPSocket.hpp"
 
 
 /**
- *  @brief Buils the TCPServer and initializes its socket.
+ *  @brief Builds the TCPServer and initializes its socket.
  *
  *  @param port Port number on which your server will accept incoming connections.
  */
-TCPServer::TCPServer(std::string port) : _socket(atoi(port.c_str())) {}
+TCPServer::TCPServer(const std::string& port) : _socket(atoi(port.c_str())) {}
 
 /**
  *  @brief Destroys the TCPServer.
@@ -59,7 +58,7 @@ void TCPServer::stop(void) {
  */
 void TCPServer::_run(void) {
 
-	while (1) {
+	while (true) {
 		if (poll(&(*_pollfds.begin()), _pollfds.size(), -1) == -1) {
 			throw ErrorPollException();
 		}
@@ -145,8 +144,8 @@ void TCPServer::_remove_client(int socket_fd) {
 void TCPServer::_handle_reception(std::vector<struct pollfd>::iterator & it) {
 
 	std::map<int, TCPClient *>::iterator it_client = _clients.find(it->fd);
-	std::list<std::string> msg = it_client->second->receive_from();
-	std::list<std::string>::iterator it_list = msg.begin();
+	std::list<std::string> messages = it_client->second->receive_from();
+	std::list<std::string>::iterator it_list = messages.begin();
 	// ****************** A changer permet de capter une déconnexion *********************
 	std::string q = "quit";
 	if (*it_list == q) {
@@ -154,11 +153,11 @@ void TCPServer::_handle_reception(std::vector<struct pollfd>::iterator & it) {
 		_remove_client(it->fd);
 	} else {
 		// ****************** A changer *********************
-		for (; it_list != msg.end(); it_list++) {
+		for (; it_list != messages.end(); it_list++) {
 			_send_to_all(*it_list);
 		}
 	}
-	msg.clear();
+	messages.clear();
 }
 
 /**
