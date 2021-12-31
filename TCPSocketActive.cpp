@@ -51,4 +51,9 @@ void TCPSocketActive::send_data(std::string data) {
 	}
 }
 
+/**
+ *  @brief Getter for the socketfd
+ *
+ *  @return The socket's socketfd.
+ */
 int TCPSocketActive::get_socket_fd(void) const { return _socketfd; }
