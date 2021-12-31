@@ -1,19 +1,33 @@
 #include "TCPSocketActive.hpp"
 
+/**
+ *  @brief Constructs a TCPSocketActive given its accepted socketfd.
+ */
 TCPSocketActive::TCPSocketActive(int socketfd) {
 	_socketfd = socketfd;
 }
 
 TCPSocketActive::~TCPSocketActive() {}
 
+/**
+ *  @brief Starts the socket by putting it in non-blocking mode.
+ */
 void TCPSocketActive::start() {
 	fcntl(_socketfd, F_SETFL, O_NONBLOCK);
 }
 
+/**
+ *  @brief Closes the socket's socketfd.
+ */
 void TCPSocketActive::close_fd() {
 	close(_socketfd);
 }
 
+/**
+ *  @brief Receives TCP data from this socket and returns a string of it.
+ *
+ *  @return The received data as a string.
+ */
 std::string TCPSocketActive::receive_data() {
 	char buf[BUFFER_SIZE];
 
@@ -21,13 +35,18 @@ std::string TCPSocketActive::receive_data() {
 	if (recv(_socketfd, &buf, BUFFER_SIZE, 0) == -1) {
 		throw Cexception();
 	}
-	std::string r(buf);
-	return r;
+	std::string data(buf);
+	return data;
 }
 
-void TCPSocketActive::send_data(std::string s) {
-	s += "\n";
-	if (send(_socketfd, s.c_str(), s.size(), 0) == -1) {
+/**
+ *  @brief Sends TCP data to this socket.
+ *
+ *  @param data The data to be sent.
+ */
+void TCPSocketActive::send_data(std::string data) {
+	data += "\n";
+	if (send(_socketfd, data.c_str(), data.size(), 0) == -1) {
 		throw Cexception();
 	}
 }
