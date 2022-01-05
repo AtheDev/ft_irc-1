@@ -1,19 +1,42 @@
 #include "TCPMessage.hpp"
 
+TCPMessage::TCPMessage(int sender, std::string & payload) {
+	_sender = sender;
+	_receivers = std::vector<int>();
+	_payload = payload;
+}
 
-TCPMessage::TCPMessage(const int sender, const std::vector<int>& receivers, std::string payload):
-	_sender(sender), _receivers(receivers), _payload(payload)
-{}
+TCPMessage::TCPMessage(std::vector<int> & receivers, std::string & payload) {
+	_sender = 0;
+	_receivers = receivers;
+	_payload = payload;
+}
+
+TCPMessage::TCPMessage(int sender, std::vector<int> & receivers, std::string & payload) {
+	_sender = sender;
+	_receivers = receivers;
+	_payload = payload;
+}
+
+TCPMessage::TCPMessage(const TCPMessage & other) {
+	if (this == &other) {
+		return ;
+	}
+	_sender = other._sender;
+	_receivers = other._receivers;
+	_payload = other._payload;
+}
+
 
 int TCPMessage::get_sender() const {
 	return _sender;
 }
 
-std::vector<int> TCPMessage::get_receivers() const {
+const std::vector<int> & TCPMessage::get_receivers() const {
 	return _receivers;
 }
 
-std::string TCPMessage::get_payload() const {
+const std::string & TCPMessage::get_payload() const {
 	return _payload;
 }
 

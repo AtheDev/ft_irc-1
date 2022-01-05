@@ -186,7 +186,7 @@ void TCPServer::_handle_reception(std::vector<struct pollfd>::iterator & it) {
 		std::list<std::string> messages = it_client->second->receive_from();
 		std::list<std::string>::iterator it_message = messages.begin();
 		for (; it_message != messages.end(); it_message++) {
-			TCPMessage new_message = TCPMessage(it->fd, std::vector<int>(),*it_message);
+			TCPMessage new_message = TCPMessage(it->fd, *it_message);
 			messages_received.push_back(new_message);
 			std::cout << "Message received: " << new_message << std::endl;
 	}
