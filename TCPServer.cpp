@@ -50,6 +50,18 @@ void TCPServer::stop(void) {
 	std::cout << ("\n\033[0;34mServer stopped\033[0m") << std::endl;
 }
 
+/**
+ *  @brief Updates the server once.
+ *
+ *  @details
+ *  1. Sends the messages stored in messages_to_be_sent\n
+ *  2. Polls all socketfds.\n
+ *  3. If messages are received, they are stored in messages_received.\n
+ *  4. If new clients connected, they are stored in new_clients.\n
+ *  5. If clients disconnected, they are stored in disconnected_clients.\n
+ *  Note : messages_received, new_clients and disconnected_clients are cleared when update is called
+ *  and messages_to_be_sent is cleared after the messages were all sent.
+ */
 void TCPServer::update() {
 	new_clients.clear();
 	disconnected_clients.clear();
