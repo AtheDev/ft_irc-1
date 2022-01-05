@@ -1,29 +1,44 @@
 #ifndef IRCCLIENT_HPP
 #define IRCCLIENT_HPP
 
-#include <iostream>
+#include <string>
+#include <algorithm>
 #include <vector>
 #include <sys/socket.h>
 #include <netdb.h>
 
+enum    e_user_mode {
+
+    MODE_A = (1U << 1),
+    MODE_I = (1U << 2),
+    MODE_W = (1U << 3),
+    MODE_O_MIN = (1U << 4),
+    MODE_O_MAJ = (1U << 5),
+    MODE_S = (1U << 6)
+};
+
 class IRCClient {
     public:
 
-        IRCClient(int fd, struct sockaddr_in addr);
+        IRCClient(int fd);
         ~IRCClient();
 
         std::string const &                 get_nickname(void) const;
         std::string const &                 get_username(void) const;
         std::string const &                 get_realname(void) const;
-        std::string const &                 get_mode(void) const;
-        std::vector<std::string> const &    get_channels(void) const;
+        short const &                       get_mode(void) const;
+        std::vector<std::string>            get_channels(void) const;
 
         void    set_nickname(std::string nickname);
         void    set_username(std::string username);
         void    set_realname(std::string realname);
-        void    set_mode(std::string mode);
-        void    set_channels(std::string channel);
         void    set_password(std::string password);
+        void    set_mode(char sign, char flag);
+
+        void    join_channel(std::string channel);
+        void    quit_channel(std::string channel);
+        bool    is_in_channel(std::string channel) const;
+
 
     private:
 
@@ -32,13 +47,12 @@ class IRCClient {
         std::string _nickname;
         std::string _username;
         std::string _realname;
-        std::string _mode;
-        std::string _hostname;
         std::string _password;
+        short       _mode;
+    //TODO: to be removed?
+        std::string _hostname;
 
         std::vector<std::string>    _channels;
-
-        bool    _is_in_this_channel(std::string channel) const;
 
         IRCClient();
         IRCClient(IRCClient const & cpy);
