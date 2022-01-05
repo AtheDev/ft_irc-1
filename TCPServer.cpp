@@ -16,7 +16,7 @@ TCPServer::~TCPServer() {}
 /**
  *  @brief Initialize the pollfd structure of the TCPServer and launch the server.
  */
-void TCPServer::start(bool run) {
+void TCPServer::start() {
 
 	signal(SIGINT, handler_signal);
 	signal(SIGQUIT, handler_signal);
@@ -30,9 +30,6 @@ void TCPServer::start(bool run) {
 
 	std::cout << "\033[0;34m" << "Server opened" << "\033[0m" << std::endl;
 	_socket.start();
-	if (run) {
-		_run();
-	}
 }
 
 /**
@@ -53,44 +50,9 @@ void TCPServer::stop(void) {
 	std::cout << ("\n\033[0;34mServer stopped\033[0m") << std::endl;
 }
 
-/**
- *  @brief Function that starts an infinite loop to keep the server open
- *  until it receives a closing signal.
- *  Allows to add new TCPClient, to delete a TCPClient when it disconnects
- *	and to resend incoming messages.
- */
-void TCPServer::_run(void) {
-
-	while (true) {
-		if (poll(&(*_pollfds.begin()), _pollfds.size(), -1) == -1) {
-			throw ErrorPollException();
-		}
-		std::vector<struct pollfd>::iterator it = _pollfds.begin();
-		std::vector<struct pollfd>::iterator ite = _pollfds.end();
-		for (; it != ite; it++) {
-			if (it->revents == POLLIN) {
-				if (it->fd == _socket.get_socket_fd()) {
-					_add_clients();
-				} else {
-					_handle_reception(it);
-					if ((it + 1) == ite) {
-						break;
-					}
-				}
-			} else if (it->revents == POLLHUP && it->fd != _socket.get_socket_fd()) {
-				std::cout << "Client n°" << it->fd << " disconnected." << std::endl;
-			}
-		}
-		it = _pollfds.begin();
-		for (; it != _pollfds.end(); it++) {
-			it->revents = 0;
-		}
-	}
-}
-
-
 void TCPServer::update() {
 	new_clients.clear();
+	disconnected_clients.clear();
 	messages_received.clear();
 	_send_messages();
 	messages_to_be_sent.clear();
@@ -171,6 +133,7 @@ void TCPServer::_remove_client(int socket_fd) {
 	_clients[socket_fd]->get_socket().close_fd();
 	delete _clients[socket_fd];
 	_clients.erase(socket_fd);
+	disconnected_clients.push_back(socket_fd);
 	std::cout << "\033[0;32m" << "Client n°" << socket_fd << " disconnected." << "\033[0m" << std::endl;
 }
 
@@ -217,6 +180,7 @@ void TCPServer::_send_message(TCPMessage & message) {
 	for (; it_receiver != receivers.end(); it_receiver++) {
 		_clients[*it_receiver]->send_to(message.get_payload());
 	}
+	std::cout << "Message(s) sent: " << message << std::endl;
 }
 
 const char * TCPServer::ErrorSignalException::what() const throw() {

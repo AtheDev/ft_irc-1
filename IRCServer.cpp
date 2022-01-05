@@ -6,7 +6,7 @@ IRCServer::IRCServer(std::string port): _tcp_server(port) {}
 IRCServer::~IRCServer() {}
 
 void IRCServer::start() {
-	_tcp_server.start(false);
+	_tcp_server.start();
 	_run();
 }
 
