@@ -1,6 +1,7 @@
 #ifndef TCPSERVER_HPP
 #define TCPSERVER_HPP
 
+#include <algorithm>
 #include <csignal>
 #include <cstdlib>
 #include <cstring>

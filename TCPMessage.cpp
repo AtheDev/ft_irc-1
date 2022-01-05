@@ -41,7 +41,7 @@ const std::string & TCPMessage::get_payload() const {
 }
 
 std::ostream & operator<<(std::ostream & os, const TCPMessage & message) {
-	os << "TCPMessage [sender: " << message._sender << "]";
+	os << "TCPMessage [sender: " << message._sender << "] ";
 	os << "[receivers: ";
 	std::vector<int> receivers = message.get_receivers();
 	std::vector<int>::iterator it_receiver = receivers.begin();

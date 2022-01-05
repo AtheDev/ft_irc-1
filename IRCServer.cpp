@@ -19,7 +19,11 @@ void IRCServer::_run() {
 	while (true) {
 		// Préparer les messages à envoyer
 		// Appel à update
-		_tcp_server.update();
+		try {
+			_tcp_server.update();
+		} catch (TCPServer::ErrorSignalException & e) {
+			throw e;
+		}
 		// Récupérer les nouveaux clients
 		// Récupérer les nouveaux messages reçus.
 	}
