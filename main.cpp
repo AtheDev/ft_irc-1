@@ -1,3 +1,4 @@
+#include "IRCServer.hpp"
 #include "TCPServer.hpp"
 #include "TCPSocketPassive.hpp"
 #include "TCPSocketActive.hpp"
@@ -15,13 +16,12 @@ int main(int ac, char **av)
 {
     if (ac != 3)
     {
-        std::cout << "./ircserv <port> <password>" << std::endl;
-        return 1;
-    }
-    TCPServer server(static_cast<std::string>(av[1]));
-    try {
-
-        server.start();
+		std::cout << "./ircserv <port> <password>" << std::endl;
+		return 1;
+	}
+	IRCServer server(static_cast<std::string>(av[1]));
+	try {
+		server.start();
     }
     catch (TCPServer::ErrorPollException & e) {
         std::cout << e.what() << std::endl;

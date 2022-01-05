@@ -6,13 +6,16 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <list>
 #include <poll.h>
+#include <queue>
 #include <vector>
 
 
+#include "TCPClient.hpp"
 #include "TCPSocket.hpp"
 #include "TCPSocketPassive.hpp"
-#include "TCPClient.hpp"
+#include "TCPMessage.hpp"
 
 
 void handler_signal(int num);
@@ -23,8 +26,13 @@ class TCPServer {
 		TCPServer(const std::string & port);
 		~TCPServer();
 
-		void start();
+		void start(bool run=false);
+		void update();
 		void stop();
+
+		std::vector<int> new_clients;
+		std::list<TCPMessage> messages_received;
+		std::list<TCPMessage> messages_to_be_sent;
 
 		class ErrorSignalException : public std::exception {
 			public:
@@ -37,7 +45,6 @@ class TCPServer {
 		};
 
 	private:
-
 		TCPSocketPassive _socket;
 		std::vector<struct pollfd> _pollfds;
 		std::map<int, TCPClient *> _clients;
@@ -46,7 +53,8 @@ class TCPServer {
 		void _add_clients();
 		void _add_client(int socket_fd);
 		void _remove_client(int socket_fd);
-		void _send_to_all(std::string str);
+		void _send_messages();
+		void _send_message(TCPMessage & message);
 		void _handle_reception(std::vector<struct pollfd>::iterator & it);
 
 		TCPServer();
