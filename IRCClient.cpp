@@ -29,12 +29,12 @@ void    IRCClient::set_mode(char sign, char flag) {
     if (sign == '-')
     {
         switch(flag) {
-            case 'a': _mode &= MODE_A;
-            case 'i': _mode &= MODE_I;
-            case 'w': _mode &= MODE_W;
-            case 'o': _mode &= MODE_O_MIN;
-            case 'O': _mode &= MODE_O_MAJ;
-            case 's': _mode &= MODE_S;
+            case 'a': _mode &= ~(MODE_A);
+            case 'i': _mode &= ~(MODE_I);
+            case 'w': _mode &= ~(MODE_W);
+            case 'o': _mode &= ~(MODE_O_MIN);
+            case 'O': _mode &= ~(MODE_O_MAJ);
+            case 's': _mode &= ~(MODE_S);
             default: break;
         }
     }
