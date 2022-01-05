@@ -51,11 +51,12 @@ std::list<std::string> TCPClient::receive_from() {
 }
 
 /**
- *  @brief Sends a message to the client.
+ *  @brief Sends a message to the client (and adds CRLF to terminate the message).
  *
  *  @param message  The message to be sent.
  */
 void TCPClient::send_to(std::string message) {
+	message += "\r\n";
 	_socket.send_data(message);
 }
 
