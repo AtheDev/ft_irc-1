@@ -4,9 +4,9 @@
 
 #include "TCPServer.hpp"
 #include "IRCMessage.hpp"
+#include "IRCClient.hpp"
 
-#define PASS "PASS"
-#define NICK "NICK"
+class IRCMessage;
 
 class IRCServer {
 	public:
@@ -16,22 +16,34 @@ class IRCServer {
 		void start();
 		void stop();
 
+		std::map<int, IRCClient *>  get_clients(void) const;
+		std::string const &			get_servername(void) const;
+		std::string const &			get_version(void) const;
+
+		std::map<int, IRCClient *>::const_iterator	find_nickname(std::string & nickname) const;
+
+
 	private:
 		TCPServer _tcp_server;
+		std::string	_servername;
+		std::string	_version;
 		std::map<std::string, void(IRCServer::*)(IRCMessage & message)>	_commands;
 		std::map<int, IRCClient *>	_clients;
 
-		void _run();
+
+		void	_run();
 		void	_add_clients(std::vector<int> & new_clients);
+		void	_remove_clients(std::vector<int> & disconnected_clients);
 
 		void	_execute_command(IRCMessage & message);
-		void	_execute_cap(IRCMessage & message);
 		void	_execute_pass(IRCMessage & message);
 		void	_execute_nick(IRCMessage & message);
 		void	_execute_user(IRCMessage & message);
+		void	_execute_quit(IRCMessage & message);
 		void	_execute_join(IRCMessage & message);
 		void	_execute_privmsg(IRCMessage & message);
 
+		bool	_check_nickname_in_use(std::string & nickname) const;
 
 };
 

@@ -1,6 +1,6 @@
 #include "IRCMessage.hpp"
 
-IRCMessage::IRCMessage(std::string line)
+IRCMessage::IRCMessage(int fd, std::string line): _fd(fd)
 {std::cout << "line : " << line << std::endl;
 	size_t	pos1 = 0, pos2 = 0, pos_crlf;
 
@@ -48,6 +48,29 @@ IRCMessage::IRCMessage(std::string line)
 	_params.push_back(line.substr(pos1));
 }
 
+IRCMessage::IRCMessage(int reply, int fd, const IRCServer & server, const IRCMessage & message) {
+
+    std::string b("DATE"), b1("USER_MODES"), b2("CHANNEL_MODES");
+    
+    switch (reply) {
+        case ERR_ALREADYREGISTRED: _reply = ERR_ALREADYREGISTRED();
+        case ERR_NICKNAMEINUSE: _reply = ERR_NICKNAMEINUSE(message.get_params()[0]);
+        case ERR_NICKCOLLISION: {
+                                    std::map<int, IRCClient *>::const_iterator it = server.find_nickname(message.get_params()[0]);
+                                    _reply = ERR_NICKCOLLISION(message.get_params()[0], it->second->get_username(), it->second->get_hostname());
+                                }
+        case RPL_WELCOME: _reply = RPL_WELCOME(server.get_clients()[fd]->get_nickname(), server.get_clients()[fd]->get_username(), server.get_clients()[fd]->get_hostname());
+        case RPL_YOURHOST: _reply = RPL_YOURHOST(server.get_servername(), server.get_version());
+        case RPL_CREATED: _reply = RPL_CREATED(b);
+        case RPL_MYINFO: _reply = RPL_MYINFO(server.get_servername(), server.get_version(), b1, b2);
+        default: break;
+    }
+}
+
+/*TCPMessage &    IRCMessage::push_to_tcp_message(void) {
+    
+}*/
+
 IRCMessage::~IRCMessage() {}
 
 bool
@@ -65,6 +88,9 @@ std::string
 std::vector<std::string>
 	IRCMessage::get_params() const { return _params; }
 
+
+int
+	IRCMessage::get_sender() const { return _fd; }
 
 void IRCMessage::set_command(std::string cmd) { _command = cmd;}
 

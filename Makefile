@@ -7,7 +7,8 @@ SRCS_SERVER =	main.cpp \
 				TCPSocketActive.cpp \
 				TCPSocketPassive.cpp \
 				TCPMessage.cpp \
-				IRCMessage.cpp
+				IRCMessage.cpp \
+				IRCClient.cpp
 
 
 OBJS_SERVER = $(SRCS_SERVER:.cpp=.o)
