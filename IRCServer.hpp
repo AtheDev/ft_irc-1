@@ -3,7 +3,10 @@
 
 
 #include "TCPServer.hpp"
+#include "IRCMessage.hpp"
 
+#define PASS "PASS"
+#define NICK "NICK"
 
 class IRCServer {
 	public:
@@ -15,8 +18,18 @@ class IRCServer {
 
 	private:
 		TCPServer _tcp_server;
+		std::map<std::string, void(IRCServer::*)(IRCMessage & message)>	_commands;
 
 		void _run();
+
+		void	_execute_command(IRCMessage & message);
+		void	_execute_cap(IRCMessage & message);
+		void	_execute_pass(IRCMessage & message);
+		void	_execute_nick(IRCMessage & message);
+		void	_execute_user(IRCMessage & message);
+		void	_execute_join(IRCMessage & message);
+		void	_execute_privmsg(IRCMessage & message);
+
 };
 
 
