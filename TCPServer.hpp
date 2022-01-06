@@ -1,6 +1,7 @@
 #ifndef TCPSERVER_HPP
 #define TCPSERVER_HPP
 
+#include <algorithm>
 #include <csignal>
 #include <cstdlib>
 #include <cstring>
@@ -26,11 +27,12 @@ class TCPServer {
 		TCPServer(const std::string & port);
 		~TCPServer();
 
-		void start(bool run=false);
+		void start();
 		void update();
 		void stop();
 
 		std::vector<int> new_clients;
+		std::vector<int> disconnected_clients;
 		std::list<TCPMessage> messages_received;
 		std::list<TCPMessage> messages_to_be_sent;
 

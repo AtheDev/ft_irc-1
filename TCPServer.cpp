@@ -16,7 +16,7 @@ TCPServer::~TCPServer() {}
 /**
  *  @brief Initialize the pollfd structure of the TCPServer and launch the server.
  */
-void TCPServer::start(bool run) {
+void TCPServer::start() {
 
 	signal(SIGINT, handler_signal);
 	signal(SIGQUIT, handler_signal);
@@ -30,9 +30,6 @@ void TCPServer::start(bool run) {
 
 	std::cout << "\033[0;34m" << "Server opened" << "\033[0m" << std::endl;
 	_socket.start();
-	if (run) {
-		_run();
-	}
 }
 
 /**
@@ -45,53 +42,32 @@ void TCPServer::stop(void) {
 		std::map<int, TCPClient *>::iterator it = _clients.begin();
 		for (; it != _clients.end(); it++) {
 			it->second->get_socket().close_fd();
-			delete _clients[it->second->get_socket().get_socket_fd()];
+			delete _clients[it->first];
 		}
 		_clients.clear();
 	}
 	_socket.close_fd();
+	std::cout << ("\n\033[0;34mServer stopped\033[0m") << std::endl;
 }
 
 /**
- *  @brief Function that starts an infinite loop to keep the server open
- *  until it receives a closing signal.
- *  Allows to add new TCPClient, to delete a TCPClient when it disconnects
- *	and to resend incoming messages.
+ *  @brief Updates the server once.
+ *
+ *  @details
+ *  1. Sends the messages stored in messages_to_be_sent\n
+ *  2. Polls all socketfds.\n
+ *  3. If messages are received, they are stored in messages_received.\n
+ *  4. If new clients connected, they are stored in new_clients.\n
+ *  5. If clients disconnected, they are stored in disconnected_clients.\n
+ *  Note : messages_received, new_clients and disconnected_clients are cleared when update is called
+ *  and messages_to_be_sent is cleared after the messages were all sent.
  */
-void TCPServer::_run(void) {
-
-	while (true) {
-		if (poll(&(*_pollfds.begin()), _pollfds.size(), -1) == -1) {
-			throw ErrorPollException();
-		}
-		std::vector<struct pollfd>::iterator it = _pollfds.begin();
-		std::vector<struct pollfd>::iterator ite = _pollfds.end();
-		for (; it != ite; it++) {
-			if (it->revents == POLLIN) {
-				if (it->fd == _socket.get_socket_fd()) {
-					_add_clients();
-				} else {
-					_handle_reception(it);
-					if ((it + 1) == ite) {
-						break;
-					}
-				}
-			} else if (it->revents == POLLHUP && it->fd != _socket.get_socket_fd()) {
-				std::cout << "Client n°" << it->fd << " disconnected." << std::endl;
-			}
-		}
-		it = _pollfds.begin();
-		for (; it != _pollfds.end(); it++) {
-			it->revents = 0;
-		}
-	}
-}
-
-
 void TCPServer::update() {
 	new_clients.clear();
+	disconnected_clients.clear();
 	messages_received.clear();
 	_send_messages();
+	messages_to_be_sent.clear();
 
 	if (poll(&(*_pollfds.begin()), _pollfds.size(), -1) == -1) {
 		throw ErrorPollException();
@@ -100,27 +76,25 @@ void TCPServer::update() {
 	std::vector<struct pollfd>::iterator it = _pollfds.begin();
 	std::vector<struct pollfd>::iterator ite = _pollfds.end();
 	for (; it != ite; it++) {
+		if (it->revents == POLLHUP && it->fd != _socket.get_socket_fd()) {
+			//TODO: This never seems to happen. Why ?
+			_remove_client(it->fd);
+		}
 		if (it->revents == POLLIN) {
 			if (it->fd == _socket.get_socket_fd()) {
 				_add_clients();
 			} else {
 				_handle_reception(it);
 			}
-		} else if (it->revents == POLLHUP && it->fd != _socket.get_socket_fd()) {
-			std::cout << "Client n°" << it->fd << " disconnected." << std::endl;
-			//TODO: We need to manage TCP disconnection !
 		}
-	}
-
-	//TODO: Do we really need to set pollfds to 0 ?
-	it = _pollfds.begin();
-	for (; it != _pollfds.end(); it++) {
-		it->revents = 0;
 	}
 }
 
 /**
- *  @brief Starts a loop to accept all incoming connections and create new TCPClients.
+ *  @brief Loop to accept all incoming connections and create new TCPClients.
+ *
+ *  @details
+ *  Also adds the new clients to new_clients for connection management outside the class.
  */
 void TCPServer::_add_clients(void) {
 	int new_fd;
@@ -152,7 +126,6 @@ void TCPServer::_add_client(int socket_fd) {
 	new_pollfd.revents = 0;
 	_pollfds.push_back(new_pollfd);
 	new_clients.push_back(socket_fd);
-
 	std::cout << "\033[0;32m" << "Client n°" << socket_fd << " connected." << "\033[0m" << std::endl;
 }
 
@@ -162,18 +135,18 @@ void TCPServer::_add_client(int socket_fd) {
  *  @param socket_fd Corresponds to the fd of the TCPClient socket that disconnects
  */
 void TCPServer::_remove_client(int socket_fd) {
-	std::vector<struct pollfd>::iterator it = _pollfds.begin();
-	for (; it != _pollfds.end(); it++) {
-		if (it->fd == socket_fd) {
-			_pollfds.erase(it);
+	std::vector<struct pollfd>::iterator it_pollfd = _pollfds.begin();
+	for (; it_pollfd != _pollfds.end(); it_pollfd++) {
+		if (it_pollfd->fd == socket_fd) {
+			_pollfds.erase(it_pollfd);
 			break;
 		}
 	}
 	_clients[socket_fd]->get_socket().close_fd();
 	delete _clients[socket_fd];
 	_clients.erase(socket_fd);
+	disconnected_clients.push_back(socket_fd);
 	std::cout << "\033[0;32m" << "Client n°" << socket_fd << " disconnected." << "\033[0m" << std::endl;
-
 }
 
 /**
@@ -182,16 +155,21 @@ void TCPServer::_remove_client(int socket_fd) {
  *  @param socket_fd Corresponds to the fd of the TCPClient socket that disconnects
  */
 void TCPServer::_handle_reception(std::vector<struct pollfd>::iterator & it) {
-		std::map<int, TCPClient *>::iterator it_client = _clients.find(it->fd);
-		std::list<std::string> messages = it_client->second->receive_from();
-		std::list<std::string>::iterator it_message = messages.begin();
-		for (; it_message != messages.end(); it_message++) {
-			TCPMessage new_message = TCPMessage(it->fd, *it_message);
-			messages_received.push_back(new_message);
-			std::cout << "Message received: " << new_message << std::endl;
+	std::map<int, TCPClient *>::iterator it_client = _clients.find(it->fd);
+	std::list<std::string> messages;
+	try {
+		messages = it_client->second->receive_from();
+	} catch (TCPClient::DisconnectionException & e) {
+		_remove_client(it->fd);
+		return;
+	}
+	std::list<std::string>::iterator it_message = messages.begin();
+	for (; it_message != messages.end(); it_message++) {
+		TCPMessage new_message = TCPMessage(it->fd, *it_message);
+		messages_received.push_back(new_message);
+		std::cout << "Message received: " << new_message << std::endl;
 	}
 }
-
 
 /**
  *  @brief Sends all messages stored in messages_to_be_sent then clears them
@@ -201,11 +179,12 @@ void TCPServer::_send_messages() {
 	for (; it_message != messages_to_be_sent.end(); it_message++) {
 		_send_message(*it_message);
 	}
-	messages_to_be_sent.clear();
 }
 
 /**
- *  @brief Sends a single message for each of its receivers
+ *  @brief Sends a single message for each of its receivers.
+ *
+ *  @param message The message to be sent.
  */
 void TCPServer::_send_message(TCPMessage & message) {
 	std::vector<int> receivers = message.get_receivers();
@@ -213,6 +192,7 @@ void TCPServer::_send_message(TCPMessage & message) {
 	for (; it_receiver != receivers.end(); it_receiver++) {
 		_clients[*it_receiver]->send_to(message.get_payload());
 	}
+	std::cout << "Message(s) sent: " << message << std::endl;
 }
 
 const char * TCPServer::ErrorSignalException::what() const throw() {

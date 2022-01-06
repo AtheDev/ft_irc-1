@@ -1,5 +1,8 @@
 #include "TCPSocketActive.hpp"
 
+//DEBUG
+#include <iostream>
+
 /**
  *  @brief Constructs a TCPSocketActive given its accepted socketfd.
  */
@@ -20,6 +23,7 @@ void TCPSocketActive::start() {
  *  @brief Closes the socket's socketfd.
  */
 void TCPSocketActive::close_fd() {
+	shutdown(_socketfd, SHUT_RDWR); // ???
 	close(_socketfd);
 }
 
@@ -36,6 +40,9 @@ std::string TCPSocketActive::receive_data() {
 		throw Cexception();
 	}
 	std::string data(buf);
+
+	//std::cout << "TCPSocketActive received : \"" << buf << "\"" << std::endl;
+
 	return data;
 }
 
@@ -45,7 +52,6 @@ std::string TCPSocketActive::receive_data() {
  *  @param data The data to be sent.
  */
 void TCPSocketActive::send_data(std::string data) {
-	data += "\n";
 	if (send(_socketfd, data.c_str(), data.size(), 0) == -1) {
 		throw Cexception();
 	}
