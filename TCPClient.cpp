@@ -24,15 +24,23 @@ TCPClient::~TCPClient() {
  *  Receives partial data from the client, appends it to the internal buffer and if CRLF is found,
  *  creates and returns a list of received messages.
  *
- *  @return A list of the messages received.
+ *  @exception Throws a DisconnectionException if the client disconnected.
+ *
+ *  @return A list of the messages received (with CRLF removed !).
  */
 std::list<std::string> TCPClient::receive_from() {
 	std::string received_data = _socket.receive_data();
-	_buffer += received_data;
 
+	// If the received data is empty, then the client disconnected.
+	if (received_data.empty()) {
+		throw DisconnectionException();
+	}
+
+	// Else append the received data to the buffer and returns all messages ending with CRLF
+	_buffer += received_data;
 	size_t pos;
 	std::string substring;
-	std::string delimiter = "\n"; //"\r\n"; // CRLF
+	std::string delimiter = "\r\n"; // CRLF
 	std::list<std::string> messages;
 	while ((pos = _buffer.find(delimiter)) != std::string::npos) {
 		substring = _buffer.substr(0, pos);
@@ -43,12 +51,17 @@ std::list<std::string> TCPClient::receive_from() {
 }
 
 /**
- *  @brief Sends a message to the client.
+ *  @brief Sends a message to the client (and adds CRLF to terminate the message).
  *
  *  @param message  The message to be sent.
  */
 void TCPClient::send_to(std::string message) {
+	message += "\r\n";
 	_socket.send_data(message);
 }
 
 TCPSocketActive & TCPClient::get_socket() { return _socket; }
+
+const char * TCPClient::DisconnectionException::what() const throw() {
+	return "Client disconnection.";
+}

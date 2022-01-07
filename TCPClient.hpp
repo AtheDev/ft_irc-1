@@ -18,6 +18,11 @@ class TCPClient {
 		void send_to(std::string message);
 		TCPSocketActive & get_socket();
 
+		class DisconnectionException : public std::exception {
+			public:
+				virtual const char * what() const throw();
+		};
+
 	private:
 
 		std::string _buffer;

@@ -1,10 +1,13 @@
 NAME_SERVER = ircserv
 
 SRCS_SERVER =	main.cpp \
+				IRCServer.cpp \
 				TCPServer.cpp \
 				TCPClient.cpp \
+				TCPSocket.cpp \
 				TCPSocketActive.cpp \
-				TCPSocketPassive.cpp
+				TCPSocketPassive.cpp \
+				TCPMessage.cpp
 
 
 OBJS_SERVER = $(SRCS_SERVER:.cpp=.o)
