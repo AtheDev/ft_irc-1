@@ -19,10 +19,10 @@ enum    e_user_mode {
 
 enum    e_user_status {
 
-    UNREGISTRED,
+    UNREGISTERED,
     PASSWORD,
     NICKNAME,
-    REGISTRED
+    REGISTERED
 };
 
 class IRCClient {

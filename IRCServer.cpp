@@ -1,7 +1,7 @@
 #include "IRCServer.hpp"
 
 #include <iostream>
-IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Server VTA !"), _version("42") {
+IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Server VTA !"), _version("42.42") {
 
 	_commands["PASS"] = &IRCServer::_execute_pass;
 	_commands["NICK"] = &IRCServer::_execute_nick;
@@ -47,10 +47,12 @@ void IRCServer::_run() {
 		// Récupérer les nouveaux clients
 		// Récupérer les nouveaux messages reçus.
 
-		IRCMessage tmp(4,"PASS :coucou");
-		tmp.set_command("PASS");
-
-		_execute_command(tmp);
+		std::list<TCPMessage>::iterator it_message = _tcp_server.messages_received.begin();
+		for (; it_message != _tcp_server.messages_received.end(); it_message++)
+		{
+			IRCMessage tmp(it_message->get_sender(), it_message->get_payload());
+			_execute_command(tmp);
+		}
 	}
 }
 
@@ -83,66 +85,62 @@ void IRCServer::_execute_command(IRCMessage & message) {
 
 void IRCServer::_execute_pass(IRCMessage & message) {
 	std::cout << "commande pass : " << message.get_command() << std::endl;
-	if (_clients[message.get_sender()]->get_status() == UNREGISTRED)
+	if (_clients[message.get_sender()]->get_status() == UNREGISTERED)
 	{
 		_clients[message.get_sender()]->set_password(message.get_params()[0]);
 		_clients[message.get_sender()]->set_status(PASSWORD);
 	}
 	else
 	{
-		IRCMessage msg(ERR_ALREADYREGISTRED, message.get_sender(), *this, message);
-		//_tcp_server.message_to_be_sent.push_back(msg.push_to_tcp_message());
+		IRCMessage message_to_send(ERR_ALREADYREGISTRED, *this, message);
+		_tcp_server.messages_to_be_sent.push_back(message_to_send.push_to_tcp_message());
 	}
 }
 
 void IRCServer::_execute_nick(IRCMessage & message) {
 	std::cout << "commande nick: " << message.get_command() << std::endl;
-	if (_check_nickname_in_use(message.get_params()[0]) == true)
+	if (_clients[message.get_sender()]->get_nickname() == message.get_params()[0])
 	{
-		if (_clients[message.get_sender()]->get_nickname() == message.get_params()[0])
-		{
-			IRCMessage msg(ERR_NICKNAMEINUSE, message.get_sender(), *this, message);
-			//_tcp_server.message_to_be_sent.push_back(msg.push_to_tcp_message());
-		}
-		else
-		{
-			IRCMessage msg(ERR_NICKCOLLISION, message.get_sender(), *this, message);
-			//_tcp_server.message_to_be_sent.push_back(msg.push_to_tcp_message());
-		}
+		IRCMessage message_to_send(ERR_NICKNAMEINUSE, *this, message);
+		_tcp_server.messages_to_be_sent.push_back(message_to_send.push_to_tcp_message());
+		return ;
+	}
+	else if (_check_nickname_in_use(message.get_params()[0]) == true)
+	{
+		IRCMessage message_to_send(ERR_NICKCOLLISION, *this, message);
+		_tcp_server.messages_to_be_sent.push_back(message_to_send.push_to_tcp_message());
 		return ;
 	}
 	_clients[message.get_sender()]->set_nickname(message.get_params()[0]);
-	if (_clients[message.get_sender()]->get_status() == PASSWORD)
+	if (_clients[message.get_sender()]->get_status() == PASSWORD
+	|| _clients[message.get_sender()]->get_status() == UNREGISTERED)
 		_clients[message.get_sender()]->set_status(NICKNAME);
 }
 
 void IRCServer::_execute_user(IRCMessage & message) {
 	std::cout << "commande user : " << message.get_command() << std::endl;
-	// réagi selon la RFC 1459
-	// USER <username> <hostname> <servername> <realname>
-	if (_clients[message.get_sender()]->get_status() == REGISTRED)
+
+	if (_clients[message.get_sender()]->get_status() == REGISTERED)
 	{
-		IRCMessage msg(ERR_ALREADYREGISTRED, message.get_sender(), *this, message);
-		//_tcp_server.message_to_be_sent.push_back(msg.push_to_tcp_message());
+		IRCMessage message_to_send(ERR_ALREADYREGISTRED, *this, message);
+		_tcp_server.messages_to_be_sent.push_back(message_to_send.push_to_tcp_message());
 	}
 	else if (_clients[message.get_sender()]->get_status() == NICKNAME)
 	{
 		_clients[message.get_sender()]->set_username(message.get_params()[0]);
-		//TODO: voir si ignorés
 		_clients[message.get_sender()]->set_hostname(message.get_params()[1]);
 		//_clients[message.get_sender()]->set_servername(message.get_params()[2]);
 		_clients[message.get_sender()]->set_realname(message.get_params()[3]);
-		_clients[message.get_sender()]->set_status(REGISTRED);
-		IRCMessage msg1(RPL_WELCOME, message.get_sender(), *this, message);
-		//_tcp_server.message_to_be_sent.push_back(msg1.push_to_tcp_message());
-		IRCMessage msg2(RPL_YOURHOST, message.get_sender(), *this, message);
-		//_tcp_server.message_to_be_sent.push_back(msg2.push_to_tcp_message());
-		IRCMessage msg3(RPL_CREATED, message.get_sender(), *this, message);
-		//_tcp_server.message_to_be_sent.push_back(msg3.push_to_tcp_message());
-		IRCMessage msg4(RPL_MYINFO, message.get_sender(), *this, message);
-		//_tcp_server.message_to_be_sent.push_back(msg4.push_to_tcp_message());
+		_clients[message.get_sender()]->set_status(REGISTERED);
+		IRCMessage message_to_send1(RPL_WELCOME, *this, message);
+		_tcp_server.messages_to_be_sent.push_back(message_to_send1.push_to_tcp_message());
+		IRCMessage message_to_send2(RPL_YOURHOST, *this, message);
+		_tcp_server.messages_to_be_sent.push_back(message_to_send2.push_to_tcp_message());
+		IRCMessage message_to_send3(RPL_CREATED, *this, message);
+		_tcp_server.messages_to_be_sent.push_back(message_to_send3.push_to_tcp_message());
+		IRCMessage message_to_send4(RPL_MYINFO, *this, message);
+		_tcp_server.messages_to_be_sent.push_back(message_to_send4.push_to_tcp_message());
 	}
-	// TODO: voir pour le cas ou pas de commande NICK avant USER
 }
 
 void IRCServer::_execute_quit(IRCMessage & message) {

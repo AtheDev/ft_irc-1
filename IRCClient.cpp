@@ -1,6 +1,6 @@
 #include "IRCClient.hpp"
 
-IRCClient::IRCClient(int fd): _fd(fd), _status(UNREGISTRED), _nickname(),
+IRCClient::IRCClient(int fd): _fd(fd), _status(UNREGISTERED), _nickname(),
     _username(), _realname(), _password(), _mode(0), _hostname(), _channels() {
 }
 
