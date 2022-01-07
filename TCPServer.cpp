@@ -76,11 +76,13 @@ void TCPServer::update() {
 	std::vector<struct pollfd>::iterator it = _pollfds.begin();
 	std::vector<struct pollfd>::iterator ite = _pollfds.end();
 	for (; it != ite; it++) {
-		if (it->revents == POLLHUP && it->fd != _socket.get_socket_fd()) {
-			//TODO: This never seems to happen. Why ?
-			_remove_client(it->fd);
+		if (it->revents & POLLHUP && it->fd != _socket.get_socket_fd()) {
+			if (_clients.find(it->fd) != _clients.end()) {
+				// Remove client only if it hasn't been removed first
+				_remove_client(it->fd);
+			}
 		}
-		if (it->revents == POLLIN) {
+		if (it->revents & POLLIN) {
 			if (it->fd == _socket.get_socket_fd()) {
 				_add_clients();
 			} else {
@@ -135,6 +137,7 @@ void TCPServer::_add_client(int socket_fd) {
  *  @param socket_fd Corresponds to the fd of the TCPClient socket that disconnects
  */
 void TCPServer::_remove_client(int socket_fd) {
+	_clients[socket_fd]->get_socket().close_fd();
 	std::vector<struct pollfd>::iterator it_pollfd = _pollfds.begin();
 	for (; it_pollfd != _pollfds.end(); it_pollfd++) {
 		if (it_pollfd->fd == socket_fd) {
@@ -142,7 +145,6 @@ void TCPServer::_remove_client(int socket_fd) {
 			break;
 		}
 	}
-	_clients[socket_fd]->get_socket().close_fd();
 	delete _clients[socket_fd];
 	_clients.erase(socket_fd);
 	disconnected_clients.push_back(socket_fd);
@@ -175,10 +177,41 @@ void TCPServer::_handle_reception(std::vector<struct pollfd>::iterator & it) {
  *  @brief Sends all messages stored in messages_to_be_sent then clears them
  */
 void TCPServer::_send_messages() {
+	_send_failed_messages();
 	std::list<TCPMessage>::iterator it_message = messages_to_be_sent.begin();
 	for (; it_message != messages_to_be_sent.end(); it_message++) {
 		_send_message(*it_message);
 	}
+}
+
+/**
+ *  @brief Resend failed messages. If the message can't still be sent, save it again.
+ *
+ *  @param message The message to be sent.
+ */
+void TCPServer::_send_failed_messages() {
+	std::list<TCPMessage>::iterator it_failed_message = _messages_failed_to_be_sent.begin();
+	std::list<TCPMessage> tmp;
+	for (; it_failed_message != _messages_failed_to_be_sent.end(); it_failed_message++) {
+		// Failed messages are guaranteed to have a single receiver (the one that failed)
+		int receiver = it_failed_message->get_receivers()[0];
+		try {
+			_clients.at(receiver)->send_to(it_failed_message->get_payload());
+		} catch (TCPSocket::Cexception & e) {
+			// If an error happened during the sending, the client failed we need to remove it
+			_remove_client(receiver);
+		} catch (std::out_of_range & e) {
+			// Ignore if the client doesn't exist anymore !
+		} catch (TCPSocket::WouldBlockException & e) {
+			// If EWOULDBLOCK is still received, store the message in tmp
+			tmp.push_back(*it_failed_message);
+			std::cout << "A message failed to be sent. It will be sent again soon." << std::endl;
+		}
+	}
+	// Clear failed messages
+	_messages_failed_to_be_sent.clear();
+	// Copy messages that failed to be sent again
+	_messages_failed_to_be_sent = tmp;
 }
 
 /**
@@ -190,9 +223,31 @@ void TCPServer::_send_message(TCPMessage & message) {
 	std::vector<int> receivers = message.get_receivers();
 	std::vector<int>::iterator it_receiver = receivers.begin();
 	for (; it_receiver != receivers.end(); it_receiver++) {
-		_clients[*it_receiver]->send_to(message.get_payload());
+		try {
+			_clients.at(*it_receiver)->send_to(message.get_payload());
+		} catch (TCPSocket::Cexception & e) {
+			// If an error happened during the sending, the client failed we need to remove it
+			_remove_client(*it_receiver);
+		} catch (std::out_of_range & e) {
+			// Ignore if the client doesn't exist anymore !
+		} catch (TCPSocket::WouldBlockException & e) {
+			_add_failed_message(*it_receiver, message.get_payload());
+			std::cout << "A message failed to be sent. It will be sent again soon." << std::endl;
+		}
 	}
 	std::cout << "Message(s) sent: " << message << std::endl;
+}
+
+/**
+ *  @brief Adds a message to the list of messages that failed to be sent.
+ *
+ *  @param receiver The receiver socketfd.
+ *  @param payload A copy of the message payload.
+ */
+void TCPServer::_add_failed_message(int receiver, std::string payload) {
+	std::vector<int> receivers(1, receiver);
+	TCPMessage failed_message(receivers, payload);
+	_messages_failed_to_be_sent.push_back(failed_message);
 }
 
 const char * TCPServer::ErrorSignalException::what() const throw() {

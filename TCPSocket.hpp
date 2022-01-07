@@ -13,7 +13,7 @@
 
 
 #define MAX_CONNECTIONS 42
-#define BUFFER_SIZE 65535
+#define BUFFER_SIZE 65536
 
 
 class TCPSocket {
@@ -24,6 +24,11 @@ class TCPSocket {
 		virtual int get_socket_fd() const = 0;
 
 		class Cexception : public std::exception {
+			public:
+				virtual const char * what() const throw();
+		};
+
+		class WouldBlockException : public std::exception {
 			public:
 				virtual const char * what() const throw();
 		};

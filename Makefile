@@ -4,6 +4,7 @@ SRCS_SERVER =	main.cpp \
 				IRCServer.cpp \
 				TCPServer.cpp \
 				TCPClient.cpp \
+				TCPSocket.cpp \
 				TCPSocketActive.cpp \
 				TCPSocketPassive.cpp \
 				TCPMessage.cpp \
