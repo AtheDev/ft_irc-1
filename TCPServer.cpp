@@ -76,12 +76,13 @@ void TCPServer::update() {
 	std::vector<struct pollfd>::iterator it = _pollfds.begin();
 	std::vector<struct pollfd>::iterator ite = _pollfds.end();
 	for (; it != ite; it++) {
-		//TODO: Manage POLLPRI
-		if (it->revents == POLLHUP && it->fd != _socket.get_socket_fd()) {
-			//TODO: This never seems to happen. Why ?
-			_remove_client(it->fd);
+		if (it->revents & POLLHUP && it->fd != _socket.get_socket_fd()) {
+			if (_clients.find(it->fd) != _clients.end()) {
+				// Remove client only if it hasn't been removed first
+				_remove_client(it->fd);
+			}
 		}
-		if (it->revents == POLLIN) {
+		if (it->revents & POLLIN) {
 			if (it->fd == _socket.get_socket_fd()) {
 				_add_clients();
 			} else {
