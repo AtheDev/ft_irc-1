@@ -78,7 +78,7 @@ std::ostream & operator<<(std::ostream & os, const TCPMessage & message) {
 	os << "[receivers: ";
 	std::vector<int> receivers = message.get_receivers();
 	std::vector<int>::iterator it_receiver = receivers.begin();
-	for (; it_receiver != message._receivers.end(); it_receiver++) {
+	for (; it_receiver != receivers.end(); it_receiver++) {
 		os << *it_receiver;
 	}
 	os << "] ";
