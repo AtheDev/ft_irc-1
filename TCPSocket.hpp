@@ -13,7 +13,7 @@
 
 
 #define MAX_CONNECTIONS 42
-#define BUFFER_SIZE 65535
+#define BUFFER_SIZE 65536
 
 
 class TCPSocket {

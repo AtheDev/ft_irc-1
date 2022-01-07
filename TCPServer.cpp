@@ -135,6 +135,7 @@ void TCPServer::_add_client(int socket_fd) {
  *  @param socket_fd Corresponds to the fd of the TCPClient socket that disconnects
  */
 void TCPServer::_remove_client(int socket_fd) {
+	_clients[socket_fd]->get_socket().close_fd();
 	std::vector<struct pollfd>::iterator it_pollfd = _pollfds.begin();
 	for (; it_pollfd != _pollfds.end(); it_pollfd++) {
 		if (it_pollfd->fd == socket_fd) {
@@ -142,7 +143,6 @@ void TCPServer::_remove_client(int socket_fd) {
 			break;
 		}
 	}
-	_clients[socket_fd]->get_socket().close_fd();
 	delete _clients[socket_fd];
 	_clients.erase(socket_fd);
 	disconnected_clients.push_back(socket_fd);
@@ -190,7 +190,14 @@ void TCPServer::_send_message(TCPMessage & message) {
 	std::vector<int> receivers = message.get_receivers();
 	std::vector<int>::iterator it_receiver = receivers.begin();
 	for (; it_receiver != receivers.end(); it_receiver++) {
-		_clients[*it_receiver]->send_to(message.get_payload());
+		try {
+			_clients.at(*it_receiver)->send_to(message.get_payload());
+		} catch (TCPSocketActive::Cexception & e) {
+			// If an error happened during the sending, the client failed we need to remove it
+			_remove_client(*it_receiver);
+		} catch (std::out_of_range & e) {
+			// Ignore if the client doesn't exist anymore !
+		}
 	}
 	std::cout << "Message(s) sent: " << message << std::endl;
 }
