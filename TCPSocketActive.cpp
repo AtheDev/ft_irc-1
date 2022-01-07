@@ -40,7 +40,6 @@ std::string TCPSocketActive::receive_data() {
 		if (errno != EWOULDBLOCK) {
 			throw Cexception();
 		}
-		//TODO: else ?
 	}
 	std::string data(buf);
 
@@ -58,6 +57,8 @@ void TCPSocketActive::send_data(std::string data) {
 	if (send(_socketfd, data.c_str(), data.size(), 0) == -1) {
 		if (errno != EWOULDBLOCK) {
 			throw Cexception();
+		} else {
+			throw WouldBlockException();
 		}
 	}
 }

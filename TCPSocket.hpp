@@ -28,6 +28,11 @@ class TCPSocket {
 				virtual const char * what() const throw();
 		};
 
+		class WouldBlockException : public std::exception {
+			public:
+				virtual const char * what() const throw();
+		};
+
 	protected:
 
 		int _socketfd;

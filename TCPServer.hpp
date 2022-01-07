@@ -50,16 +50,18 @@ class TCPServer {
 		TCPSocketPassive _socket;
 		std::vector<struct pollfd> _pollfds;
 		std::map<int, TCPClient *> _clients;
+		std::list<TCPMessage> _messages_failed_to_be_sent;
 
-		void _run();
 		void _add_clients();
 		void _add_client(int socket_fd);
 		void _remove_client(int socket_fd);
 		void _send_messages();
 		void _send_message(TCPMessage & message);
+		void _send_failed_messages();
 		void _handle_reception(std::vector<struct pollfd>::iterator & it);
+		void _add_failed_message(int receiver, std::string payload);
 
-		TCPServer();
+			TCPServer();
 		TCPServer(TCPServer const & cpy);
 		TCPServer & operator=(TCPServer const & rhs);
 };

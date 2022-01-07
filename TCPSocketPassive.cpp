@@ -1,13 +1,5 @@
 #include "TCPSocketPassive.hpp"
 
-
-/**
- *  @brief Exception class for C function errors that return -1 and edit errno.
- *
- *  @return The raised error's string.
- */
-const char * TCPSocket::Cexception::what() const throw() { return strerror(errno); }
-
 /**
  *  @brief Construct a new TCPSocketPassive from a port.
  *
