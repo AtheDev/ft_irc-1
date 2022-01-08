@@ -93,7 +93,7 @@ void IRCServer::_execute_pass(IRCMessage & message) {
 	else
 	{
 		IRCMessage message_to_send(ERR_ALREADYREGISTRED, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send.push_to_tcp_message());
+		_tcp_server.messages_to_be_sent.push_back(message_to_send.to_tcp_message());
 	}
 }
 
@@ -102,13 +102,13 @@ void IRCServer::_execute_nick(IRCMessage & message) {
 	if (_clients[message.get_sender()]->get_nickname() == message.get_params()[0])
 	{
 		IRCMessage message_to_send(ERR_NICKNAMEINUSE, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send.push_to_tcp_message());
+		_tcp_server.messages_to_be_sent.push_back(message_to_send.to_tcp_message());
 		return ;
 	}
 	else if (_check_nickname_in_use(message.get_params()[0]) == true)
 	{
 		IRCMessage message_to_send(ERR_NICKCOLLISION, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send.push_to_tcp_message());
+		_tcp_server.messages_to_be_sent.push_back(message_to_send.to_tcp_message());
 		return ;
 	}
 	_clients[message.get_sender()]->set_nickname(message.get_params()[0]);
@@ -123,7 +123,7 @@ void IRCServer::_execute_user(IRCMessage & message) {
 	if (_clients[message.get_sender()]->get_status() == REGISTERED)
 	{
 		IRCMessage message_to_send(ERR_ALREADYREGISTRED, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send.push_to_tcp_message());
+		_tcp_server.messages_to_be_sent.push_back(message_to_send.to_tcp_message());
 	}
 	else if (_clients[message.get_sender()]->get_status() == NICKNAME)
 	{
@@ -133,13 +133,13 @@ void IRCServer::_execute_user(IRCMessage & message) {
 		_clients[message.get_sender()]->set_realname(message.get_params()[3]);
 		_clients[message.get_sender()]->set_status(REGISTERED);
 		IRCMessage message_to_send1(RPL_WELCOME, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send1.push_to_tcp_message());
+		_tcp_server.messages_to_be_sent.push_back(message_to_send1.to_tcp_message());
 		IRCMessage message_to_send2(RPL_YOURHOST, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send2.push_to_tcp_message());
+		_tcp_server.messages_to_be_sent.push_back(message_to_send2.to_tcp_message());
 		IRCMessage message_to_send3(RPL_CREATED, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send3.push_to_tcp_message());
+		_tcp_server.messages_to_be_sent.push_back(message_to_send3.to_tcp_message());
 		IRCMessage message_to_send4(RPL_MYINFO, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send4.push_to_tcp_message());
+		_tcp_server.messages_to_be_sent.push_back(message_to_send4.to_tcp_message());
 	}
 }
 
