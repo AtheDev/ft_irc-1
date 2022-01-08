@@ -92,7 +92,7 @@ void IRCServer::_execute_pass(IRCMessage & message) {
 	}
 	else
 	{
-		IRCMessage message_to_send(ERR_ALREADYREGISTRED, *this, message);
+		IRCMessage message_to_send(ERR_ALREADYREGISTERED, *this, message);
 		_tcp_server.messages_to_be_sent.push_back(message_to_send.to_tcp_message());
 	}
 }
@@ -122,7 +122,7 @@ void IRCServer::_execute_user(IRCMessage & message) {
 
 	if (_clients[message.get_sender()]->get_status() == REGISTERED)
 	{
-		IRCMessage message_to_send(ERR_ALREADYREGISTRED, *this, message);
+		IRCMessage message_to_send(ERR_ALREADYREGISTERED, *this, message);
 		_tcp_server.messages_to_be_sent.push_back(message_to_send.to_tcp_message());
 	}
 	else if (_clients[message.get_sender()]->get_status() == NICKNAME)
