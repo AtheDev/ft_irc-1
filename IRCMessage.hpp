@@ -35,8 +35,6 @@ class IRCMessage
 {
 	public: 
 
-		IRCMessage(int fd, std::string line);
-		IRCMessage(int reply, const IRCServer &server, const IRCMessage &message);
 		IRCMessage(TCPMessage &tcpmessage);
 		~IRCMessage();
 		bool empty() const;
@@ -47,9 +45,8 @@ class IRCMessage
 		int get_sender(void) const;
 		std::vector<int> get_receivers() const;
 
-		void set_command(std::string cmd);
-
 		TCPMessage to_tcp_message();
+		void set_command(std::string cmd);
 
 		class Error_message_empty : public std::exception {
 			public:
@@ -72,7 +69,6 @@ class IRCMessage
 		std::string					_prefix;
 		std::string					_command;
 		std::vector<std::string>	_params;
-		std::string					_reply;
 		std::vector<int>			_receivers;
 
 		void						_parse_line(std::string line);

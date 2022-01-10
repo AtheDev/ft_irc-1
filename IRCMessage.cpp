@@ -1,38 +1,5 @@
 #include "IRCMessage.hpp"
 
-IRCMessage::IRCMessage(int fd, std::string line)
-: _sender(fd)
-{
-	try { _parse_line(line); }
-	catch (Error_message_empty &e) { std::cerr << "Error: message is empty" << std::endl; return ; }
-	catch (Error_message_nocrlf &e) { std::cerr << "Error: message has no crlf" << std::endl; return ; }
-	catch (Error_message_invalid_prefix &e) { std::cerr << "Error: message has invalid prefix" << std::endl; return ; }
-}
-
-IRCMessage::IRCMessage(int reply, const IRCServer &server, const IRCMessage &message)
-{
-	std::string date("DATE"), user_modes("USER_MODES"), channel_modes("CHANNEL_MODES");
-
-	switch (reply)
-	{
-		case ERR_ALREADYREGISTERED: _reply = ERR_ALREADYREGISTERED(); break;
-		case ERR_NICKNAMEINUSE: _reply = ERR_NICKNAMEINUSE(message.get_params()[0]); break;
-		case ERR_NICKCOLLISION: {
-			std::map<int, IRCClient*>::const_iterator it = server.find_nickname(message.get_params()[0]);
-			_reply = ERR_NICKCOLLISION(message.get_params()[0], it->second->get_username(), it->second->get_hostname());
-			break;
-		}
-		case RPL_WELCOME: _reply = RPL_WELCOME(	server.get_clients()[message.get_sender()]->get_nickname(),
-												server.get_clients()[message.get_sender()]->get_username(),
-												server.get_clients()[message.get_sender()]->get_hostname()); break;
-		case RPL_YOURHOST: _reply = RPL_YOURHOST(server.get_servername(), server.get_version()); break;
-		case RPL_CREATED: _reply = RPL_CREATED(date); break;
-		case RPL_MYINFO: _reply = RPL_MYINFO(server.get_servername(), server.get_version(), user_modes, channel_modes); break;
-		default: break;
-	}
-	_receivers.push_back(message.get_sender());
-}
-
 IRCMessage::IRCMessage(TCPMessage &tcpmessage)
 {
 	_sender = tcpmessage.get_sender();
@@ -44,7 +11,22 @@ IRCMessage::IRCMessage(TCPMessage &tcpmessage)
 }
 
 TCPMessage
-	IRCMessage::to_tcp_message() { return TCPMessage(_receivers, _reply); }
+	IRCMessage::to_tcp_message()
+{
+	std::string payload;
+
+	if (has_prefix())
+		payload = ":" + _prefix + " ";
+	payload += _command;
+	for (int i = 0; i < _params.size(); ++i)
+	{
+		if (i == _params.size() + 1) //last param has : before it (see rfc2812 message format)
+			payload += " :" + _params[i];
+		else
+			payload += " " + _params[i];
+	}
+	return TCPMessage(_receivers, payload);
+}
 
 IRCMessage::~IRCMessage() {}
 
@@ -71,6 +53,9 @@ std::vector<int>
 
 void IRCMessage::set_command(std::string cmd) { _command = cmd; }
 
+/**
+ * @brief Debug function to display IRCMessage content after parsing
+ */
 std::ostream
 	&operator<<(std::ostream &o, const IRCMessage &i)
 {
@@ -100,6 +85,9 @@ const char*
 const char*
 	IRCMessage::Error_message_invalid_prefix::what() const throw() { return ("Invalid prefix"); }
 
+/**
+ * @brief Parse a string into prefix, command and parameters according to rfc2812
+ */
 void
 	IRCMessage::_parse_line(std::string line)
 {
