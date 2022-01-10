@@ -66,101 +66,101 @@ enum    e_err_reply {
 //004
 #define RPL_MYINFO(servername, version, user_modes, channel_modes) ("004 :" + servername + " " + version + " " + user_modes + " " + channel_modes)
 //221
-#define RPL_UMODEIS(user_mode_str) (user_mode_str)
+#define RPL_UMODEIS(user_mode_str) ("221" + user_mode_str)
 //301
-#define RPL_AWAY(nick, away_message) (nick + " :" + away_message)
+#define RPL_AWAY(nick, away_message) ("301" + nick + " :" + away_message)
 //305
-#define RPL_UNAWAY() (":You are no longer marked as being away")
+#define RPL_UNAWAY() ("305 :You are no longer marked as being away")
 //306
-#define RPL_NOWAWAY() (":You have been marked as being away")
+#define RPL_NOWAWAY() ("306 :You have been marked as being away")
 //315
-#define RPL_ENDOFWHO() - "<name> :End of WHO list"
+#define RPL_ENDOFWHO(name) ("315" + name + " :End of WHO list")
 //322
-#define RPL_LIST(channel, visible, topic) (channel + " " +  /*#*/ visible + " :" + topic)
+#define RPL_LIST(channel, visible, topic) ("322" + channel + " " +  /*#*/ visible + " :" + topic)
 //323
-#define RPL_LISTEND() (":End of LIST")
+#define RPL_LISTEND() ("323 :End of LIST")
 //324
-#define RPL_CHANNELMODEIS(channel, mode, mode_params) (channel + " " + mode + " " + mode params)
+#define RPL_CHANNELMODEIS(channel, mode, mode_params) ("324" + channel + " " + mode + " " + mode params)
 //331
-#define RPL_NOTOPIC(channel) (channel + " :No topic is set")
+#define RPL_NOTOPIC(channel) ("331" + channel + " :No topic is set")
 //332
-#define RPL_TOPIC(channel, topic) (channel + " :" + topic)
+#define RPL_TOPIC(channel, topic) ("332" + channel + " :" + topic)
 //352
-#define RPL_WHOREPLY(channel, user, host, server, nick, hopcount, realname) (channel + " " + user + " " + host + " " + server + " " + nick + /*( "H" / "G" > ["*"] [ ( "@" / "+" ) ]*/ " :" + hopcount + " " + realname)
+#define RPL_WHOREPLY(channel, user, host, server, nick, hopcount, realname) ("352" + channel + " " + user + " " + host + " " + server + " " + nick + /*( "H" / "G" > ["*"] [ ( "@" / "+" ) ]*/ " :" + hopcount + " " + realname)
 //353
-#define RPL_NAMREPLY(channel, list_nick) (channel + " :"list_nick)
+#define RPL_NAMREPLY(channel, list_nick) ("353" + channel + " :"list_nick)
 //366
-#define RPL_ENDOFNAMES(channel) (channel + " :End of NAMES list")
+#define RPL_ENDOFNAMES(channel) ("366" + channel + " :End of NAMES list")
 //367
-#define RPL_BANLIST(channel, bannid) (channel + " " + banmask)
+#define RPL_BANLIST(channel, bannid) ("367" + channel + " " + banmask)
 //368
-#define RPL_ENDOFBANLIST(channel) (channel + " :End of channel ban list")
+#define RPL_ENDOFBANLIST(channel) ("368" + channel + " :End of channel ban list")
 //381
-#define RPL_YOUREOPER() (":You are now an IRC operator")
+#define RPL_YOUREOPER() ("381 :You are now an IRC operator")
 
 
 //401
-#define ERR_NOSUCHNICK(nickname) (nickname + " :No such nick/channel")
+#define ERR_NOSUCHNICK(nickname) ("401" + nickname + " :No such nick/channel")
 //402
-#define ERR_NOSUCHSERVER(server_name) (server name + " :No such server")
+#define ERR_NOSUCHSERVER(server_name) ("402" + server name + " :No such server")
 //403
-#define ERR_NOSUCHCHANNEL(chanel) (channel + " :No such channel")
+#define ERR_NOSUCHCHANNEL(chanel) ("403" + channel + " :No such channel")
 //404
-#define ERR_CANNOTSENDTOCHAN(channel) (channel + " :Cannot send to channel")
+#define ERR_CANNOTSENDTOCHAN(channel) ("404" + channel + " :Cannot send to channel")
 //405
-#define ERR_TOOMANYCHANNELS(channel) (channel + " :You have joined too many channels")
+#define ERR_TOOMANYCHANNELS(channel) ("405" + channel + " :You have joined too many channels")
 //407
-#define ERR_TOOMANYTARGETS(target, err_code, abort_message) (target + " :" + err_code + " recipients. " + abort_message)
+#define ERR_TOOMANYTARGETS(target, err_code, abort_message) ("407" + target + " :" + err_code + " recipients. " + abort_message)
 //411
-#define ERR_NORECIPIENT(command) (":No recipient given (" + command + ")")
+#define ERR_NORECIPIENT(command) ("411 :No recipient given (" + command + ")")
 //412
-#define ERR_NOTEXTTOSEND() (":No text to send")
+#define ERR_NOTEXTTOSEND() ("412 :No text to send")
 //413
-#define ERR_NOTOPLEVEL(mask) (mask + " :No toplevel domain specified")
+#define ERR_NOTOPLEVEL(mask) ("413" + mask + " :No toplevel domain specified")
 //414
-#define ERR_WILDTOPLEVEL(mask) (mask + " :Wildcard in toplevel domain")
+#define ERR_WILDTOPLEVEL(mask) ("414" + mask + " :Wildcard in toplevel domain")
 //431
-#define ERR_NONICKNAMEGIVEN() (":No nickname given")
+#define ERR_NONICKNAMEGIVEN() ("431 :No nickname given")
 //432
-#define ERR_ERRONEUSNICKNAME(nick) (nick + " :Erroneous nickname")
+#define ERR_ERRONEUSNICKNAME(nick) ("432" + nick + " :Erroneous nickname")
 //433
-#define ERR_NICKNAMEINUSE(nick) (nick + " :Nickname is already in use")
+#define ERR_NICKNAMEINUSE(nick) ("433" + nick + " :Nickname is already in use")
 //436
-#define ERR_NICKCOLLISION(nick, user, host) (nick + " :Nickname collision KILL from " + user + "@" + host)
+#define ERR_NICKCOLLISION(nick, user, host) ("436" + nick + " :Nickname collision KILL from " + user + "@" + host)
 //442
-#define ERR_NOTONCHANNEL(channel) (channel + " :You're not on that channel")
+#define ERR_NOTONCHANNEL(channel) ("442" + channel + " :You're not on that channel")
 //461
-#define ERR_NEEDMOREPARAMS(command) (command + " :Not enough parameters")
+#define ERR_NEEDMOREPARAMS(command) ("461" + command + " :Not enough parameters")
 //462
-#define ERR_ALREADYREGISTRED() (":Unauthorized command (already registered)")
+#define ERR_ALREADYREGISTRED() ("462 :Unauthorized command (already registered)")
 //464
-#define ERR_PASSWDMISMATCH() (":Password incorrect")
+#define ERR_PASSWDMISMATCH() ("464 :Password incorrect")
 //467
-#define ERR_KEYSET(channel) (channel + " :Channel key already set")
+#define ERR_KEYSET(channel) ("467" + channel + " :Channel key already set")
 //471
-#define ERR_CHANNELISFULL(channel) (channel + " :Cannot join channel (+l)")
+#define ERR_CHANNELISFULL(channel) ("471" + channel + " :Cannot join channel (+l)")
 //472
-#define ERR_UNKNOWNMODE(char, channel) (char + " :is unknown mode char to me for " + channel)
+#define ERR_UNKNOWNMODE(char, channel) ("472" + char + " :is unknown mode char to me for " + channel)
 //473
-#define ERR_INVITEONLYCHAN(channel) (channel + " :Cannot join channel (+i)")
+#define ERR_INVITEONLYCHAN(channel) ("473" + channel + " :Cannot join channel (+i)")
 //474
-#define ERR_BANNEDFROMCHAN(channel) (channel + " :Cannot join channel (+b)")
+#define ERR_BANNEDFROMCHAN(channel) ("474" + channel + " :Cannot join channel (+b)")
 //475
-#define ERR_BADCHANNELKEY(channel) (channel + " :Cannot join channel (+k)")
+#define ERR_BADCHANNELKEY(channel) ("475" + channel + " :Cannot join channel (+k)")
 //476
-#define ERR_BADCHANMASK(channel) (channel + " :Bad Channel Mask")
+#define ERR_BADCHANMASK(channel) ("476" + channel + " :Bad Channel Mask")
 //481
-#define ERR_NOPRIVILEGES() (":Permission Denied- You're not an IRC operator")
+#define ERR_NOPRIVILEGES() ("481 :Permission Denied- You're not an IRC operator")
 //482
-#define ERR_CHANOPRIVSNEEDED(channel) (channel + " :You're not channel operator")
+#define ERR_CHANOPRIVSNEEDED(channel) ("482" + channel + " :You're not channel operator")
 //483
-#define ERR_CANTKILLSERVER() (":You can't kill a server!")
+#define ERR_CANTKILLSERVER() ("483 :You can't kill a server!")
 //491
-#define ERR_NOOPERHOST() (":No O-lines for your host")
+#define ERR_NOOPERHOST() ("491 :No O-lines for your host")
 //501
-#define ERR_UMODEUNKNOWNFLAG() (":Unknown MODE flag")
+#define ERR_UMODEUNKNOWNFLAG() ("501 :Unknown MODE flag")
 //502
-#define ERR_USERSDONTMATCH() (":Cannot change mode for other users")
+#define ERR_USERSDONTMATCH() ("502 :Cannot change mode for other users")
 
 
 

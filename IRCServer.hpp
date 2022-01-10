@@ -6,6 +6,7 @@
 #include "TCPServer.hpp"
 #include "IRCMessage.hpp"
 #include "IRCClient.hpp"
+#include "Reply.hpp"
 
 class IRCMessage;
 
