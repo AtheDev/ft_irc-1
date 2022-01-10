@@ -1,32 +1,40 @@
 #include "IRCMessage.hpp"
 
-IRCMessage::IRCMessage(TCPMessage &tcpmessage)
+//IRCMessage::IRCMessage(TCPMessage &tcpmessage)
+//{
+//	_sender = tcpmessage.get_sender();
+//	_receivers = tcpmessage.get_receivers();
+//	try { _parse_line(tcpmessage.get_payload()); }
+//	catch (Error_message_empty &e) { std::cerr << "Error: message is empty" << std::endl; return ; }
+//	catch (Error_message_nocrlf &e) { std::cerr << "Error: message has no crlf" << std::endl; return ; }
+//	catch (Error_message_invalid_prefix &e) { std::cerr << "Error: message has invalid prefix" << std::endl; return ; }
+//}
+
+IRCMessage::IRCMessage(std::string line)
 {
-	_sender = tcpmessage.get_sender();
-	_receivers = tcpmessage.get_receivers();
-	try { _parse_line(tcpmessage.get_payload()); }
+	try { _parse_line(line); }
 	catch (Error_message_empty &e) { std::cerr << "Error: message is empty" << std::endl; return ; }
 	catch (Error_message_nocrlf &e) { std::cerr << "Error: message has no crlf" << std::endl; return ; }
 	catch (Error_message_invalid_prefix &e) { std::cerr << "Error: message has invalid prefix" << std::endl; return ; }
 }
 
-TCPMessage
-	IRCMessage::to_tcp_message()
-{
-	std::string payload;
-
-	if (has_prefix())
-		payload = ":" + _prefix + " ";
-	payload += _command;
-	for (size_t i = 0; i < _params.size(); ++i)
-	{
-		if (i == _params.size() + 1) //last param has : before it (see rfc2812 message format)
-			payload += " :" + _params[i];
-		else
-			payload += " " + _params[i];
-	}
-	return TCPMessage(_receivers, payload);
-}
+//TCPMessage
+//	IRCMessage::to_tcp_message()
+//{
+//	std::string payload;
+//
+//	if (has_prefix())
+//		payload = ":" + _prefix + " ";
+//	payload += _command;
+//	for (size_t i = 0; i < _params.size(); ++i)
+//	{
+//		if (i == _params.size() + 1) //last param has : before it (see rfc2812 message format)
+//			payload += " :" + _params[i].second;
+//		else
+//			payload += " " + _params[i].second;
+//	}
+//	return TCPMessage(_receivers, payload);
+//}
 
 IRCMessage::~IRCMessage() {}
 
@@ -42,7 +50,7 @@ std::string
 std::string
 	IRCMessage::get_command() const { return _command; }
 
-std::vector<std::string>
+std::vector<std::pair<int, std::string> >
 	IRCMessage::get_params() const { return _params; }
 
 int
@@ -70,7 +78,7 @@ std::ostream
 	{
 		o << "params:\t";
 		for (size_t j = 0; j < i.get_params().size(); ++j)
-			o << '|' << i.get_params()[j] << "| ";
+			o << '|' << i.get_params()[j].second << "| ";
 	}
 	o << std::endl;
 	return (o);
@@ -104,13 +112,13 @@ void
 			if (line[pos1] == ' ' || line[pos1] == '\0')
 				throw Error_message_invalid_prefix();
 			pos2 = line.find(' ');
-			//error if pos2 == line.npos
+			//error if pos2 == line.npos?
 			_prefix = line.substr(pos1, pos2 - pos1);
 			pos1 = pos2 + 1;
 		}
 	}
-	catch (Error_message_empty &e) { std::cerr << "Error: message is empty" << std::endl; return ; }
-	catch (Error_message_nocrlf &e) { std::cerr << "Error: message has no crlf" << std::endl; return ; }
+	catch (Error_message_empty &e) { std::cerr << "Error: message is empty" << std::endl; return ; } //this should be ignored, but not here most likely
+	catch (Error_message_nocrlf &e) { std::cerr << "Error: message has no crlf" << std::endl; return ; } //this is useless
 	catch (Error_message_invalid_prefix &e) { std::cerr << "Error: message has invalid prefix" << std::endl; return ; }
 	//here we get command
 	if ((pos2 = line.find(' ', pos1)) == line.npos)
@@ -125,13 +133,121 @@ void
 	{
 		if (line[pos1] == ':')
 		{
-			_params.push_back(line.substr(pos1 + 1));
+			_params.push_back(std::pair<int, std::string>(NONE, line.substr(pos1 + 1)));
 			return ;
 		}
-		_params.push_back(line.substr(pos1, pos2 - pos1));
+		_params.push_back(std::pair<int, std::string>(NONE, line.substr(pos1, pos2 - pos1)));
 		pos1 = pos2 + 1;
 	}
 	if (line[pos1] == ':')
 		pos1++;
-	_params.push_back(line.substr(pos1));
+	_params.push_back(std::pair<int, std::string>(NONE, line.substr(pos1)));
+}
+
+/**
+ * @brief Check IRCMessage prefix, command and parameters sanity and assigns type to its parameters
+ */
+void
+	IRCMessage::_sanity_check()
+{
+
+}
+
+/**
+ * @brief Check if the string token matches the string format
+ * 
+ * @details
+ * format will match like:
+ * %(1-2) -> 1 to 2 char -must be combined with plain char or range, see examples-
+ * [0-9] -> range of char from 0 to 9 in ASCII table
+ * plain char -> the char itself
+ * 
+ * @example
+ * %(1-3)[a-z] -> matches 1 to 3 char from a to z
+ * %(1-)[0-9] -> matches 1 to infinity char from 0 to 9
+ * %(8)H -> matches 8 H ("HHHHHHHH")
+ * %(3)[0-9].%(3)[0-9]+(-)[a-z] -> matches 3 numbers then a . then 3 numbers then a + then any number of letters from a to z
+ */
+bool
+	fmatch(std::string token, std::string format)
+{
+	size_t					pos_token = 0, pos_format = 0;
+	std::string				tmp;
+	int						n_to_match_min, n_to_match_max, n_matched;
+	char					to_match1, to_match2;
+
+	while (format[pos_format] && token[pos_token])
+	{
+		if (format[pos_format] == '%')
+		{
+			++pos_format;
+			if (format[pos_format] == '(')
+			{
+				++pos_format;
+				if (format[pos_format] != '-')
+				{
+					tmp = format.substr(pos_format, format.find('-', pos_format) - pos_format);
+					pos_format += tmp.size() + 1;
+					n_to_match_min = atoi(tmp.c_str());
+				}
+				else
+				{
+					n_to_match_min = 0;
+					++pos_format;
+				}
+				if (format[pos_format] != ')')
+				{
+					tmp = format.substr(pos_format, format.find(')', pos_format) - pos_format);
+					pos_format += tmp.size() + 1;
+					n_to_match_max = atoi(tmp.c_str());
+				}
+				else
+				{
+					n_to_match_max = INT_MAX;
+					++pos_format;
+				}
+			}
+			else
+			{
+				n_to_match_min = 1;
+				n_to_match_max = 1;
+			}
+			if (format[pos_format] == '[')
+			{
+				++pos_format;
+				to_match1 = format[pos_format];
+				pos_format += 2;
+				to_match2 = format[pos_format];
+				pos_format += 2;
+			}
+			else
+			{
+				to_match1 = format[pos_format];
+				to_match2 = to_match1;
+				++pos_format;
+			}
+			//std::cout << '(' << n_to_match_min << '-' << n_to_match_max << ')';
+			//std::cout << '[' << to_match1 << '-' << to_match2 << ']' << std::endl;
+		}
+		else //one plain char to match
+		{
+			n_to_match_min = 1;
+			n_to_match_max = 1;
+			to_match1 = format[pos_format];
+			to_match2 = to_match1;
+			++pos_format;
+			//std::cout << "one plain char:\t" << to_match1 << std::endl;
+		}
+		n_matched = 0;
+		while (token[pos_token] >= to_match1 && token[pos_token] <= to_match2 && n_matched < n_to_match_max)
+		{
+			++n_matched;
+			++pos_token;
+			if (!token[pos_token])
+				break ;
+		}
+		if (n_matched < n_to_match_min)
+			return false;
+	}
+	return !token[pos_token] && !format[pos_format];
 }

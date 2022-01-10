@@ -1,22 +1,24 @@
 NAME_SERVER = ircserv
 
 SRCS_SERVER =	main.cpp \
-				IRCServer.cpp \
-				TCPServer.cpp \
-				TCPClient.cpp \
-				TCPSocket.cpp \
-				TCPSocketActive.cpp \
-				TCPSocketPassive.cpp \
-				TCPMessage.cpp \
-				IRCMessage.cpp \
-				IRCClient.cpp
+				IRCMessage.cpp
+#main.cpp \
+#				IRCServer.cpp \
+#				TCPServer.cpp \
+#				TCPClient.cpp \
+#				TCPSocket.cpp \
+#				TCPSocketActive.cpp \
+#				TCPSocketPassive.cpp \
+#				TCPMessage.cpp \
+#				IRCMessage.cpp \
+#				IRCClient.cpp
 
 
 OBJS_SERVER = $(SRCS_SERVER:.cpp=.o)
 
 CXX = clang++
 
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98
+CXXFLAGS = -std=c++98 #-Wall -Wextra -Werror
 
 RM = rm -rf
 
@@ -26,7 +28,7 @@ $(NAME_SERVER): $(OBJS_SERVER)
 				$(CXX) $(CXXFLAGS) $(OBJS_SERVER) -o $(NAME_SERVER)
 
 $(OBJS_SERVER): %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) -o $@ -c $< -g
 
 clean:
 	$(RM) $(OBJS_SERVER)
