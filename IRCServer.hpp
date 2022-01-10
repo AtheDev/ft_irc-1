@@ -46,8 +46,6 @@ class IRCServer {
 		void	_execute_join(IRCMessage & message);
 		void	_execute_privmsg(IRCMessage & message);
 
-		bool	_check_nickname_in_use(std::string & nickname) const;
-
 };
 
 

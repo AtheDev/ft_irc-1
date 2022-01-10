@@ -184,14 +184,6 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
 	std::cout << "commande privmsg: " << message.get_command() << std::endl;
 }
 
-bool IRCServer::_check_nickname_in_use(std::string & nickname) const {
-	std::map<int, IRCClient *>::const_iterator it = _clients.begin();
-	for (; it != _clients.end(); it++)
-		if (it->second->get_nickname() == nickname)
-			return true;
-	return false;
-}
-
 std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(std::string & nickname) const {
 	std::map<int, IRCClient *>::const_iterator it = _clients.begin();
 	for (; it != _clients.end(); it++)
