@@ -65,11 +65,19 @@ void IRCServer::_add_clients(std::vector<int> & new_clients) {
 }
 
 void IRCServer::_remove_clients(std::vector<int> & disconnected_clients) {
-	std::vector<int>::iterator it = disconnected_clients.begin();
-	for (; it != disconnected_clients.end(); it++)
+	std::vector<int>::iterator it_client = disconnected_clients.begin();
+	for (; it_client != disconnected_clients.end(); it_client++)
 	{
-		delete _clients[*it];
-		_clients.erase(*it);
+		_remove_client_from_channels(*it_client);
+		delete _clients[*it_client];
+		_clients.erase(*it_client);
+	}
+}
+
+void IRCServer::_remove_client_from_channels(int client_socketfd) {
+	std::map<std::string, Channel *>::iterator it_channel = _channels.begin();
+	for (; it_channel != _channels.end(); it_channel++) {
+		it_channel->second->remove_client(client_socketfd);
 	}
 }
 
@@ -152,6 +160,10 @@ void IRCServer::_execute_quit(IRCMessage & message) {
 	*/
 }
 
+/**
+ * @brief Executes a JOIN command.
+ * @param message The message containing the JOIN command.
+ */
 void IRCServer::_execute_join(IRCMessage & message) {
 	std::cout << "commande join: " << message.get_command() << std::endl;
 	//TODO: For now, it doesn't use keys and can only manage a single channel.
@@ -164,6 +176,13 @@ void IRCServer::_execute_join(IRCMessage & message) {
 		Channel * new_channel = new Channel(channel_name);
 		_channels.insert(std::pair<std::string, Channel *>(channel_name, new_channel));
 	}
+
+	/*std::map<std::string, Channel *>::iterator it_channel = _channels.begin();
+	std::cout << "Current channels: ";
+	for (; it_channel != _channels.end(); it_channel++) {
+		std::cout << it_channel->first << ", ";
+	}
+	std::cout << std::endl;*/
 }
 
 void IRCServer::_execute_privmsg(IRCMessage & message) {
