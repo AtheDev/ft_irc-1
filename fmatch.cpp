@@ -38,6 +38,7 @@ static int get_char(std::string s, int pos)
  * %(3)[0-9].%(3)[0-9]+(-)[a-z] -> matches 3 numbers then a . then 3 numbers then a + then any number of letters from a to z
  * %(-)[a-z]+[0-9] -> matches any number of letters or numbers
  * %(1-1)B+C+D+E -> matches exactly one char which is B, C, D or E
+ * %37% -> maches one %
  * 
  * @note
  * It's gonna segfault if you don't respect the format so beware
