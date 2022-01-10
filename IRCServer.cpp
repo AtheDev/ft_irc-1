@@ -1,6 +1,5 @@
 #include "IRCServer.hpp"
 
-#include <iostream>
 IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Server VTA !"), _version("42.42") {
 
 	_commands["PASS"] = &IRCServer::_execute_pass;
@@ -155,6 +154,16 @@ void IRCServer::_execute_quit(IRCMessage & message) {
 
 void IRCServer::_execute_join(IRCMessage & message) {
 	std::cout << "commande join: " << message.get_command() << std::endl;
+	//TODO: For now, it doesn't use keys and can only manage a single channel.
+	std::string channel_name = message.get_params()[0];
+	try {
+		// If channel exists, add_client to channel.
+		_channels.at(channel_name)->add_client(message.get_sender());
+	} catch (std::out_of_range & e) {
+		// If channel doesn't exist, create it and add the client to the channel
+		Channel * new_channel = new Channel(channel_name);
+		_channels.insert(std::pair<std::string, Channel *>(channel_name, new_channel));
+	}
 }
 
 void IRCServer::_execute_privmsg(IRCMessage & message) {

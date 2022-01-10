@@ -1,10 +1,14 @@
 #ifndef IRCSERVER_HPP
 #define IRCSERVER_HPP
 
+#include <iostream>
+#include <map>
+#include <string>
 
 #include "TCPServer.hpp"
 #include "IRCMessage.hpp"
 #include "IRCClient.hpp"
+#include "Channel.hpp"
 
 class IRCMessage;
 
@@ -29,6 +33,7 @@ class IRCServer {
 		std::string	_version;
 		std::map<std::string, void(IRCServer::*)(IRCMessage & message)>	_commands;
 		std::map<int, IRCClient *>	_clients;
+		std::map<std::string, Channel *> _channels;
 
 
 		void	_run();
