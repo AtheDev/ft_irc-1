@@ -69,7 +69,7 @@ void TCPServer::update() {
 	_send_messages();
 	messages_to_be_sent.clear();
 
-	if (poll(&(*_pollfds.begin()), _pollfds.size(), -1) == -1) {
+	if (poll(&(*_pollfds.begin()), _pollfds.size(), 100) == -1) {
 		throw ErrorPollException();
 	}
 

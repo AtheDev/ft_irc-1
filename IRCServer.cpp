@@ -1,6 +1,5 @@
 #include "IRCServer.hpp"
 
-#include <iostream>
 IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Server VTA !"), _version("42.42") {
 
 	time_t raw_time;
@@ -72,11 +71,19 @@ void IRCServer::_add_clients(std::vector<int> & new_clients) {
 }
 
 void IRCServer::_remove_clients(std::vector<int> & disconnected_clients) {
-	std::vector<int>::iterator it = disconnected_clients.begin();
-	for (; it != disconnected_clients.end(); it++)
+	std::vector<int>::iterator it_client = disconnected_clients.begin();
+	for (; it_client != disconnected_clients.end(); it_client++)
 	{
-		delete _clients[*it];
-		_clients.erase(*it);
+		_remove_client_from_channels(*it_client);
+		delete _clients[*it_client];
+		_clients.erase(*it_client);
+	}
+}
+
+void IRCServer::_remove_client_from_channels(int client_socketfd) {
+	std::map<std::string, Channel *>::iterator it_channel = _channels.begin();
+	for (; it_channel != _channels.end(); it_channel++) {
+		it_channel->second->remove_client(client_socketfd);
 	}
 }
 
@@ -176,8 +183,29 @@ void IRCServer::_execute_quit(IRCMessage & message) {
 	*/
 }
 
+/**
+ * @brief Executes a JOIN command.
+ * @param message The message containing the JOIN command.
+ */
 void IRCServer::_execute_join(IRCMessage & message) {
 	std::cout << "commande join: " << message.get_command() << std::endl;
+	//TODO: For now, it doesn't use keys and can only manage a single channel.
+	std::string channel_name = message.get_params()[0];
+	try {
+		// If channel exists, add_client to channel.
+		_channels.at(channel_name)->add_client(message.get_sender());
+	} catch (std::out_of_range & e) {
+		// If channel doesn't exist, create it and add the client to the channel
+		Channel * new_channel = new Channel(channel_name);
+		_channels.insert(std::pair<std::string, Channel *>(channel_name, new_channel));
+	}
+
+	/*std::map<std::string, Channel *>::iterator it_channel = _channels.begin();
+	std::cout << "Current channels: ";
+	for (; it_channel != _channels.end(); it_channel++) {
+		std::cout << it_channel->first << ", ";
+	}
+	std::cout << std::endl;*/
 }
 
 void IRCServer::_execute_privmsg(IRCMessage & message) {
