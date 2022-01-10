@@ -18,7 +18,7 @@ TCPMessage
 	if (has_prefix())
 		payload = ":" + _prefix + " ";
 	payload += _command;
-	for (int i = 0; i < _params.size(); ++i)
+	for (size_t i = 0; i < _params.size(); ++i)
 	{
 		if (i == _params.size() + 1) //last param has : before it (see rfc2812 message format)
 			payload += " :" + _params[i];
