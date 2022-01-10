@@ -3,6 +3,11 @@
 #include <iostream>
 IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Server VTA !"), _version("42.42") {
 
+	time_t raw_time;
+	time(&raw_time);
+	_server_creation_date = ctime(&raw_time);
+	_server_creation_date.erase(--_server_creation_date.end());
+
 	_commands["PASS"] = &IRCServer::_execute_pass;
 	_commands["NICK"] = &IRCServer::_execute_nick;
 	_commands["USER"] = &IRCServer::_execute_user;
@@ -32,6 +37,7 @@ void IRCServer::stop() {
 std::map<int, IRCClient *>  IRCServer::get_clients(void) const { return _clients;}
 std::string const &			IRCServer::get_servername(void) const { return _servername;}
 std::string const &			IRCServer::get_version(void) const {return _version;}
+std::string const &			IRCServer::get_server_creation_date(void) const {return _server_creation_date;}
 
 void IRCServer::_run() {
 	while (true) {
@@ -92,29 +98,38 @@ void IRCServer::_execute_pass(IRCMessage & message) {
 	}
 	else
 	{
-		IRCMessage message_to_send(ERR_ALREADYREGISTERED, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send.to_tcp_message());
+		std::vector<int> receivers;
+		receivers.push_back(message.get_sender());
+		std::string	reply = ERR_ALREADYREGISTERED();
+		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
 	}
 }
 
 void IRCServer::_execute_nick(IRCMessage & message) {
 	std::cout << "commande nick: " << message.get_command() << std::endl;
+	std::map<int, IRCClient *>::const_iterator it;
 	if (_clients[message.get_sender()]->get_nickname() == message.get_params()[0])
 	{
-		IRCMessage message_to_send(ERR_NICKNAMEINUSE, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send.to_tcp_message());
-		return ;
+		std::vector<int> receivers;
+		receivers.push_back(message.get_sender());
+		std::string	reply = ERR_NICKNAMEINUSE(message.get_params()[0]);
+		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
 	}
-	else if (_check_nickname_in_use(message.get_params()[0]) == true)
+	else if ((it = find_nickname(message.get_params()[0])) != _clients.end())
 	{
-		IRCMessage message_to_send(ERR_NICKCOLLISION, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send.to_tcp_message());
-		return ;
+		std::vector<int> receivers;
+		receivers.push_back(message.get_sender());
+		std::string	reply = ERR_NICKCOLLISION(message.get_params()[0],
+								it->second->get_username(), it->second->get_hostname());
+		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
 	}
-	_clients[message.get_sender()]->set_nickname(message.get_params()[0]);
-	if (_clients[message.get_sender()]->get_status() == PASSWORD
-	|| _clients[message.get_sender()]->get_status() == UNREGISTERED)
-		_clients[message.get_sender()]->set_status(NICKNAME);
+	else
+	{
+		_clients[message.get_sender()]->set_nickname(message.get_params()[0]);
+		if (_clients[message.get_sender()]->get_status() == PASSWORD
+		|| _clients[message.get_sender()]->get_status() == UNREGISTERED)
+			_clients[message.get_sender()]->set_status(NICKNAME);
+	}
 }
 
 void IRCServer::_execute_user(IRCMessage & message) {
@@ -122,8 +137,10 @@ void IRCServer::_execute_user(IRCMessage & message) {
 
 	if (_clients[message.get_sender()]->get_status() == REGISTERED)
 	{
-		IRCMessage message_to_send(ERR_ALREADYREGISTERED, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send.to_tcp_message());
+		std::vector<int> receivers;
+		receivers.push_back(message.get_sender());
+		std::string	reply = ERR_ALREADYREGISTERED();
+		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
 	}
 	else if (_clients[message.get_sender()]->get_status() == NICKNAME)
 	{
@@ -132,14 +149,20 @@ void IRCServer::_execute_user(IRCMessage & message) {
 		//_clients[message.get_sender()]->set_servername(message.get_params()[2]);
 		_clients[message.get_sender()]->set_realname(message.get_params()[3]);
 		_clients[message.get_sender()]->set_status(REGISTERED);
-		IRCMessage message_to_send1(RPL_WELCOME, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send1.to_tcp_message());
-		IRCMessage message_to_send2(RPL_YOURHOST, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send2.to_tcp_message());
-		IRCMessage message_to_send3(RPL_CREATED, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send3.to_tcp_message());
-		IRCMessage message_to_send4(RPL_MYINFO, *this, message);
-		_tcp_server.messages_to_be_sent.push_back(message_to_send4.to_tcp_message());
+
+	std::string user_modes("USER_MODES"), channel_modes("CHANNEL_MODES");
+		std::vector<int> receivers;
+		receivers.push_back(message.get_sender());
+		std::string	reply = RPL_WELCOME(get_clients()[message.get_sender()]->get_nickname(),
+										get_clients()[message.get_sender()]->get_username(),
+										get_clients()[message.get_sender()]->get_hostname());
+		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		reply = RPL_YOURHOST(get_servername(), get_version());
+		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		reply = RPL_CREATED(get_server_creation_date());
+		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		reply = RPL_MYINFO(get_servername(), get_version(), user_modes, channel_modes);
+		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
 	}
 }
 

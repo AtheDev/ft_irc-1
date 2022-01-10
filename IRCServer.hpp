@@ -1,6 +1,7 @@
 #ifndef IRCSERVER_HPP
 #define IRCSERVER_HPP
 
+#include <ctime>
 
 #include "TCPServer.hpp"
 #include "IRCMessage.hpp"
@@ -19,6 +20,7 @@ class IRCServer {
 		std::map<int, IRCClient *>  get_clients(void) const;
 		std::string const &			get_servername(void) const;
 		std::string const &			get_version(void) const;
+		std::string const &			get_server_creation_date() const;
 
 		std::map<int, IRCClient *>::const_iterator	find_nickname(std::string & nickname) const;
 
@@ -27,6 +29,7 @@ class IRCServer {
 		TCPServer _tcp_server;
 		std::string	_servername;
 		std::string	_version;
+		std::string	_server_creation_date;
 		std::map<std::string, void(IRCServer::*)(IRCMessage & message)>	_commands;
 		std::map<int, IRCClient *>	_clients;
 
