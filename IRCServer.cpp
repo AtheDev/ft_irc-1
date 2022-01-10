@@ -56,7 +56,7 @@ void IRCServer::_run() {
 		std::list<TCPMessage>::iterator it_message = _tcp_server.messages_received.begin();
 		for (; it_message != _tcp_server.messages_received.end(); it_message++)
 		{
-			IRCMessage tmp(it_message->get_sender(), it_message->get_payload());
+			IRCMessage tmp(*it_message);
 			_execute_command(tmp);
 		}
 	}
