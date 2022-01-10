@@ -103,7 +103,10 @@ bool
 				}
 				else
 				{
-					to_match[format[pos_format]] = 1;
+					to_match[get_char(format, pos_format)] = 1;
+					if (format[pos_format] == '%')
+						while (format[++pos_format] != '%')
+							;
 					++pos_format;
 				}
 			} while (format[pos_format] == '+');
