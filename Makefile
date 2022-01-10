@@ -1,7 +1,8 @@
 NAME_SERVER = ircserv
 
 SRCS_SERVER =	main.cpp \
-				IRCMessage.cpp
+				IRCMessage.cpp \
+				fmatch.cpp
 #main.cpp \
 #				IRCServer.cpp \
 #				TCPServer.cpp \

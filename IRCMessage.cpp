@@ -1,4 +1,5 @@
 #include "IRCMessage.hpp"
+bool fmatch(std::string token, std::string format);
 
 //IRCMessage::IRCMessage(TCPMessage &tcpmessage)
 //{
@@ -151,103 +152,4 @@ void
 	IRCMessage::_sanity_check()
 {
 
-}
-
-/**
- * @brief Check if the string token matches the string format
- * 
- * @details
- * format will match like:
- * %(1-2) -> 1 to 2 char -must be combined with plain char or range, see examples-
- * [0-9] -> range of char from 0 to 9 in ASCII table
- * plain char -> the char itself
- * 
- * @example
- * %(1-3)[a-z] -> matches 1 to 3 char from a to z
- * %(1-)[0-9] -> matches 1 to infinity char from 0 to 9
- * %(8)H -> matches 8 H ("HHHHHHHH")
- * %(3)[0-9].%(3)[0-9]+(-)[a-z] -> matches 3 numbers then a . then 3 numbers then a + then any number of letters from a to z
- */
-bool
-	fmatch(std::string token, std::string format)
-{
-	size_t					pos_token = 0, pos_format = 0;
-	std::string				tmp;
-	int						n_to_match_min, n_to_match_max, n_matched;
-	char					to_match1, to_match2;
-
-	while (format[pos_format] && token[pos_token])
-	{
-		if (format[pos_format] == '%')
-		{
-			++pos_format;
-			if (format[pos_format] == '(')
-			{
-				++pos_format;
-				if (format[pos_format] != '-')
-				{
-					tmp = format.substr(pos_format, format.find('-', pos_format) - pos_format);
-					pos_format += tmp.size() + 1;
-					n_to_match_min = atoi(tmp.c_str());
-				}
-				else
-				{
-					n_to_match_min = 0;
-					++pos_format;
-				}
-				if (format[pos_format] != ')')
-				{
-					tmp = format.substr(pos_format, format.find(')', pos_format) - pos_format);
-					pos_format += tmp.size() + 1;
-					n_to_match_max = atoi(tmp.c_str());
-				}
-				else
-				{
-					n_to_match_max = INT_MAX;
-					++pos_format;
-				}
-			}
-			else
-			{
-				n_to_match_min = 1;
-				n_to_match_max = 1;
-			}
-			if (format[pos_format] == '[')
-			{
-				++pos_format;
-				to_match1 = format[pos_format];
-				pos_format += 2;
-				to_match2 = format[pos_format];
-				pos_format += 2;
-			}
-			else
-			{
-				to_match1 = format[pos_format];
-				to_match2 = to_match1;
-				++pos_format;
-			}
-			//std::cout << '(' << n_to_match_min << '-' << n_to_match_max << ')';
-			//std::cout << '[' << to_match1 << '-' << to_match2 << ']' << std::endl;
-		}
-		else //one plain char to match
-		{
-			n_to_match_min = 1;
-			n_to_match_max = 1;
-			to_match1 = format[pos_format];
-			to_match2 = to_match1;
-			++pos_format;
-			//std::cout << "one plain char:\t" << to_match1 << std::endl;
-		}
-		n_matched = 0;
-		while (token[pos_token] >= to_match1 && token[pos_token] <= to_match2 && n_matched < n_to_match_max)
-		{
-			++n_matched;
-			++pos_token;
-			if (!token[pos_token])
-				break ;
-		}
-		if (n_matched < n_to_match_min)
-			return false;
-	}
-	return !token[pos_token] && !format[pos_format];
 }

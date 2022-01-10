@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include "IRCMessage.hpp"
+
 bool fmatch(std::string token, std::string format);
 
 int main(int ac, char **av)
@@ -27,7 +28,8 @@ int main(int ac, char **av)
 	//std::cout << "expected: true\t" << fmatch("a", "a") << std::endl;
 	//std::cout << "expected: true\t" << fmatch("ab", "ab") << std::endl;
 	//std::cout << "expected: true\t" << fmatch("123", "%(-)[0-9]") << std::endl;
-	std::cout << "expected: true\t" << fmatch("127.0.0.1", "%(1-3)[0-9].%(1-3)[0-9].%(1-3)[0-9].%(1-3)[0-9]") << std::endl;
+	//std::cout << "expected: true\t" << fmatch("127.0.0.1", "%(1-3)[0-9].%(1-3)[0-9].%(1-3)[0-9].%(1-3)[0-9]") << std::endl;
+	std::cout << "expected: true\t" << fmatch("abc123", "%(-)[a-z]+[0-9]");
 	//if (ac != 3)
 	//{
 	//	std::cout << "./ircserv <port> <password>" << std::endl;
