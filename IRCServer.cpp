@@ -107,7 +107,7 @@ void IRCServer::_execute_pass(IRCMessage & message) {
 	{
 		std::vector<int> receivers;
 		receivers.push_back(message.get_sender());
-		std::string	reply = ERR_ALREADYREGISTERED();
+		std::string	reply = ERR_ALREADYREGISTRED();
 		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
 	}
 }
@@ -146,7 +146,7 @@ void IRCServer::_execute_user(IRCMessage & message) {
 	{
 		std::vector<int> receivers;
 		receivers.push_back(message.get_sender());
-		std::string	reply = ERR_ALREADYREGISTERED();
+		std::string	reply = ERR_ALREADYREGISTRED();
 		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
 	}
 	else if (_clients[message.get_sender()]->get_status() == NICKNAME)
