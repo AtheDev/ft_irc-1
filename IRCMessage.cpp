@@ -124,6 +124,7 @@ void
 	catch (Error_message_nocrlf &e) { std::cerr << "Error: message has no crlf" << std::endl; return ; } //this is useless
 	catch (Error_message_invalid_prefix &e) { std::cerr << "Error: message has invalid prefix" << std::endl; return ; }
 	//here we get command
+	//todo: error when there is no command?
 	if ((pos2 = line.find(' ', pos1)) == line.npos)
 	{
 		_command = line.substr(pos1);
@@ -147,11 +148,99 @@ void
 	_params.push_back(std::pair<int, std::string>(NONE, line.substr(pos1)));
 }
 
+const char*
+	IRCMessage::Error_wrong_param_amount::what() const throw() { return ("Wrong number of params"); }
+
+const char*
+	IRCMessage::Error_invalid_nickname::what() const throw() { return ("Invalid nickname"); }
+
+const char*
+	IRCMessage::Error_invalid_username::what() const throw() { return ("Invalid username"); }
+
+const char*
+	IRCMessage::Error_invalid_usermodebyte::what() const throw() { return ("Invalid usermode byte"); }
+
+const char*
+	IRCMessage::Error_invalid_usermode::what() const throw() { return ("Invalid usermode"); }
+
+const char*
+	IRCMessage::Error_invalid_realname::what() const throw() { return ("Invalid realname"); }
+
 /**
  * @brief Check IRCMessage prefix, command and parameters sanity and assigns type to its parameters
+ * throws exceptions is the formatting is wrong
  */
 void
 	IRCMessage::_sanity_check()
 {
-
+	if (_command == "PASS")
+	{
+		if (_params.size() != 1)
+			throw Error_wrong_param_amount();
+		//todo: is there forbidden octets for passwords?
+	}
+	else if (_command == "NICK")
+	{
+		if (_params.size() != 1)
+			throw Error_wrong_param_amount();
+		if (!fmatch(_params[0].second, NICKNAME))
+			throw Error_invalid_nickname();
+	}
+	else if (_command == "USER")
+	{
+		if (_params.size() != 4)
+			throw Error_wrong_param_amount();
+		if (!fmatch(_params[0].second, USERNAME))
+			throw Error_invalid_username();
+		if (!fmatch(_params[1].second, "%(1-1)[0-9]")) //not 100% sure about this one (usermode)
+			throw Error_invalid_usermodebyte();
+		//third param is unused
+		if (!fmatch(_params[3].second, REALNAME))
+			throw Error_invalid_realname();
+	}
+	else if (_command == "OPER")
+	{
+		if (_params.size() != 2)
+			throw Error_wrong_param_amount();
+		if (!fmatch(_params[0].second, USERNAME))
+			throw Error_invalid_username();
+		//todo: is there forbidden octets for passwords?
+	}
+	else if (_command == "MODE")
+	{
+		if (_params.size() != 2)
+			throw Error_wrong_param_amount();
+		if (!fmatch(_params[0].second, NICKNAME))
+			throw Error_invalid_nickname();
+		if (!fmatch(_params[1].second, USERMODE))
+			throw Error_invalid_usermode();
+	}
+	else if (_command == "QUIT")
+	{
+		if (_params.size() > 1)
+			throw Error_wrong_param_amount();
+		//todo: is there forbidden octets in quit message (probably)
+	}
+	else if (_command == "JOIN") //not done
+	{
+		if (_params.size() > 2 || _params.size() == 0)
+			throw Error_wrong_param_amount();
+		//todo: channel id (add OR in fmatch?)
+		if (_params[0].second == "0")
+		{
+			if (_params.size() != 1)
+				throw Error_wrong_param_amount();
+		}
+		else
+		{
+			for (int i = 0; i < _params.size(); ++i)
+			{
+				//todo: repeating patterns in repeating patterns needed here
+			}
+		}
+	}
+	else if (_command == "PART")
+	{
+		//todo: see JOIN
+	}
 }

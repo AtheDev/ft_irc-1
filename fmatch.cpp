@@ -99,7 +99,7 @@ bool
 	int				char_to_match_min, char_to_match_max, char_matched;
 	int				pattern_to_match_min, pattern_to_match_max, pattern_matched;
 	bool			pattern;
-	char			char_mask[127], char_to_match_lower_bound, char_to_match_upper_bound;
+	char			char_mask[255], char_to_match_lower_bound, char_to_match_upper_bound;
 
 	while (format[pos_format] && token[pos_token])
 	{
@@ -122,7 +122,7 @@ bool
 		pattern_matched = 0;
 		while (pattern_matched < pattern_to_match_max)
 		{
-			memset(char_mask, 0, 127);
+			memset(char_mask, 0, 255);
 			if (format[pos_format] == '%' && format[pos_format + 1] == '(') //range of char
 			{
 				//here we get the amount of char to match

@@ -41,6 +41,30 @@ class IRCMessage
 			public:
 				virtual const char *what() const throw();
 		};
+		class Error_wrong_param_amount : public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
+		class Error_invalid_nickname : public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
+		class Error_invalid_username : public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
+		class Error_invalid_usermodebyte : public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
+		class Error_invalid_usermode : public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
+		class Error_invalid_realname : public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
 
 	protected:
 
