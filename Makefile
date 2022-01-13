@@ -5,6 +5,7 @@ SRCS_SERVER =	main.cpp \
 				IRCMessage.cpp \
 				IRCClient.cpp \
 				Channel.cpp \
+				Reply.cpp \
 				TCPServer.cpp \
 				TCPClient.cpp \
 				TCPMessage.cpp \
