@@ -1,5 +1,24 @@
 #include "Reply.hpp"
 
+TCPMessage make_reply_JOIN(const IRCClient & client, const Channel & channel) {
+	const std::vector<int>& receivers = channel.get_clients();
+	std::string payload = ":" + client.get_prefix() + " JOIN " + channel.get_name();
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_PART(const IRCClient & client, const Channel & channel,
+						   const std::string & part_message) {
+	std::vector<int> receivers = channel.get_clients();
+	receivers.push_back(client.get_fd());
+	std::string payload = ":" + client.get_prefix() + " PART " + channel.get_name();
+	if (!part_message.empty()) {
+		payload += " :" + part_message;
+	} else {
+		payload += " :" + client.get_nickname();
+	}
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload;

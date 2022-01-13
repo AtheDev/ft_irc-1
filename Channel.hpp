@@ -13,6 +13,7 @@ class Channel {
 		explicit Channel(std::string & name);
 		virtual ~Channel();
 
+		const std::vector<int> & get_clients() const;
 		void set_name(const std::string & name);
 		const std::string & get_name() const;
 		bool add_client(int socketfd);
