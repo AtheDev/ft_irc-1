@@ -27,7 +27,8 @@ class IRCServer {
 		std::string const &			get_version(void) const;
 		std::string const &			get_server_creation_date() const;
 
-		std::map<int, IRCClient *>::const_iterator	find_nickname(std::string & nickname) const;
+		std::map<int, IRCClient *>::const_iterator			find_nickname(std::string & nickname) const;
+		std::map<std::string, Channel *>::const_iterator	find_channel(std::string & channel_name) const;
 
 
 	private:
@@ -52,7 +53,7 @@ class IRCServer {
 		void	_execute_quit(IRCMessage & message);
 		void	_execute_join(IRCMessage & message);
 		void	_execute_privmsg(IRCMessage & message);
-
+		void	_execute_topic(IRCMessage & message);
 };
 
 

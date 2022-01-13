@@ -13,6 +13,7 @@ IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Serv
 	_commands["QUIT"] = &IRCServer::_execute_quit;
 	_commands["JOIN"] = &IRCServer::_execute_join;
 	_commands["PRIVMSG"] = &IRCServer::_execute_privmsg;
+	_commands["TOPIC"] = &IRCServer::_execute_topic;
 }
 
 IRCServer::~IRCServer() {}
@@ -175,12 +176,26 @@ void IRCServer::_execute_user(IRCMessage & message) {
 
 void IRCServer::_execute_quit(IRCMessage & message) {
 	std::cout << "commande quit: " << message.get_command() << std::endl;
-	/*
-		TODO: voir comment supprimer comme on recoit une liste de clients déconnectés
-		est-ce qu'on renvoie une liste au TCPServer? des clients qu on fait la commande QUIT ?
-
-		+ message en parametre à qui il est destiné ?
-	*/
+	std::vector<int> receivers;
+	std::string quit_message;
+	if (message.get_params().empty())
+		quit_message = "Has disconnected.";
+	else
+	{
+		for (size_t i = 0; i < message.get_params().size(); i++)
+			quit_message += (message.get_params()[i] + " ");
+		quit_message.erase(--quit_message.end());
+	}
+	IRCClient * client = _clients[message.get_sender()];
+	std::vector<std::string>::iterator it = client->get_channels().begin();
+	/*for (chaque channel)
+	{
+		remove_client(message.get_sender());
+		for ()
+	//receivers.push_back(message.get_sender());
+	//std::string	reply = ERR_ALREADYREGISTRED();
+	_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+	}*/
 }
 
 /**
@@ -212,6 +227,58 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
 	std::cout << "commande privmsg: " << message.get_command() << std::endl;
 }
 
+void IRCServer::_execute_topic(IRCMessage & message) {
+	std::cout << "commande topic: " << message.get_command() << std::endl;
+	std::vector<int> receivers;
+	receivers.push_back(message.get_sender());
+	std::map<std::string, Channel *>::const_iterator it = find_channel(message.get_params()[0]);
+	if (it != _channels.end())
+	{
+		std::string	reply = ERR_NOTONCHANNEL(message.get_params()[0]);
+		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		return ;
+	}
+	Channel * channel_tmp = it->second;
+	if (find(channel_tmp->clients_begin(), channel_tmp->clients_end(), message.get_sender()) == channel_tmp->clients_end())
+	{
+		std::string	reply = ERR_NOTONCHANNEL(message.get_params()[0]);
+		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		return ;
+	}
+	if (message.get_params().size() > 1)
+	{
+		/*if (pas operator chan)
+		{
+			std::string	reply = ERR_CHANOPRIVSNEEDED(message.get_params()[0]);
+			_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		}
+		else
+		{*/
+			channel_tmp->set_topic(message.get_params()[1]);
+			receivers.clear();
+			std::vector<int>::const_iterator it_clients = channel_tmp->clients_begin();
+			for (; it_clients != channel_tmp->clients_end(); it_clients++)
+				receivers.push_back(*it_clients);
+			std::string reply = "TOPIC " + channel_tmp->get_name() + " :" + channel_tmp->get_topic();
+			_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		//}
+		return ;
+	}
+	else
+	{
+		/*if (toipc présent)
+		{
+			std::string	reply = RPL_TOPIC(message->get_params()[0], channel_tmp->get_topic());
+			_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		}
+		else
+		{*/
+			std::string	reply = RPL_NOTOPIC(message.get_params()[0]);
+			_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		//}
+	}
+}
+
 std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(std::string & nickname) const {
 	std::map<int, IRCClient *>::const_iterator it = _clients.begin();
 	for (; it != _clients.end(); it++)
@@ -219,3 +286,13 @@ std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(std::string 
 			break;
 	return it;
 }
+
+std::map<std::string, Channel *>::const_iterator IRCServer::find_channel(std::string & channel_name) const {
+	std::map<std::string, Channel *>::const_iterator it = _channels.begin();
+	for (; it != _channels.end(); it++)
+		if (it->second->get_name() == channel_name)
+			break;
+	return it;
+}
+
+//void	IRCServer::_leave_channel()
