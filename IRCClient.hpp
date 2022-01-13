@@ -31,6 +31,7 @@ class IRCClient {
         IRCClient(int fd);
         ~IRCClient();
 
+		int 								get_fd() const;
         std::string const &                 get_nickname(void) const;
         std::string const &                 get_username(void) const;
         std::string const &                 get_hostname(void) const;
@@ -55,7 +56,7 @@ class IRCClient {
     private:
 
         int         _fd;
-        int         _status;
+		int         _status;
 
         std::string _nickname;
         std::string _username;

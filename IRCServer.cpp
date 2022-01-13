@@ -35,10 +35,13 @@ void IRCServer::stop() {
 	}
 }
 
-std::map<int, IRCClient *>  IRCServer::get_clients(void) const { return _clients;}
-std::string const &			IRCServer::get_servername(void) const { return _servername;}
-std::string const &			IRCServer::get_version(void) const {return _version;}
-std::string const &			IRCServer::get_server_creation_date(void) const {return _server_creation_date;}
+std::map<int, IRCClient *>  IRCServer::get_clients() const { return _clients;}
+
+std::string const &			IRCServer::get_servername() const { return _servername;}
+
+std::string const &			IRCServer::get_version() const {return _version;}
+
+std::string const &			IRCServer::get_server_creation_date() const {return _server_creation_date;}
 
 void IRCServer::_run() {
 	while (true) {
@@ -99,78 +102,66 @@ void IRCServer::_execute_command(IRCMessage & message) {
 
 void IRCServer::_execute_pass(IRCMessage & message) {
 	std::cout << "Executing PASS: " << message.get_command() << std::endl;
-	if (_clients[message.get_sender()]->get_status() == UNREGISTERED)
-	{
-		_clients[message.get_sender()]->set_password(message.get_params()[0]);
-		_clients[message.get_sender()]->set_status(PASSWORD);
+	IRCClient * client = _clients.at(message.get_sender());
+	if (client->get_status() == UNREGISTERED) {
+		client->set_password(message.get_params()[0]);
+		client->set_status(PASSWORD);
 	}
-	else
-	{
-		std::vector<int> receivers;
-		receivers.push_back(message.get_sender());
-		std::string	reply = ERR_ALREADYREGISTRED();
-		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+	else {
+		_tcp_server.messages_to_be_sent.push_back(make_reply_ERR_ALREADYREGISTRED(*client));
 	}
 }
 
 void IRCServer::_execute_nick(IRCMessage & message) {
 	std::cout << "Executing NICK: " << message.get_command() << std::endl;
-	std::map<int, IRCClient *>::const_iterator it;
-	if (_clients[message.get_sender()]->get_nickname() == message.get_params()[0])
-	{
-		std::vector<int> receivers;
-		receivers.push_back(message.get_sender());
-		std::string	reply = ERR_NICKNAMEINUSE(message.get_params()[0]);
-		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+	IRCClient * client = _clients.at(message.get_sender());
+	std::string nick = message.get_params()[0];
+
+	std::map<int, IRCClient *>::const_iterator it_client;
+	if (client->get_nickname() == nick) {
+		TCPMessage reply = make_reply_ERR_NICKNAMEINUSE(*client, nick);
+		_tcp_server.messages_to_be_sent.push_back(reply);
 	}
-	else if ((it = find_nickname(message.get_params()[0])) != _clients.end())
-	{
-		std::vector<int> receivers;
-		receivers.push_back(message.get_sender());
-		std::string	reply = ERR_NICKCOLLISION(message.get_params()[0],
-								it->second->get_username(), it->second->get_hostname());
-		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+	else if ((it_client = find_nickname(nick)) != _clients.end()) {
+		IRCClient * collided_client = it_client->second;
+		TCPMessage reply = make_reply_ERR_NICKCOLLISION(*client, *collided_client);
+		_tcp_server.messages_to_be_sent.push_back(reply);
 	}
-	else
-	{
-		_clients[message.get_sender()]->set_nickname(message.get_params()[0]);
-		if (_clients[message.get_sender()]->get_status() == PASSWORD
-		|| _clients[message.get_sender()]->get_status() == UNREGISTERED)
-			_clients[message.get_sender()]->set_status(NICKNAME);
+	else {
+		client->set_nickname(message.get_params()[0]);
+		if (client->get_status() == PASSWORD || client->get_status() == UNREGISTERED) {
+			client->set_status(NICKNAME);
+		}
 	}
 }
 
 void IRCServer::_execute_user(IRCMessage & message) {
 	std::cout << "Executing USER: " << message.get_command() << std::endl;
+	IRCClient * client = _clients.at(message.get_sender());
+	int status = client->get_status();
 
-	if (_clients[message.get_sender()]->get_status() == REGISTERED)
+	if (status == REGISTERED)
 	{
-		std::vector<int> receivers;
-		receivers.push_back(message.get_sender());
-		std::string	reply = ERR_ALREADYREGISTRED();
-		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		TCPMessage reply = make_reply_ERR_ALREADYREGISTRED(*client);
+		_tcp_server.messages_to_be_sent.push_back(reply);
 	}
-	else if (_clients[message.get_sender()]->get_status() == NICKNAME)
+	else if (status == NICKNAME)
 	{
-		_clients[message.get_sender()]->set_username(message.get_params()[0]);
-		_clients[message.get_sender()]->set_hostname(message.get_params()[1]);
-		//_clients[message.get_sender()]->set_servername(message.get_params()[2]);
-		_clients[message.get_sender()]->set_realname(message.get_params()[3]);
-		_clients[message.get_sender()]->set_status(REGISTERED);
+		client->set_username(message.get_params()[0]);
+		client->set_hostname(message.get_params()[1]); // TODO: To change ?
+		client->set_realname(message.get_params()[3]);
+		client->set_status(REGISTERED);
+		// TODO: To change ?
+		std::string user_modes("USER_MODES"), channel_modes("CHANNEL_MODES");
 
-	std::string user_modes("USER_MODES"), channel_modes("CHANNEL_MODES");
-		std::vector<int> receivers;
-		receivers.push_back(message.get_sender());
-		std::string	reply = RPL_WELCOME(get_clients()[message.get_sender()]->get_nickname(),
-										get_clients()[message.get_sender()]->get_username(),
-										get_clients()[message.get_sender()]->get_hostname());
-		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
-		reply = RPL_YOURHOST(get_servername(), get_version());
-		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
-		reply = RPL_CREATED(get_server_creation_date());
-		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
-		reply = RPL_MYINFO(get_servername(), get_version(), user_modes, channel_modes);
-		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		TCPMessage reply = make_reply_RPL_WELCOME(*client);
+		_tcp_server.messages_to_be_sent.push_back(reply);
+		reply = make_reply_RPL_YOURHOST(*client, _servername, _version);
+		_tcp_server.messages_to_be_sent.push_back(reply);
+		reply = make_reply_RPL_CREATED(*client, _server_creation_date);
+		_tcp_server.messages_to_be_sent.push_back(reply);
+		reply = make_reply_RPL_MYINFO(*client, _servername, _version, user_modes, channel_modes);
+		_tcp_server.messages_to_be_sent.push_back(reply);
 	}
 }
 
@@ -240,23 +231,22 @@ void IRCServer::_execute_join(IRCMessage & message) {
 
 void IRCServer::_execute_part(IRCMessage & message) {
 	std::cout << "Executing PART: " << message.get_command() << std::endl;
+	//TODO: Manage multiple channel part
+	IRCClient * client = _clients.at(message.get_sender());
 	std::string channel_name = message.get_params()[0];
+
 	try {
 		// If channel exists, remove client from the channel.
 		if (!_channels.at(channel_name)->remove_client(message.get_sender())) {
 			// If client isn't on the channel, send NOTONCHANNEL
-			std::vector<int> receivers;
-			receivers.push_back(message.get_sender());
-			std::string	reply = ERR_NOTONCHANNEL(channel_name);
-			_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+			TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
+			_tcp_server.messages_to_be_sent.push_back(reply);
 		}
 		std::cout << _channels.at(channel_name) << std::endl;
 	} catch (std::out_of_range & e) {
 		// If channel doesn't exist, send NOSUCHCHANNEL
-		std::vector<int> receivers;
-		receivers.push_back(message.get_sender());
-		std::string	reply = ERR_NOSUCHCHANNEL(channel_name);
-		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		TCPMessage reply = make_reply_ERR_NOSUCHCHANNEL(*client, channel_name);
+		_tcp_server.messages_to_be_sent.push_back(reply);
 	}
 }
 

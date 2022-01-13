@@ -6,6 +6,9 @@ IRCClient::IRCClient(int fd): _fd(fd), _status(UNREGISTERED), _nickname(),
 
 IRCClient::~IRCClient() {}
 
+
+int									IRCClient::get_fd() const { return _fd;}
+
 std::string const &                 IRCClient::get_nickname(void) const { return _nickname;}
 
 std::string const &                 IRCClient::get_username(void) const { return _username;}
