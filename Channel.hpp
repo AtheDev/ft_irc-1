@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include <ostream>
+
 
 class Channel {
 
@@ -13,10 +15,11 @@ class Channel {
 
 		void set_name(const std::string & name);
 		const std::string & get_name() const;
-		void add_client(int socketfd);
-		void remove_client(int socketfd);
-		std::vector<int>::iterator clients_begin();
-		std::vector<int>::iterator clients_end();
+		bool add_client(int socketfd);
+		bool remove_client(int socketfd);
+		std::vector<int>::const_iterator clients_begin() const;
+		std::vector<int>::const_iterator clients_end() const;
+		friend std::ostream & operator<<(std::ostream & os, const Channel & channel);
 
 	private:
 		std::string _name; // The channel's name
@@ -29,5 +32,6 @@ class Channel {
 
 };
 
+std::ostream & operator<<(std::ostream & os, const Channel & channel);
 
 #endif //CHANNEL_HPP

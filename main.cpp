@@ -1,8 +1,5 @@
 #include "IRCServer.hpp"
 #include "TCPServer.hpp"
-#include "TCPSocketPassive.hpp"
-#include "TCPSocketActive.hpp"
-#include "TCPSocket.hpp"
 #include <iostream>
 
 

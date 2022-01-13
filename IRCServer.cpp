@@ -12,6 +12,7 @@ IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Serv
 	_commands["USER"] = &IRCServer::_execute_user;
 	_commands["QUIT"] = &IRCServer::_execute_quit;
 	_commands["JOIN"] = &IRCServer::_execute_join;
+	_commands["PART"] = &IRCServer::_execute_part;
 	_commands["PRIVMSG"] = &IRCServer::_execute_privmsg;
 	_commands["TOPIC"] = &IRCServer::_execute_topic;
 }
@@ -41,18 +42,17 @@ std::string const &			IRCServer::get_server_creation_date(void) const {return _s
 
 void IRCServer::_run() {
 	while (true) {
-		// Préparer les messages à envoyer
 		// Appel à update
 		try {
 			_tcp_server.update();
 		} catch (TCPServer::ErrorSignalException & e) {
 			throw e;
 		}
+		// Récupérer les nouveaux clients et supprimer les clients déconnectés
 		_add_clients(_tcp_server.new_clients);
 		_remove_clients(_tcp_server.disconnected_clients);
-		// Récupérer les nouveaux clients
-		// Récupérer les nouveaux messages reçus.
 
+		// Récupérer les nouveaux messages reçus.
 		std::list<TCPMessage>::iterator it_message = _tcp_server.messages_received.begin();
 		for (; it_message != _tcp_server.messages_received.end(); it_message++)
 		{
@@ -75,13 +75,13 @@ void IRCServer::_remove_clients(std::vector<int> & disconnected_clients) {
 	std::vector<int>::iterator it_client = disconnected_clients.begin();
 	for (; it_client != disconnected_clients.end(); it_client++)
 	{
-		_remove_client_from_channels(*it_client);
+		remove_client_from_all_channels(*it_client);
 		delete _clients[*it_client];
 		_clients.erase(*it_client);
 	}
 }
 
-void IRCServer::_remove_client_from_channels(int client_socketfd) {
+void IRCServer::remove_client_from_all_channels(int client_socketfd) {
 	std::map<std::string, Channel *>::iterator it_channel = _channels.begin();
 	for (; it_channel != _channels.end(); it_channel++) {
 		it_channel->second->remove_client(client_socketfd);
@@ -94,11 +94,11 @@ void IRCServer::_execute_command(IRCMessage & message) {
 	if (it != _commands.end())
 		(this->*_commands[message.get_command()])(message);
 	else
-		std::cout << "Command received: " << message.get_command() << std::endl;
+		std::cout << "Command not found: " << message.get_command() << std::endl;
 }
 
 void IRCServer::_execute_pass(IRCMessage & message) {
-	std::cout << "commande pass : " << message.get_command() << std::endl;
+	std::cout << "Executing PASS: " << message.get_command() << std::endl;
 	if (_clients[message.get_sender()]->get_status() == UNREGISTERED)
 	{
 		_clients[message.get_sender()]->set_password(message.get_params()[0]);
@@ -114,7 +114,7 @@ void IRCServer::_execute_pass(IRCMessage & message) {
 }
 
 void IRCServer::_execute_nick(IRCMessage & message) {
-	std::cout << "commande nick: " << message.get_command() << std::endl;
+	std::cout << "Executing NICK: " << message.get_command() << std::endl;
 	std::map<int, IRCClient *>::const_iterator it;
 	if (_clients[message.get_sender()]->get_nickname() == message.get_params()[0])
 	{
@@ -141,7 +141,7 @@ void IRCServer::_execute_nick(IRCMessage & message) {
 }
 
 void IRCServer::_execute_user(IRCMessage & message) {
-	std::cout << "commande user : " << message.get_command() << std::endl;
+	std::cout << "Executing USER: " << message.get_command() << std::endl;
 
 	if (_clients[message.get_sender()]->get_status() == REGISTERED)
 	{
@@ -175,6 +175,7 @@ void IRCServer::_execute_user(IRCMessage & message) {
 }
 
 void IRCServer::_execute_quit(IRCMessage & message) {
+<<<<<<< HEAD
 	std::cout << "commande quit: " << message.get_command() << std::endl;
 	std::vector<int> receivers;
 	std::string quit_message;
@@ -196,6 +197,15 @@ void IRCServer::_execute_quit(IRCMessage & message) {
 	//std::string	reply = ERR_ALREADYREGISTRED();
 	_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
 	}*/
+=======
+	std::cout << "Executing QUIT: " << message.get_command() << std::endl;
+	/*
+		TODO: voir comment supprimer comme on recoit une liste de clients déconnectés
+		est-ce qu'on renvoie une liste au TCPServer? des clients qu on fait la commande QUIT ?
+
+		+ message en parametre à qui il est destiné ?
+	*/
+>>>>>>> master
 }
 
 /**
@@ -203,28 +213,47 @@ void IRCServer::_execute_quit(IRCMessage & message) {
  * @param message The message containing the JOIN command.
  */
 void IRCServer::_execute_join(IRCMessage & message) {
-	std::cout << "commande join: " << message.get_command() << std::endl;
+	std::cout << "Executing JOIN: " << message.get_command() << std::endl;
 	//TODO: For now, it doesn't use keys and can only manage a single channel.
 	std::string channel_name = message.get_params()[0];
 	try {
 		// If channel exists, add_client to channel.
 		_channels.at(channel_name)->add_client(message.get_sender());
+		std::cout << "Channel exists" << std::endl;
 	} catch (std::out_of_range & e) {
 		// If channel doesn't exist, create it and add the client to the channel
 		Channel * new_channel = new Channel(channel_name);
 		_channels.insert(std::pair<std::string, Channel *>(channel_name, new_channel));
+		_channels.at(channel_name)->add_client(message.get_sender());
+		std::cout << "Channel was created" << std::endl;
 	}
+	std::cout << _channels.at(channel_name) << std::endl;
+}
 
-	/*std::map<std::string, Channel *>::iterator it_channel = _channels.begin();
-	std::cout << "Current channels: ";
-	for (; it_channel != _channels.end(); it_channel++) {
-		std::cout << it_channel->first << ", ";
+void IRCServer::_execute_part(IRCMessage & message) {
+	std::cout << "Executing PART: " << message.get_command() << std::endl;
+	std::string channel_name = message.get_params()[0];
+	try {
+		// If channel exists, remove client from the channel.
+		if (!_channels.at(channel_name)->remove_client(message.get_sender())) {
+			// If client isn't on the channel, send NOTONCHANNEL
+			std::vector<int> receivers;
+			receivers.push_back(message.get_sender());
+			std::string	reply = ERR_NOTONCHANNEL(channel_name);
+			_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		}
+		std::cout << _channels.at(channel_name) << std::endl;
+	} catch (std::out_of_range & e) {
+		// If channel doesn't exist, send NOSUCHCHANNEL
+		std::vector<int> receivers;
+		receivers.push_back(message.get_sender());
+		std::string	reply = ERR_NOSUCHCHANNEL(channel_name);
+		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
 	}
-	std::cout << std::endl;*/
 }
 
 void IRCServer::_execute_privmsg(IRCMessage & message) {
-	std::cout << "commande privmsg: " << message.get_command() << std::endl;
+	std::cout << "Executing PRIVMSG: " << message.get_command() << std::endl;
 }
 
 void IRCServer::_execute_topic(IRCMessage & message) {
@@ -285,6 +314,7 @@ std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(std::string 
 		if (it->second->get_nickname() == nickname)
 			break;
 	return it;
+<<<<<<< HEAD
 }
 
 std::map<std::string, Channel *>::const_iterator IRCServer::find_channel(std::string & channel_name) const {
@@ -296,3 +326,6 @@ std::map<std::string, Channel *>::const_iterator IRCServer::find_channel(std::st
 }
 
 //void	IRCServer::_leave_channel()
+=======
+}
+>>>>>>> master

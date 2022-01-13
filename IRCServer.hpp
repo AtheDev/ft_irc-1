@@ -44,7 +44,7 @@ class IRCServer {
 		void	_run();
 		void	_add_clients(std::vector<int> & new_clients);
 		void	_remove_clients(std::vector<int> & disconnected_clients);
-		void	_remove_client_from_channels(int client_socketfd);
+		void	remove_client_from_all_channels(int client_socketfd);
 
 		void	_execute_command(IRCMessage & message);
 		void	_execute_pass(IRCMessage & message);
@@ -52,6 +52,7 @@ class IRCServer {
 		void	_execute_user(IRCMessage & message);
 		void	_execute_quit(IRCMessage & message);
 		void	_execute_join(IRCMessage & message);
+		void	_execute_part(IRCMessage & message);
 		void	_execute_privmsg(IRCMessage & message);
 		void	_execute_topic(IRCMessage & message);
 };
