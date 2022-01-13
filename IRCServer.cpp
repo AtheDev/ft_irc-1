@@ -75,13 +75,13 @@ void IRCServer::_remove_clients(std::vector<int> & disconnected_clients) {
 	std::vector<int>::iterator it_client = disconnected_clients.begin();
 	for (; it_client != disconnected_clients.end(); it_client++)
 	{
-		remove_client_from_all_channels(*it_client);
+		_remove_client_from_all_channels(*it_client);
 		delete _clients[*it_client];
 		_clients.erase(*it_client);
 	}
 }
 
-void IRCServer::remove_client_from_all_channels(int client_socketfd) {
+void IRCServer::_remove_client_from_all_channels(int client_socketfd) {
 	std::map<std::string, Channel *>::iterator it_channel = _channels.begin();
 	for (; it_channel != _channels.end(); it_channel++) {
 		it_channel->second->remove_client(client_socketfd);
@@ -175,9 +175,8 @@ void IRCServer::_execute_user(IRCMessage & message) {
 }
 
 void IRCServer::_execute_quit(IRCMessage & message) {
-<<<<<<< HEAD
-	std::cout << "commande quit: " << message.get_command() << std::endl;
-	std::vector<int> receivers;
+
+	std::cout << "Executing QUIT: " << message.get_command() << std::endl;
 	std::string quit_message;
 	if (message.get_params().empty())
 		quit_message = "Has disconnected.";
@@ -189,23 +188,32 @@ void IRCServer::_execute_quit(IRCMessage & message) {
 	}
 	IRCClient * client = _clients[message.get_sender()];
 	std::vector<std::string>::iterator it = client->get_channels().begin();
-	/*for (chaque channel)
+	for (; it != client->get_channels().end(); it++)
 	{
-		remove_client(message.get_sender());
-		for ()
-	//receivers.push_back(message.get_sender());
-	//std::string	reply = ERR_ALREADYREGISTRED();
-	_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
-	}*/
-=======
-	std::cout << "Executing QUIT: " << message.get_command() << std::endl;
-	/*
-		TODO: voir comment supprimer comme on recoit une liste de clients déconnectés
-		est-ce qu'on renvoie une liste au TCPServer? des clients qu on fait la commande QUIT ?
-
-		+ message en parametre à qui il est destiné ?
-	*/
->>>>>>> master
+        Channel * channel = _channels[*it];
+        //supprimer la std::string de channel du client 
+        client->quit_channel(channel->get_name());
+        //construire le message
+        _tcp_server.messages_to_be_sent.push_back(make_reply_PART(client, *channel, quit_message));
+        //supprimer le client du channel
+        channel->remove_client(message.get_sender());
+        //si opérateur de channel le supprimer
+	    std::vector<int>::iterator it_op = channel->channel_op_begin();
+	    for (; it_op != channel->channel_op_end(); it_op++)
+        {
+            if (*it_op == message.get_sender())
+            {
+                channel->get_channel_op().erase(it_op);
+                break ;
+            }
+        }
+        //si dernier client de ce channel ==> supprimer le chanel
+        if (channel->get_clients().empty())
+        {
+            delete channel;
+            _channels.erase(*it);
+        }
+	}
 }
 
 /**
@@ -314,7 +322,6 @@ std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(std::string 
 		if (it->second->get_nickname() == nickname)
 			break;
 	return it;
-<<<<<<< HEAD
 }
 
 std::map<std::string, Channel *>::const_iterator IRCServer::find_channel(std::string & channel_name) const {
@@ -324,8 +331,3 @@ std::map<std::string, Channel *>::const_iterator IRCServer::find_channel(std::st
 			break;
 	return it;
 }
-
-//void	IRCServer::_leave_channel()
-=======
-}
->>>>>>> master
