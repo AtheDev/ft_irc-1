@@ -1,4 +1,6 @@
 #include "IRCMessage.hpp"
+#include "Message.hpp"
+
 bool fmatch(std::string token, std::string format);
 
 //IRCMessage::IRCMessage(TCPMessage &tcpmessage)

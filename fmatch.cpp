@@ -5,6 +5,11 @@
 #include <cstdio>
 #include <iostream>
 
+static bool is_digit(int c)
+{
+	return c >= '0' && c <= '9';
+}
+
 static int get_char(std::string s, int pos)
 {
 	std::string tmp;
@@ -16,6 +21,45 @@ static int get_char(std::string s, int pos)
 	}
 	else
 		return s[pos];
+}
+
+static void assign_amount(std::string format, int pos, int *min, int *max)
+{
+	std::string tmp;
+
+	//pos is right after the (
+	if (is_digit(format[pos]) && (format.find('-', pos) == format.npos || format.find('-', pos) > format.find(')', pos)))
+	{
+		tmp = format.substr(pos, format.find(')', pos) - pos);
+		pos += tmp.size() + 1;
+		*min = atoi(tmp.c_str());
+		*max = *min;
+	}
+	else
+	{
+		if (format[pos] != '-')
+		{
+			tmp = format.substr(pos, format.find('-', pos) - pos);
+			pos += tmp.size() + 1;
+			*min = atoi(tmp.c_str());
+		}
+		else
+		{
+			*min = 0;
+			++pos;
+		}
+		if (format[pos] != ')')
+		{
+			tmp = format.substr(pos, format.find(')', pos) - pos);
+			pos += tmp.size() + 1;
+			*max = atoi(tmp.c_str());
+		}
+		else
+		{
+			*max = INT_MAX;
+			++pos;
+		}
+	}
 }
 
 /**
@@ -30,6 +74,7 @@ static int get_char(std::string s, int pos)
  * char can also be written as %42% to match their decimal equivalent in ascii table
  * thus %(-)[a-z] is equivalent to %(-)[%97%-%122%]
  * this way you can add char that are not easily writable in the code
+ * %R can be used to repeat a pattern -see examples-
  * 
  * @example
  * %(1-3)[a-z] -> matches 1 to 3 char from a to z
@@ -37,8 +82,11 @@ static int get_char(std::string s, int pos)
  * %(8)H -> matches 8 H ("HHHHHHHH")
  * %(3)[0-9].%(3)[0-9]+(-)[a-z] -> matches 3 numbers then a . then 3 numbers then a + then any number of letters from a to z
  * %(-)[a-z]+[0-9] -> matches any number of letters or numbers
- * %(1-1)B+C+D+E -> matches exactly one char which is B, C, D or E
+ * %(1)B+C+D+E -> matches exactly one char which is B, C, D or E
+ * equivalent to %(1-1)B+C+D+E
  * %37% -> maches one %
+ * to match any number of repeating patterns:
+ * %R(-).%(3)[a-z]%R -> match any number of the pattern . then 3 letters
  * 
  * @note
  * It's gonna segfault if you don't respect the format so beware
@@ -46,99 +94,114 @@ static int get_char(std::string s, int pos)
 bool
 	fmatch(std::string token, std::string format)
 {
-	size_t					pos_token = 0, pos_format = 0;
-	std::string				tmp;
-	int						n_to_match_min, n_to_match_max, n_matched;
-	char					to_match[127], to_match1, to_match2;
+	size_t			pos_token = 0, pos_format = 0, pos_pattern_repeat;
+	std::string		tmp;
+	int				char_to_match_min, char_to_match_max, char_matched;
+	int				pattern_to_match_min, pattern_to_match_max, pattern_matched;
+	bool			pattern;
+	char			char_mask[127], char_to_match_lower_bound, char_to_match_upper_bound;
 
 	while (format[pos_format] && token[pos_token])
 	{
-		memset(to_match, 0, 127);
-		if (format[pos_format] == '%' && format[pos_format + 1] == '(') //range of char
+		if (format[pos_format] == '%' && format[pos_format + 1] == 'R') //range of pattern
 		{
-			//here we get the amount of char to match
-			pos_format += 2;
-			if (format[pos_format] != '-')
+			pattern = true;
+			//here we get the amount of pattern to match
+			pos_format = format.find('(', pos_format) + 1;
+			assign_amount(format, pos_format, &pattern_to_match_min, &pattern_to_match_max);
+			pos_format = format.find(')', pos_format) + 1;
+			pos_pattern_repeat = pos_format;
+		}
+		else
+		{
+			pattern = false;
+			pattern_to_match_min = 1;
+			pattern_to_match_max = 1;
+			pos_pattern_repeat = pos_format;
+		}
+		pattern_matched = 0;
+		while (pattern_matched < pattern_to_match_max)
+		{
+			memset(char_mask, 0, 127);
+			if (format[pos_format] == '%' && format[pos_format + 1] == '(') //range of char
 			{
-				tmp = format.substr(pos_format, format.find('-', pos_format) - pos_format);
-				pos_format += tmp.size() + 1;
-				n_to_match_min = atoi(tmp.c_str());
+				//here we get the amount of char to match
+				pos_format = format.find('(', pos_format) + 1;
+				assign_amount(format, pos_format, &char_to_match_min, &char_to_match_max);
+				pos_format = format.find(')', pos_format) + 1;
+				//std::cout << '(' << char_to_match_min << '-' << char_to_match_max << ')' << std::endl; //DEBUG
+				//here we get the range(s) of char to match
+				do
+				{
+					if (format[pos_format] == '+')
+						++pos_format;
+					if (format[pos_format] == '[')
+					{
+						++pos_format;
+						char_to_match_lower_bound = get_char(format, pos_format);
+						if (format[pos_format] == '%')
+							while (format[++pos_format] != '%')
+								;
+						pos_format += 2;
+						char_to_match_upper_bound = get_char(format, pos_format);
+						if (format[pos_format] == '%')
+							while (format[++pos_format] != '%')
+								;
+						pos_format += 2;
+						for (int i = char_to_match_lower_bound; i <= char_to_match_upper_bound; ++i)
+							char_mask[i] = 1;
+					}
+					else
+					{
+						char_mask[get_char(format, pos_format)] = 1;
+						if (format[pos_format] == '%')
+							pos_format = format.find('%', pos_format + 1);
+						++pos_format;
+					}
+				} while (format[pos_format] == '+');
 			}
-			else
+			else //just one char to match
 			{
-				n_to_match_min = 0;
+				char_to_match_min = 1;
+				char_to_match_max = 1;
+				char_mask[get_char(format, pos_format)] = 1;
+				if (format[pos_format] == '%' && is_digit(format[pos_format + 1]))
+					pos_format = format.find('%', pos_format + 1);
 				++pos_format;
 			}
-			if (format[pos_format] != ')')
+			//std::cout << '|';
+			//for (int i = 0; i < 127; ++i) //DEBUG
+			//{ //DEBUG
+			//	if (char_mask[i]) //DEBUG
+			//		std::printf("%c", i); //DEBUG (might look weird with non-printable char)
+			//} //DEBUG
+			//std::cout << '|' << std::endl; //DEBUG
+			//here we check if the token matches the format
+			char_matched = 0;
+			while (char_mask[token[pos_token]] && char_matched < char_to_match_max)
 			{
-				tmp = format.substr(pos_format, format.find(')', pos_format) - pos_format);
-				pos_format += tmp.size() + 1;
-				n_to_match_max = atoi(tmp.c_str());
+				++char_matched;
+				++pos_token;
+				if (!token[pos_token])
+					break ;
 			}
-			else
+			if (char_matched < char_to_match_min)
+				return false;
+			if (!pattern)
+				++pattern_matched;
+			else if (format[pos_format] == '%' && format[pos_format + 1] == 'R')
 			{
-				n_to_match_max = INT_MAX;
-				++pos_format;
+				++pattern_matched;
+				if (!token[pos_token])
+					break ;
+				if (pattern_matched < pattern_to_match_max)
+					pos_format = pos_pattern_repeat;
 			}
-			//std::cout << '(' << n_to_match_min << '-' << n_to_match_max << ')' << std::endl; //DEBUG
-			//here we get the range(s) of char to match
-			do
-			{
-				if (format[pos_format] == '+')
-					++pos_format;
-				if (format[pos_format] == '[')
-				{
-					++pos_format;
-					to_match1 = get_char(format, pos_format);
-					if (format[pos_format] == '%')
-						while (format[++pos_format] != '%')
-							;
-					pos_format += 2;
-					to_match2 = get_char(format, pos_format);
-					if (format[pos_format] == '%')
-						while (format[++pos_format] != '%')
-							;
-					pos_format += 2;
-					for (int i = to_match1; i <= to_match2; ++i)
-						to_match[i] = 1;
-				}
-				else
-				{
-					to_match[get_char(format, pos_format)] = 1;
-					if (format[pos_format] == '%')
-						while (format[++pos_format] != '%')
-							;
-					++pos_format;
-				}
-			} while (format[pos_format] == '+');
 		}
-		else //just one char to match
-		{
-			n_to_match_min = 1;
-			n_to_match_max = 1;
-			to_match[get_char(format, pos_format)] = 1;
-			if (format[pos_format] == '%')
-				while (format[++pos_format] != '%')
-					;
-			++pos_format;
-		}
-		//for (int i = 0; i < 127; ++i) //DEBUG
-		//{ //DEBUG
-		//	if (to_match[i]) //DEBUG
-		//		std::printf("%c", i); //DEBUG (might look weird with non-printable char)
-		//} //DEBUG
-		//std::cout << std::endl; //DEBUG
-		//here we check if the token matches the format
-		n_matched = 0;
-		while (to_match[token[pos_token]] && n_matched < n_to_match_max)
-		{
-			++n_matched;
-			++pos_token;
-			if (!token[pos_token])
-				break ;
-		}
-		if (n_matched < n_to_match_min)
+		if (pattern_matched < pattern_to_match_min)
 			return false;
+		if (pattern && format[pos_format] == '%' && format[pos_format + 1] == 'R')
+			pos_format += 2;
 	}
 	return !token[pos_token] && !format[pos_format];
 }
