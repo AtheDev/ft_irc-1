@@ -15,6 +15,8 @@ TCPMessage make_reply_JOIN(const IRCClient & client, const Channel & channel);
 TCPMessage make_reply_PART(const IRCClient & client, const Channel & channel,
 						   const std::string & part_message = std::string());
 
+TCPMessage make_reply_TOPIC(const IRCClient & client, const Channel & channel);
+
 //001
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client);
 //002
@@ -43,9 +45,9 @@ TCPMessage make_reply_RPL_MYINFO(const IRCClient & client,
 //324
 //TCPMessage make_reply_RPL_CHANNELMODEIS(const IRCClient & client, channel, mode, mode_params) ("324" + channel + " " + mode + " " + mode params)
 //331
-//TCPMessage make_reply_RPL_NOTOPIC(const IRCClient & client, channel) ("331" + channel + " :No topic is set")
+TCPMessage make_reply_RPL_NOTOPIC(const IRCClient & client, const Channel & channel);
 //332
-//TCPMessage make_reply_RPL_TOPIC(const IRCClient & client, channel, topic) ("332" + channel + " :" + topic)
+TCPMessage make_reply_RPL_TOPIC(const IRCClient & client, const Channel & channel);
 //352
 //TCPMessage make_reply_RPL_WHOREPLY(const IRCClient & client, channel, user, host, server, nick, hopcount, realname) ("352" + channel + " " + user + " " + host + " " + server + " " + nick + /*( "H" / "G" > ["*"] [ ( "@" / "+" ) ]*/ " :" + hopcount + " " + realname)
 //353
@@ -114,7 +116,7 @@ TCPMessage make_reply_ERR_ALREADYREGISTRED(const IRCClient & client);
 //481
 //TCPMessage make_reply_ERR_NOPRIVILEGES(const IRCClient & client, ) ("481 :Permission Denied- You're not an IRC operator")
 //482
-//TCPMessage make_reply_ERR_CHANOPRIVSNEEDED(const IRCClient & client, channel) ("482" + channel + " :You're not channel operator")
+TCPMessage make_reply_ERR_CHANOPRIVSNEEDED(const IRCClient & client, const std::string & channel_name);
 //483
 //TCPMessage make_reply_ERR_CANTKILLSERVER(const IRCClient & client, ) ("483 :You can't kill a server!")
 //491

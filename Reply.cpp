@@ -19,6 +19,14 @@ TCPMessage make_reply_PART(const IRCClient & client, const Channel & channel,
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_TOPIC(const IRCClient & client, const Channel & channel) {
+	const std::vector<int>& receivers = channel.get_clients();
+	std::string payload;
+	payload = ":" + client.get_prefix() + " TOPIC " + channel.get_name();
+	payload += " :" + channel.get_topic();
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload;
@@ -48,6 +56,18 @@ TCPMessage make_reply_RPL_MYINFO(const IRCClient & client, const std::string & s
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = "004 :" + servername + " " + version + " ";
 	payload += user_modes + " " + channel_modes;
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_RPL_NOTOPIC(const IRCClient & client, const Channel & channel) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "331 :" + channel.get_name() + " :No topic is set";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_RPL_TOPIC(const IRCClient & client, const Channel & channel) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "332 :" + channel.get_name() + " :" + channel.get_topic();
 	return TCPMessage(receivers, payload);
 }
 
@@ -82,5 +102,10 @@ TCPMessage make_reply_ERR_NOTONCHANNEL(const IRCClient & client, const std::stri
 TCPMessage make_reply_ERR_ALREADYREGISTRED(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = "462 :Unauthorized command (already registered)";
+	return TCPMessage(receivers, payload);
+}
+TCPMessage make_reply_ERR_CHANOPRIVSNEEDED(const IRCClient & client, const std::string & channel_name) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "482" + channel_name + " :You're not channel operator";
 	return TCPMessage(receivers, payload);
 }

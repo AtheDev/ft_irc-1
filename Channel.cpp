@@ -93,10 +93,6 @@ void Channel::set_topic(const std::string & topic) {
 	_topic = topic;
 }
 
-std::vector<int> Channel::get_clients() const {
-	return _clients;
-}
-
 std::vector<int> Channel::get_channel_op() const {
 	return _channel_operators;
 }

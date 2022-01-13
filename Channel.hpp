@@ -25,7 +25,6 @@ class Channel {
 		std::vector<int>::iterator channel_op_end();
 		void set_topic(const std::string & topic);
 		const std::string & get_topic() const;
-		std::vector<int> get_clients() const;
 		std::vector<int> get_channel_op() const;
 
 	private:

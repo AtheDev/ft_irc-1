@@ -100,6 +100,10 @@ void IRCServer::_execute_command(IRCMessage & message) {
 		std::cout << "Command not found: " << message.get_command() << std::endl;
 }
 
+/**
+ * @brief Executes a PASS command.
+ * @param message The message containing the PASS command.
+ */
 void IRCServer::_execute_pass(IRCMessage & message) {
 	std::cout << "Executing PASS: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
@@ -112,6 +116,10 @@ void IRCServer::_execute_pass(IRCMessage & message) {
 	}
 }
 
+/**
+ * @brief Executes a NICK command.
+ * @param message The message containing the NICK command.
+ */
 void IRCServer::_execute_nick(IRCMessage & message) {
 	std::cout << "Executing NICK: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
@@ -135,6 +143,10 @@ void IRCServer::_execute_nick(IRCMessage & message) {
 	}
 }
 
+/**
+ * @brief Executes a USER command.
+ * @param message The message containing the USER command.
+ */
 void IRCServer::_execute_user(IRCMessage & message) {
 	std::cout << "Executing USER: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
@@ -165,6 +177,10 @@ void IRCServer::_execute_user(IRCMessage & message) {
 	}
 }
 
+/**
+ * @brief Executes a QUIT command.
+ * @param message The message containing the QUIT command.
+ */
 void IRCServer::_execute_quit(IRCMessage & message) {
 
 	std::cout << "Executing QUIT: " << message.get_command() << std::endl;
@@ -182,13 +198,9 @@ void IRCServer::_execute_quit(IRCMessage & message) {
 	for (; it != client->get_channels().end(); it++)
 	{
         Channel * channel = _channels[*it];
-        //supprimer la std::string de channel du client 
         client->quit_channel(channel->get_name());
-        //construire le message
-        _tcp_server.messages_to_be_sent.push_back(make_reply_PART(client, *channel, quit_message));
-        //supprimer le client du channel
+        _tcp_server.messages_to_be_sent.push_back(make_reply_PART(*client, *channel, quit_message));
         channel->remove_client(message.get_sender());
-        //si opérateur de channel le supprimer
 	    std::vector<int>::iterator it_op = channel->channel_op_begin();
 	    for (; it_op != channel->channel_op_end(); it_op++)
         {
@@ -198,7 +210,6 @@ void IRCServer::_execute_quit(IRCMessage & message) {
                 break ;
             }
         }
-        //si dernier client de ce channel ==> supprimer le chanel
         if (channel->get_clients().empty())
         {
             delete channel;
@@ -268,55 +279,56 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
 	std::cout << "Executing PRIVMSG: " << message.get_command() << std::endl;
 }
 
+/**
+ * @brief Executes a TOPIC command.
+ * @param message The message containing the TOPIC command.
+ */
 void IRCServer::_execute_topic(IRCMessage & message) {
-	std::cout << "commande topic: " << message.get_command() << std::endl;
-	std::vector<int> receivers;
-	receivers.push_back(message.get_sender());
+	std::cout << "Executing TOPIC: " << message.get_command() << std::endl;
+    IRCClient * client = _clients.at(message.get_sender());
 	std::map<std::string, Channel *>::const_iterator it = find_channel(message.get_params()[0]);
 	if (it != _channels.end())
-	{
-		std::string	reply = ERR_NOTONCHANNEL(message.get_params()[0]);
-		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+	{//TODO: change 403 ERR_NOSUHCHANNEL ??
+		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, message.get_params()[0]);
+		_tcp_server.messages_to_be_sent.push_back(reply);
 		return ;
 	}
 	Channel * channel_tmp = it->second;
-	if (find(channel_tmp->clients_begin(), channel_tmp->clients_end(), message.get_sender()) == channel_tmp->clients_end())
+	if (find(channel_tmp->clients_begin(), channel_tmp->clients_end(), message.get_sender())
+        == channel_tmp->clients_end())
 	{
-		std::string	reply = ERR_NOTONCHANNEL(message.get_params()[0]);
-		_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, message.get_params()[0]);
+		_tcp_server.messages_to_be_sent.push_back(reply);
 		return ;
 	}
 	if (message.get_params().size() > 1)
 	{
-		/*if (pas operator chan)
+		if (find(channel_tmp->channel_op_begin(), channel_tmp->channel_op_end(), message.get_sender())
+            == channel_tmp->channel_op_end())
 		{
-			std::string	reply = ERR_CHANOPRIVSNEEDED(message.get_params()[0]);
-			_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+			TCPMessage	reply = make_reply_ERR_CHANOPRIVSNEEDED(*client, message.get_params()[0]);
+			_tcp_server.messages_to_be_sent.push_back(TCPMessage(reply));
 		}
 		else
-		{*/
+		{//TODO: if topic stored on several parameters ==> loop
 			channel_tmp->set_topic(message.get_params()[1]);
-			receivers.clear();
-			std::vector<int>::const_iterator it_clients = channel_tmp->clients_begin();
-			for (; it_clients != channel_tmp->clients_end(); it_clients++)
-				receivers.push_back(*it_clients);
-			std::string reply = "TOPIC " + channel_tmp->get_name() + " :" + channel_tmp->get_topic();
-			_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
-		//}
+            TCPMessage reply = make_reply_TOPIC(*client, *channel_tmp);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+		}
 		return ;
 	}
 	else
 	{
-		/*if (toipc présent)
+		if (!channel_tmp->get_topic().empty())
 		{
-			std::string	reply = RPL_TOPIC(message->get_params()[0], channel_tmp->get_topic());
-			_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
+			TCPMessage reply = make_reply_RPL_TOPIC(*client, *channel_tmp);
+			_tcp_server.messages_to_be_sent.push_back(reply);
 		}
 		else
-		{*/
-			std::string	reply = RPL_NOTOPIC(message.get_params()[0]);
-			_tcp_server.messages_to_be_sent.push_back(TCPMessage(receivers, reply));
-		//}
+		{
+			TCPMessage reply = make_reply_RPL_NOTOPIC(*client, *channel_tmp);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+		}
 	}
 }
 
