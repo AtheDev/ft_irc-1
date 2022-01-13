@@ -104,7 +104,7 @@ enum    e_err_reply {
 //402
 #define ERR_NOSUCHSERVER(server_name) ("402" + server name + " :No such server")
 //403
-#define ERR_NOSUCHCHANNEL(chanel) ("403" + channel + " :No such channel")
+#define ERR_NOSUCHCHANNEL(channel) ("403" + channel + " :No such channel")
 //404
 #define ERR_CANNOTSENDTOCHAN(channel) ("404" + channel + " :Cannot send to channel")
 //405
