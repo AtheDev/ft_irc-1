@@ -40,6 +40,10 @@ bool Channel::remove_client(int socketfd) {
 	return false;
 }
 
+const std::vector<int> & Channel::get_clients() const {
+	return _clients;
+}
+
 /**
  * @brief Handle to iterate on client's socketfds of this channel.
  * @return A begin iterator to the clients.
@@ -57,14 +61,13 @@ std::vector<int>::const_iterator Channel::clients_end() const {
 }
 
 std::ostream & operator<<(std::ostream & os, const Channel & channel) {
-	os << "Channel #" << channel._name << ". Clients: ";
+	os << "Channel " << channel._name << ". Clients: ";
 	std::vector<int>::const_iterator it_client = channel.clients_begin();
 	for (; it_client != channel.clients_end(); it_client++) {
-		os << *it_client << " ";
+		os << *it_client << ", ";
 	}
 	return os;
 }
-
 
 /**
  * @brief Handle to iterate on socketfds of clients that are channel operators.

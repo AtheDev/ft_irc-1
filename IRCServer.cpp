@@ -214,40 +214,54 @@ void IRCServer::_execute_quit(IRCMessage & message) {
 void IRCServer::_execute_join(IRCMessage & message) {
 	std::cout << "Executing JOIN: " << message.get_command() << std::endl;
 	//TODO: For now, it doesn't use keys and can only manage a single channel.
+	//TODO: Manage errors !
+	IRCClient * client = _clients.at(message.get_sender());
 	std::string channel_name = message.get_params()[0];
+	Channel * channel;
 	try {
-		// If channel exists, add_client to channel.
-		_channels.at(channel_name)->add_client(message.get_sender());
+		// Get the channel
+		channel = _channels.at(channel_name);
 		std::cout << "Channel exists" << std::endl;
 	} catch (std::out_of_range & e) {
-		// If channel doesn't exist, create it and add the client to the channel
-		Channel * new_channel = new Channel(channel_name);
-		_channels.insert(std::pair<std::string, Channel *>(channel_name, new_channel));
-		_channels.at(channel_name)->add_client(message.get_sender());
+		// If it doesn't exist, create one
+		channel = new Channel(channel_name);
+		_channels.insert(std::pair<std::string, Channel *>(channel_name, channel));
 		std::cout << "Channel was created" << std::endl;
 	}
-	std::cout << _channels.at(channel_name) << std::endl;
+	channel->add_client(client->get_fd());
+	TCPMessage reply = make_reply_JOIN(*client, *channel);
+	_tcp_server.messages_to_be_sent.push_back(reply);
+	std::cout << *_channels.at(channel_name) << std::endl;
 }
 
+/**
+ * @brief Executes a PART command.
+ * @param message The message containing the PART command.
+ */
 void IRCServer::_execute_part(IRCMessage & message) {
 	std::cout << "Executing PART: " << message.get_command() << std::endl;
 	//TODO: Manage multiple channel part
+	//TODO: Manage part message. How to get the part message ?
 	IRCClient * client = _clients.at(message.get_sender());
 	std::string channel_name = message.get_params()[0];
 
 	try {
-		// If channel exists, remove client from the channel.
-		if (!_channels.at(channel_name)->remove_client(message.get_sender())) {
+		Channel * channel = _channels.at(channel_name);
+		if (!channel->remove_client(message.get_sender())) {
 			// If client isn't on the channel, send NOTONCHANNEL
 			TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
 			_tcp_server.messages_to_be_sent.push_back(reply);
+		} else {
+			// Else, broadcast to channel's users that a new user joined the channel
+			TCPMessage reply = make_reply_PART(*client, *channel);
+			_tcp_server.messages_to_be_sent.push_back(reply);
 		}
-		std::cout << _channels.at(channel_name) << std::endl;
 	} catch (std::out_of_range & e) {
 		// If channel doesn't exist, send NOSUCHCHANNEL
 		TCPMessage reply = make_reply_ERR_NOSUCHCHANNEL(*client, channel_name);
 		_tcp_server.messages_to_be_sent.push_back(reply);
 	}
+	std::cout << *_channels.at(channel_name) << std::endl;
 }
 
 void IRCServer::_execute_privmsg(IRCMessage & message) {

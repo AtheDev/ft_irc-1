@@ -4,11 +4,16 @@
 #include <vector>
 #include "TCPMessage.hpp"
 #include "IRCClient.hpp"
+#include "Channel.hpp"
 
 
 //TODO: THIS FILE CONTAINS COMMENTED PARTIALLY FORMATTED FUNCTION DECLARATION !
 // Update this file when add a new make_reply function
 
+TCPMessage make_reply_JOIN(const IRCClient & client, const Channel & channel);
+
+TCPMessage make_reply_PART(const IRCClient & client, const Channel & channel,
+						   const std::string & part_message = std::string());
 
 //001
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client);

@@ -9,7 +9,7 @@
 class TCPMessage {
 	public:
 		TCPMessage(int sender, std::string & payload);
-		TCPMessage(std::vector<int> & receivers, std::string & payload);
+		TCPMessage(const std::vector<int> & receivers, std::string & payload);
 		TCPMessage(int sender, std::vector<int> & receivers, std::string & payload);
 		TCPMessage(const TCPMessage & other);
 

@@ -18,7 +18,7 @@ TCPMessage::TCPMessage(int sender, std::string & payload) {
  *  @param receivers  The socketfd of the clients receiving the message.
  *  @param payload  The message's payload.
  */
-TCPMessage::TCPMessage(std::vector<int> & receivers, std::string & payload) {
+TCPMessage::TCPMessage(const std::vector<int> & receivers, std::string & payload) {
 	_sender = 0; // _sender is empty
 	_receivers = receivers;
 	_payload = payload;
