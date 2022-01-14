@@ -1,207 +1,254 @@
 #include <string>
 #include <cstring>
-#include <climits>
 #include <cstdlib>
-#include <cstdio>
-#include <iostream>
+#include <climits>
+#include <utility>
 
-static bool is_digit(int c)
+#define MIN 0
+#define MAX 1
+
+#define CHAR_MASK_SIZE 255
+
+#include <cstdio> //for printf, debug
+#include <iostream> //for std::cout, debug
+
+static bool
+	is_digit(int c) { return c >= '0' && c <= '9'; }
+
+void
+	remove_percentage(std::string &str)
 {
-	return c >= '0' && c <= '9';
-}
-
-static int get_char(std::string s, int pos)
-{
-	std::string tmp;
-
-	if (s[pos] == '%')
+	for (int i = 0; i < 2; ++i)
 	{
-		tmp = s.substr(pos + 1, s.find('%', pos + 1) - 1);
-		return atoi(tmp.c_str());
-	}
-	else
-		return s[pos];
-}
-
-static void assign_amount(std::string format, int pos, int *min, int *max)
-{
-	std::string tmp;
-
-	//pos is right after the (
-	if (is_digit(format[pos]) && (format.find('-', pos) == format.npos || format.find('-', pos) > format.find(')', pos)))
-	{
-		tmp = format.substr(pos, format.find(')', pos) - pos);
-		pos += tmp.size() + 1;
-		*min = atoi(tmp.c_str());
-		*max = *min;
-	}
-	else
-	{
-		if (format[pos] != '-')
+		for (std::string::iterator it = str.begin(); it != str.end(); ++it)
 		{
-			tmp = format.substr(pos, format.find('-', pos) - pos);
-			pos += tmp.size() + 1;
-			*min = atoi(tmp.c_str());
-		}
-		else
-		{
-			*min = 0;
-			++pos;
-		}
-		if (format[pos] != ')')
-		{
-			tmp = format.substr(pos, format.find(')', pos) - pos);
-			pos += tmp.size() + 1;
-			*max = atoi(tmp.c_str());
-		}
-		else
-		{
-			*max = INT_MAX;
-			++pos;
+			if (*it == '%')
+			{
+				str.erase(it);
+				break; //erase invalidates iterators
+			}
 		}
 	}
 }
 
 /**
- * @brief Check if the string token matches the string format
+ * @brief
+ * read a char or hex char at pos in the string s
  * 
- * @details
- * format will match like:
- * %(1-2) -> 1 to 2 char -must be combined with plain char or range, see examples-
- * [0-9] -> range of char from 0 to 9 in ASCII table
- * + -> use this to add more range or plain char to match, see examples
- * plain char -> the char itself
- * char can also be written as %42% to match their decimal equivalent in ascii table
- * thus %(-)[a-z] is equivalent to %(-)[%97%-%122%]
- * this way you can add char that are not easily writable in the code
- * %R can be used to repeat a pattern -see examples-
+ * @return
+ * a pair with the first element being the amount of increment needed to continue reading the string
+ * and the second element being the char read
+ */
+static std::pair<size_t, int>
+	get_char(std::string s, size_t pos = 0)
+{
+	if (s[pos] == '%' && s[pos + 1] == '0') //get hex char
+	{
+		int	c = strtol(s.substr(pos + 1, 4).c_str(), NULL, 16);
+		return std::pair<size_t, int>(5, c);
+	}
+	else //get plain char
+		return std::pair<size_t, int>(1, s[pos]);
+}
+
+/**
+ * @brief
+ * Assign the amount of repetitions to the param repetition[2] by reading the string s
+ * its a helper function of fmatch
+ * 
+ * @param s
+ * a substr of a string being the content between the parenthesis indicating the amount of repetitions
+ * for a char, range of char or pattern -see fmatch-
+ * 
+ * @return
+ * the amount of increment needed to continue reading the string
+ */
+static size_t
+	get_repetition(std::string s, int repetition[2])
+{
+	if (s.find(':') == s.npos) //if the amount of repetition is a single number
+	{
+		repetition[MIN] = atoi(s.c_str());
+		repetition[MAX] = repetition[MIN];
+	}
+	else if (s == ":") //any amount of repetitions
+	{
+		repetition[MIN] = 0;
+		repetition[MAX] = INT_MAX;
+	}
+	else if (sscanf(s.c_str(), "%d:%d", &repetition[MIN], &repetition[MAX]) == 2)
+		;
+	else if (sscanf(s.c_str(), "%d:", &repetition[MIN]) == 1)
+		repetition[MAX] = INT_MAX;
+	else if (sscanf(s.c_str(), ":%d", &repetition[MAX]) == 1)
+		repetition[MIN] = 0;
+	return s.size() + 2;
+}
+
+/**
+ * @brief
+ * Edits the char_mask to be true for values given by the string s
+ * 
+ * @param s
+ * A substring of the content between the brackets formatted like described in fmatch
+ * can also be a single char or hex char
  * 
  * @example
- * %(1-3)[a-z] -> matches 1 to 3 char from a to z
- * %(1-)[0-9] -> matches 1 to infinity char from 0 to 9
- * %(8)H -> matches 8 H ("HHHHHHHH")
- * %(3)[0-9].%(3)[0-9]+(-)[a-z] -> matches 3 numbers then a . then 3 numbers then a + then any number of letters from a to z
- * %(-)[a-z]+[0-9] -> matches any number of letters or numbers
- * %(1)B+C+D+E -> matches exactly one char which is B, C, D or E
- * equivalent to %(1-1)B+C+D+E
- * %37% -> maches one %
- * to match any number of repeating patterns:
- * %R(-).%(3)[a-z]%R -> match any number of the pattern . then 3 letters
+ * "a+b+c" as s will set the elements 97, 98 and 99 of the char_mask to 1
+ * "a:z" as s will set all elements between 97 and 122 of the char_mask to 1
+ */
+static size_t
+	fadd_char_mask(std::string s, bool char_mask[255])
+{
+	char					char_a, char_b;
+	int						int_a, int_b;
+	int						min, max;
+	std::pair<size_t, int>	char_read;
+	size_t					pos_x;
+	size_t					r;
+
+	if (s.find(':') == s.npos) //only one char to add to the mask
+	{
+		char_read = get_char(s);
+		char_mask[char_read.second] = true; 
+		return char_read.first;
+	}
+	r = s.size() + 2;
+	remove_percentage(s); //removing the % in the string to allow using sscanf
+	if ((pos_x = s.find('x')) != s.npos) //at least one hex char
+	{
+		if (s.find('x', pos_x + 1) != s.npos) //two hex char
+		{
+			sscanf(s.c_str(), "%x:%x", &int_a, &int_b);
+			min = int_a;
+			max = int_b;
+		}
+		else if (s.find(':', pos_x + 1) != s.npos) //one hex plain char then one char
+		{
+			sscanf(s.c_str(), "%x:%c", &int_a, &char_b);
+			min = int_a;
+			max = static_cast<int>(char_b);
+		}
+		else //one plain char then one hex char
+		{
+			sscanf(s.c_str(), "%c:%x", &char_a, &int_b);
+			min = static_cast<int>(char_a);
+			max = int_b;
+		}
+	}
+	else //two plain char
+	{
+		sscanf(s.c_str(), "%c:%c", &char_a, &char_b);
+		min = static_cast<int>(char_a);
+		max = static_cast<int>(char_b);
+	}
+	for (int i = min; i <= max; ++i)
+		char_mask[i] = true;
+	return r;
+}
+
+static bool
+	fmatch_range(std::string &token, std::string &format, size_t &pos_format)
+{
+	bool	char_mask[CHAR_MASK_SIZE];
+	int		repetition[2];
+
+	memset(char_mask, false, CHAR_MASK_SIZE);
+	++pos_format;
+	if (format[pos_format] == '(')
+		pos_format += get_repetition(format.substr(pos_format + 1, format.find(')') - (pos_format + 1)), repetition);
+	do //editing the char_mask
+	{
+		if (format[pos_format] == '+')
+			++pos_format;
+		if (format[pos_format] == '(')
+			; //recursion and break?
+		if (format[pos_format] == '[')
+			pos_format += fadd_char_mask(format.substr(pos_format + 1, format.find(']') - (pos_format + 1)), char_mask);
+		else if (format[pos_format] == '%') //hex char
+			pos_format += fadd_char_mask(format.substr(pos_format, 5), char_mask);
+		else
+			pos_format += fadd_char_mask(format.substr(pos_format, 1), char_mask);
+		return false; //testing
+	} while (format[pos_format] == '+'); //extra condition for recursion?
+
+}
+
+/**
+ * @brief
+ * Check if the string token matches the string format
+ * 
+ * @details
+ * % indicates the start of a specific amount of char or range of char to match like:
+ * %(<a>:<b>)[<c>:<d>]
+ * <a> and <b> are the minimum and maximum amount of char to match
+ * there are numbers
+ * omitting <a> is equivalent to a minimum of 0
+ * omitting <b> is equivalent to maximum of INT_MAX
+ * so to match any amount of char write (:)
+ * to match exactly x char (x:x) is equivalent to (x)
+ * if the amount of char to match is omitted it will match exactly one char
+ * <c> and <d> are the bounds of the range of char to match
+ * there are wether plain char or the hexadecimal value of the char like this: %0x00
+ * the x MUST be lowercase
+ * [<e>:<e>] can also be written as <e> to just match the char <e>
+ * extra char or range of char can be added by separating them with +
+ * you can specify a different amount of times to match the extra char or range of char
+ * if you don't it will match the same amount of times as the last char or range of char
+ * 
+ * * indicates the start of a repeating pattern to match like:
+ * *((<a>:<b>)[<pattern>])
+ * <a> and <b> are the minimum and maximum amount of patterns to match
+ * they follow the same rules as the <a> and <b> for amounts of char to match
+ * pattern can be any sequence of plain chars or %(...) separated by nothing
+ * you can add extra patterns to match by separating them with +
+ * you can specify a different amount of times to match the extra patterns
+ * if you don't it will match the same amount of times as the last pattern
+ * you can match repeating pattern(s) inside a repeating pattern
+ * 
+ * a single plain char (except % or *) will match one time this single plain char
+ * 
+ * @example
+ * "a" will match a single a char
+ * "%[a:z]" will match a single lowercase letter
+ * "%(4:6)[0:9][A:Z]" will match between 4 and 6 numbers or capital letters
+ * "*((3)[%(1:3)[0:9].]+(1)X)%(1:3)[0:9]+(1)X"
+ * will match 3 times a pattern of between one and 3 numbers or a single X followed by a .
+ * and then between one and 3 numbers or a single X
+ * so it will match 127.0.0.1 or 41.X.X.0 or X.X.X.X
  * 
  * @note
- * It's gonna segfault if you don't respect the format so beware
+ * % cannot be used as a plain char, you must use %0x25
+ * * cannot be used as a plain char, you must use %0x2A
+ * + cannot be used as a plain char, you must use %0x2B
  */
 bool
 	fmatch(std::string token, std::string format)
 {
-	size_t			pos_token = 0, pos_format = 0, pos_pattern_repeat;
-	std::string		tmp;
-	int				char_to_match_min, char_to_match_max, char_matched;
-	int				pattern_to_match_min, pattern_to_match_max, pattern_matched;
-	bool			pattern;
-	char			char_mask[255], char_to_match_lower_bound, char_to_match_upper_bound;
+	size_t					pos_token = 0, pos_format = 0;
+	std::pair<size_t, int>	char_read;
 
 	while (format[pos_format] && token[pos_token])
 	{
-		if (format[pos_format] == '%' && format[pos_format + 1] == 'R') //range of pattern
+		if (format[pos_format] == '*') //matching repeating pattern
 		{
-			pattern = true;
-			//here we get the amount of pattern to match
-			pos_format = format.find('(', pos_format) + 1;
-			assign_amount(format, pos_format, &pattern_to_match_min, &pattern_to_match_max);
-			pos_format = format.find(')', pos_format) + 1;
-			pos_pattern_repeat = pos_format;
+
 		}
-		else
+		else if (format[pos_format] == '%' && format[pos_format + 1] != '0') //matching range of char (or single char)
 		{
-			pattern = false;
-			pattern_to_match_min = 1;
-			pattern_to_match_max = 1;
-			pos_pattern_repeat = pos_format;
-		}
-		pattern_matched = 0;
-		while (pattern_matched < pattern_to_match_max)
-		{
-			memset(char_mask, 0, 255);
-			if (format[pos_format] == '%' && format[pos_format + 1] == '(') //range of char
-			{
-				//here we get the amount of char to match
-				pos_format = format.find('(', pos_format) + 1;
-				assign_amount(format, pos_format, &char_to_match_min, &char_to_match_max);
-				pos_format = format.find(')', pos_format) + 1;
-				//std::cout << '(' << char_to_match_min << '-' << char_to_match_max << ')' << std::endl; //DEBUG
-				//here we get the range(s) of char to match
-				do
-				{
-					if (format[pos_format] == '+')
-						++pos_format;
-					if (format[pos_format] == '[')
-					{
-						++pos_format;
-						char_to_match_lower_bound = get_char(format, pos_format);
-						if (format[pos_format] == '%')
-							while (format[++pos_format] != '%')
-								;
-						pos_format += 2;
-						char_to_match_upper_bound = get_char(format, pos_format);
-						if (format[pos_format] == '%')
-							while (format[++pos_format] != '%')
-								;
-						pos_format += 2;
-						for (int i = char_to_match_lower_bound; i <= char_to_match_upper_bound; ++i)
-							char_mask[i] = 1;
-					}
-					else
-					{
-						char_mask[get_char(format, pos_format)] = 1;
-						if (format[pos_format] == '%')
-							pos_format = format.find('%', pos_format + 1);
-						++pos_format;
-					}
-				} while (format[pos_format] == '+');
-			}
-			else //just one char to match
-			{
-				char_to_match_min = 1;
-				char_to_match_max = 1;
-				char_mask[get_char(format, pos_format)] = 1;
-				if (format[pos_format] == '%' && is_digit(format[pos_format + 1]))
-					pos_format = format.find('%', pos_format + 1);
-				++pos_format;
-			}
-			//std::cout << '|';
-			//for (int i = 0; i < 127; ++i) //DEBUG
-			//{ //DEBUG
-			//	if (char_mask[i]) //DEBUG
-			//		std::printf("%c", i); //DEBUG (might look weird with non-printable char)
-			//} //DEBUG
-			//std::cout << '|' << std::endl; //DEBUG
-			//here we check if the token matches the format
-			char_matched = 0;
-			while (char_mask[token[pos_token]] && char_matched < char_to_match_max)
-			{
-				++char_matched;
-				++pos_token;
-				if (!token[pos_token])
-					break ;
-			}
-			if (char_matched < char_to_match_min)
+			if (!fmatch_range(token, format, pos_format))
 				return false;
-			if (!pattern)
-				++pattern_matched;
-			else if (format[pos_format] == '%' && format[pos_format + 1] == 'R')
-			{
-				++pattern_matched;
-				if (!token[pos_token])
-					break ;
-				if (pattern_matched < pattern_to_match_max)
-					pos_format = pos_pattern_repeat;
-			}
 		}
-		if (pattern_matched < pattern_to_match_min)
-			return false;
-		if (pattern && format[pos_format] == '%' && format[pos_format + 1] == 'R')
-			pos_format += 2;
+		else //matching a single plain char or hex char
+		{
+			char_read = get_char(format, pos_format);
+			pos_format += char_read.first;
+			if (token[pos_token] != char_read.second)
+				return false;
+			++pos_token;
+		}
 	}
-	return !token[pos_token] && !format[pos_format];
+	if (format[pos_format])
+		; //check if all remaining patterns and range accept 0 repetition
+	return !format[pos_format] && !token[pos_token];
 }
