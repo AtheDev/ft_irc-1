@@ -55,6 +55,7 @@ class IRCServer {
 		void	_execute_part(IRCMessage & message);
 		void	_execute_privmsg(IRCMessage & message);
 		void	_execute_topic(IRCMessage & message);
+		void	_execute_list(IRCMessage & message);
 };
 
 

@@ -15,6 +15,7 @@ IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Serv
 	_commands["PART"] = &IRCServer::_execute_part;
 	_commands["PRIVMSG"] = &IRCServer::_execute_privmsg;
 	_commands["TOPIC"] = &IRCServer::_execute_topic;
+	_commands["LIST"] = &IRCServer::_execute_list;
 }
 
 IRCServer::~IRCServer() {}
@@ -330,6 +331,39 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 			_tcp_server.messages_to_be_sent.push_back(reply);
 		}
 	}
+}
+
+/**
+ * @brief Executes a LIST command.
+ * @param message The message containing the LIST command.
+ */
+void IRCServer::_execute_list(IRCMessage & message) {
+	std::cout << "Executing LIST: " << message.get_command() << std::endl;
+    IRCClient * client = _clients.at(message.get_sender());
+	if (message.get_params().empty())
+	{
+		std::map<std::string, Channel *>::iterator it = _channels.begin();
+		for (; it != _channels.end(); it++)
+		{
+			TCPMessage reply = make_reply_RPL_LIST(*client, *(it->second));
+			_tcp_server.messages_to_be_sent.push_back(reply);	
+		}
+	}
+	else
+	{
+		std::vector<std::string>::iterator it = message.get_params().begin();
+		for (; it != message.get_params().end(); it++)
+		{
+			std::map<std::string, Channel *>::const_iterator c_it = find_channel(*it);
+			if (c_it != _channels.end())
+			{
+				TCPMessage reply = make_reply_RPL_LIST(*client, *(c_it->second));
+				_tcp_server.messages_to_be_sent.push_back(reply);	
+			}
+		}
+	}
+	TCPMessage reply = make_reply_RPL_LISTEND(*client);
+	_tcp_server.messages_to_be_sent.push_back(reply);
 }
 
 std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(std::string & nickname) const {

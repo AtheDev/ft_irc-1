@@ -39,9 +39,9 @@ TCPMessage make_reply_RPL_MYINFO(const IRCClient & client,
 //315
 //TCPMessage make_reply_RPL_ENDOFWHO(const IRCClient & client, name) ("315" + name + " :End of WHO list")
 //322
-//TCPMessage make_reply_RPL_LIST(const IRCClient & client, channel, visible, topic) ("322" + channel + " " +  /*#*/ visible + " :" + topic)
+TCPMessage make_reply_RPL_LIST(const IRCClient & client, const Channel & channel);
 //323
-//TCPMessage make_reply_RPL_LISTEND(const IRCClient & client, ) ("323 :End of LIST")
+TCPMessage make_reply_RPL_LISTEND(const IRCClient & client);
 //324
 //TCPMessage make_reply_RPL_CHANNELMODEIS(const IRCClient & client, channel, mode, mode_params) ("324" + channel + " " + mode + " " + mode params)
 //331

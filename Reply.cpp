@@ -1,4 +1,5 @@
 #include "Reply.hpp"
+#include "Utils.hpp"
 
 TCPMessage make_reply_JOIN(const IRCClient & client, const Channel & channel) {
 	const std::vector<int>& receivers = channel.get_clients();
@@ -56,6 +57,20 @@ TCPMessage make_reply_RPL_MYINFO(const IRCClient & client, const std::string & s
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = "004 :" + servername + " " + version + " ";
 	payload += user_modes + " " + channel_modes;
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_RPL_LIST(const IRCClient & client, const Channel & channel) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload;
+	payload = "322 :" + channel.get_name() + " ";
+	payload += to_string(channel.get_clients().size()) + " :" + channel.get_topic();
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_RPL_LISTEND(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "323 :End of LIST";
 	return TCPMessage(receivers, payload);
 }
 
