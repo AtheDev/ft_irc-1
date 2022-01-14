@@ -340,6 +340,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 void IRCServer::_execute_list(IRCMessage & message) {
 	std::cout << "Executing LIST: " << message.get_command() << std::endl;
     IRCClient * client = _clients.at(message.get_sender());
+	//TODO: see for the LIST command and the -YES parameter
 	if (message.get_params().empty())
 	{
 		std::map<std::string, Channel *>::iterator it = _channels.begin();
