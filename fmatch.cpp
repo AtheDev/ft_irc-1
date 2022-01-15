@@ -12,6 +12,22 @@
 #include <cstdio> //for printf, debug
 #include <iostream> //for std::cout, debug
 
+/**
+ * @brief
+ * This is just for debug purposes
+ */
+static void
+	display_char_mask(bool char_mask[CHAR_MASK_SIZE])
+{
+	std::cout << '|';
+	for (int i = 0; i < CHAR_MASK_SIZE; ++i)
+	{
+		if (char_mask[i])
+			printf("%c", i);
+	}
+	std::cout << '|' << std::endl;
+}
+
 static bool
 	is_digit(int c) { return c >= '0' && c <= '9'; }
 
@@ -147,31 +163,48 @@ static size_t
 	return r;
 }
 
+/**
+ * @brief
+ * subpattern matching recursive function
+ */
 static bool
-	fmatch_range(std::string &token, std::string &format, size_t &pos_format)
+	fmatch_subpattern(std::string &token, std::string &format, size_t &pos_token, size_t &pos_format)
 {
 	bool	char_mask[CHAR_MASK_SIZE];
+	int		n_repetition;
 	int		repetition[2];
 
 	memset(char_mask, false, CHAR_MASK_SIZE);
 	++pos_format;
 	if (format[pos_format] == '(')
-		pos_format += get_repetition(format.substr(pos_format + 1, format.find(')') - (pos_format + 1)), repetition);
+		pos_format += get_repetition(format.substr(pos_format + 1, format.find(')', pos_format) - (pos_format + 1)), repetition);
+	else
+	{
+		repetition[MIN] = 1;
+		repetition[MAX] = 1;
+	}
 	do //editing the char_mask
 	{
 		if (format[pos_format] == '+')
 			++pos_format;
 		if (format[pos_format] == '(')
-			; //recursion and break?
+			; //recursion and break? pos_token is gonna mess everything up because its a ref
 		if (format[pos_format] == '[')
-			pos_format += fadd_char_mask(format.substr(pos_format + 1, format.find(']') - (pos_format + 1)), char_mask);
+			pos_format += fadd_char_mask(format.substr(pos_format + 1, format.find(']', pos_format) - (pos_format + 1)), char_mask);
 		else if (format[pos_format] == '%') //hex char
 			pos_format += fadd_char_mask(format.substr(pos_format, 5), char_mask);
 		else
 			pos_format += fadd_char_mask(format.substr(pos_format, 1), char_mask);
-		return false; //testing
 	} while (format[pos_format] == '+'); //extra condition for recursion?
-
+	n_repetition = 0;
+	while (n_repetition < repetition[MAX] && token[pos_token])
+	{
+		if (!char_mask[token[pos_token]])
+			break ;
+		++pos_token;
+		++n_repetition;
+	}
+	return n_repetition >= repetition[MIN];
 }
 
 /**
@@ -179,7 +212,7 @@ static bool
  * Check if the string token matches the string format
  * 
  * @details
- * % indicates the start of a specific amount of char or range of char to match like:
+ * % indicates the start of a subpattern to match like this:
  * %(<a>:<b>)[<c>:<d>]
  * <a> and <b> are the minimum and maximum amount of char to match
  * there are numbers
@@ -194,16 +227,17 @@ static bool
  * [<e>:<e>] can also be written as <e> to just match the char <e>
  * extra char or range of char can be added by separating them with +
  * you can specify a different amount of times to match the extra char or range of char
- * if you don't it will match the same amount of times as the last char or range of char
+ * you can specify other possible subpattern to match by specifying a new min and max after the +
+ * so that %(3)[a-z]+(1)[0-9] will match 3 letters or 1 number
  * 
- * * indicates the start of a repeating pattern to match like:
+ * * indicates the start of a pattern to match like:
  * *((<a>:<b>)[<pattern>])
  * <a> and <b> are the minimum and maximum amount of patterns to match
- * they follow the same rules as the <a> and <b> for amounts of char to match
+ * they follow the same rules as the <a> and <b> for subpatterns
  * pattern can be any sequence of plain chars or %(...) separated by nothing
  * you can add extra patterns to match by separating them with +
  * you can specify a different amount of times to match the extra patterns
- * if you don't it will match the same amount of times as the last pattern
+ * you can specify extra possible pattern to match you like for subpatterns
  * you can match repeating pattern(s) inside a repeating pattern
  * 
  * a single plain char (except % or *) will match one time this single plain char
@@ -230,13 +264,13 @@ bool
 
 	while (format[pos_format] && token[pos_token])
 	{
-		if (format[pos_format] == '*') //matching repeating pattern
+		if (format[pos_format] == '*') //matching pattern(s)
 		{
 
 		}
-		else if (format[pos_format] == '%' && format[pos_format + 1] != '0') //matching range of char (or single char)
+		else if (format[pos_format] == '%' && format[pos_format + 1] != '0') //matching subpattern(s)
 		{
-			if (!fmatch_range(token, format, pos_format))
+			if (!fmatch_subpattern(token, format, pos_token, pos_format))
 				return false;
 		}
 		else //matching a single plain char or hex char
@@ -249,6 +283,6 @@ bool
 		}
 	}
 	if (format[pos_format])
-		; //check if all remaining patterns and range accept 0 repetition
+		; //check if all remaining patterns and subptatterns accept 0 repetition
 	return !format[pos_format] && !token[pos_token];
 }
