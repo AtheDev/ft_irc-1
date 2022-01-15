@@ -212,7 +212,6 @@ static std::pair<size_t, bool>
 	return std::pair<size_t, bool>(pos_token, n_repetition >= repetition[MIN]);
 }
 
-//pos_format is at the [
 static std::string
 	get_subpattern_string(std::string &format, size_t pos_format)
 {
@@ -227,7 +226,6 @@ static std::string
 	return format.substr(pos_format + 1, eop - pos_format - 1);
 }
 
-// "*((3)[HELLO])" will match "HELLOHELLOHELLO"
 /**
  * @brief
  * pattern matching recursive function
