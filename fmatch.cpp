@@ -19,7 +19,7 @@
 static void
 	display_char_mask(bool char_mask[CHAR_MASK_SIZE])
 {
-	std::cout << '|';
+	std::cout << "char_mask:\t|";
 	for (int i = 0; i < CHAR_MASK_SIZE; ++i)
 	{
 		if (char_mask[i])
@@ -171,9 +171,11 @@ static std::pair<size_t, bool>
 	fmatch_subpattern(std::string &token, std::string &format, size_t pos_token, size_t &pos_format)
 {
 	bool	char_mask[CHAR_MASK_SIZE];
-	int		n_repetition;
+	int		n_repetition = 0;
 	int		repetition[2];
 
+	if (format[pos_format] == '%')
+		++pos_format;
 	memset(char_mask, false, CHAR_MASK_SIZE);
 	if (format[pos_format] == '(')
 		pos_format += get_repetition(format.substr(pos_format + 1, format.find(')', pos_format) - (pos_format + 1)), repetition);
@@ -186,7 +188,7 @@ static std::pair<size_t, bool>
 	{
 		if (format[pos_format] == '+')
 			++pos_format;
-		if (format[pos_format] == '(')
+		if (format[pos_format] == '(') //this is basically a OR matching, it uses recursion
 		{
 			std::pair<size_t, bool>	r_subpattern = fmatch_subpattern(token, format, pos_token, pos_format);
 			if (r_subpattern.second)
@@ -197,16 +199,79 @@ static std::pair<size_t, bool>
 			pos_format += fadd_char_mask(format.substr(pos_format + 1, format.find(']', pos_format) - (pos_format + 1)), char_mask);
 		else if (format[pos_format] == '%') //hex char
 			pos_format += fadd_char_mask(format.substr(pos_format, 5), char_mask);
-		else
+		else //plain char
 			pos_format += fadd_char_mask(format.substr(pos_format, 1), char_mask);
-	} while (format[pos_format] == '+'); //extra condition for recursion?
-	n_repetition = 0;
+	} while (format[pos_format] == '+');
 	while (n_repetition < repetition[MAX] && token[pos_token])
 	{
 		if (!char_mask[token[pos_token]])
 			break ;
 		++pos_token;
 		++n_repetition;
+	}
+	return std::pair<size_t, bool>(pos_token, n_repetition >= repetition[MIN]);
+}
+
+//pos_format is at the [
+static std::string
+	get_subpattern_string(std::string &format, size_t pos_format)
+{
+	size_t	tmp = pos_format;
+	size_t	eop = format.find(']', tmp); //eop means end of pattern
+
+	while (format.find('[', tmp + 1) != format.npos && format.find('[', tmp + 1) < eop)
+	{
+		tmp = eop;
+		eop = format.find(']', tmp + 1);
+	}
+	return format.substr(pos_format + 1, eop - pos_format - 1);
+}
+
+// "*((3)[HELLO])" will match "HELLOHELLOHELLO"
+/**
+ * @brief
+ * pattern matching recursive function
+ * 
+ * @return
+ * a pair
+ * first elem is the new pos of the pos_token
+ * second elem is a bool of wether the pattern matched or not
+ */
+static std::pair<size_t, bool>
+	fmatch_pattern(std::string &token, std::string &format, size_t pos_token, size_t &pos_format)
+{
+	int						n_repetition = 0;
+	int						repetition[2];
+	std::string				subppatern_str;
+	std::pair<size_t, bool>	r_subpattern, r_pattern;
+	size_t					pos_subpattern_str;
+	bool					match_fail = false;
+
+	pos_format += get_repetition(format.substr(pos_format + 1, format.find(')', pos_format) - (pos_format + 1)), repetition);
+	subppatern_str = get_subpattern_string(format, pos_format);
+	pos_format += subppatern_str.size() + 2;
+	if (format[pos_format] == '+')
+	{
+		++pos_format;
+		r_pattern = fmatch_pattern(token, format, pos_token, pos_format);
+		if (r_pattern.second)
+			return r_pattern;
+	}
+	while (n_repetition < repetition[MAX] && token[pos_token] && !match_fail)
+	{
+		pos_subpattern_str = 0; //it's ugly but we pass pos_format by ref so we need this to not make another function
+		while (subppatern_str[pos_subpattern_str])
+		{
+			r_subpattern = fmatch_subpattern(token, subppatern_str, pos_token, pos_subpattern_str);
+			if (!r_subpattern.second)
+			{
+				match_fail = true;
+				break ;
+			}
+			pos_token = r_subpattern.first;
+		}
+		if (!match_fail)
+			++n_repetition;
 	}
 	return std::pair<size_t, bool>(pos_token, n_repetition >= repetition[MIN]);
 }
@@ -239,12 +304,10 @@ static std::pair<size_t, bool>
  * * indicates the start of a pattern to match like:
  * *((<a>:<b>)[<pattern>])
  * <a> and <b> are the minimum and maximum amount of patterns to match
- * they follow the same rules as the <a> and <b> for subpatterns
- * pattern can be any sequence of plain chars or %(...) separated by nothing
- * you can add extra patterns to match by separating them with +
- * you can specify a different amount of times to match the extra patterns
- * you can specify extra possible pattern to match you like for subpatterns
- * you can match repeating pattern(s) inside a repeating pattern
+ * they follow the same rules as the <a> and <b> for subpatterns except that they are mandatory
+ * pattern can be any sequence of plain chars or subpatterns separated by nothing
+ * you can add extra possible patterns to match by separating them with +
+ * you must specify the amount of times to match the extra patterns
  * 
  * a single plain char (except % or *) will match one time this single plain char
  * 
@@ -252,9 +315,10 @@ static std::pair<size_t, bool>
  * "a" will match a single a char
  * "%[a:z]" will match a single lowercase letter
  * "%(4:6)[0:9][A:Z]" will match between 4 and 6 numbers or capital letters
- * "*((3)[%(1:3)[0:9].]+(1)X)%(1:3)[0:9]+(1)X"
- * will match 3 times a pattern of between one and 3 numbers or a single X followed by a .
- * and then between one and 3 numbers or a single X
+ * "*((3)[HELLO])" will match "HELLOHELLOHELLO"
+ * "*((3)[%(1:3)[0:9]+(1)[X].])%(1:3)[0:9]+(1)X"
+ * will match 3 times a pattern of between 1 and 3 numbers or a single X followed by a .
+ * and then between 1 and 3 numbers or a single X
  * so it will match 127.0.0.1 or 41.X.X.0 or X.X.X.X
  * 
  * @note
@@ -267,17 +331,22 @@ bool
 {
 	size_t					pos_token = 0, pos_format = 0;
 	std::pair<size_t, int>	char_read;
-	std::pair<size_t, bool>	r_subpattern;
+	std::pair<size_t, bool>	r_subpattern, r_pattern;
 
 	while (format[pos_format] && token[pos_token])
 	{
 		if (format[pos_format] == '*') //matching pattern(s)
 		{
-
+			pos_format += 2;
+			r_pattern = fmatch_pattern(token, format, pos_token, pos_format);
+			if (!r_pattern.second)
+				return false;
+			pos_token = r_pattern.first;
+			++pos_format;
 		}
 		else if (format[pos_format] == '%' && format[pos_format + 1] != '0') //matching subpattern(s)
 		{
-			++pos_format;
+			//++pos_format;
 			r_subpattern = fmatch_subpattern(token, format, pos_token, pos_format);
 			if (!r_subpattern.second)
 				return false;
