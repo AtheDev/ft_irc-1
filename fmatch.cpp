@@ -167,15 +167,14 @@ static size_t
  * @brief
  * subpattern matching recursive function
  */
-static bool
-	fmatch_subpattern(std::string &token, std::string &format, size_t &pos_token, size_t &pos_format)
+static std::pair<size_t, bool>
+	fmatch_subpattern(std::string &token, std::string &format, size_t pos_token, size_t &pos_format)
 {
 	bool	char_mask[CHAR_MASK_SIZE];
 	int		n_repetition;
 	int		repetition[2];
 
 	memset(char_mask, false, CHAR_MASK_SIZE);
-	++pos_format;
 	if (format[pos_format] == '(')
 		pos_format += get_repetition(format.substr(pos_format + 1, format.find(')', pos_format) - (pos_format + 1)), repetition);
 	else
@@ -188,7 +187,12 @@ static bool
 		if (format[pos_format] == '+')
 			++pos_format;
 		if (format[pos_format] == '(')
-			; //recursion and break? pos_token is gonna mess everything up because its a ref
+		{
+			std::pair<size_t, bool>	r_subpattern = fmatch_subpattern(token, format, pos_token, pos_format);
+			if (r_subpattern.second)
+				return std::pair<size_t, bool>(r_subpattern.first, true);
+			break ;
+		}
 		if (format[pos_format] == '[')
 			pos_format += fadd_char_mask(format.substr(pos_format + 1, format.find(']', pos_format) - (pos_format + 1)), char_mask);
 		else if (format[pos_format] == '%') //hex char
@@ -204,7 +208,7 @@ static bool
 		++pos_token;
 		++n_repetition;
 	}
-	return n_repetition >= repetition[MIN];
+	return std::pair<size_t, bool>(pos_token, n_repetition >= repetition[MIN]);
 }
 
 /**
@@ -229,6 +233,8 @@ static bool
  * you can specify a different amount of times to match the extra char or range of char
  * you can specify other possible subpattern to match by specifying a new min and max after the +
  * so that %(3)[a-z]+(1)[0-9] will match 3 letters or 1 number
+ * if there are multiple possible subpatterns to match, the patterns are tested from right to left
+ * matching of multiple possible subpatterns will stop at first match
  * 
  * * indicates the start of a pattern to match like:
  * *((<a>:<b>)[<pattern>])
@@ -261,6 +267,7 @@ bool
 {
 	size_t					pos_token = 0, pos_format = 0;
 	std::pair<size_t, int>	char_read;
+	std::pair<size_t, bool>	r_subpattern;
 
 	while (format[pos_format] && token[pos_token])
 	{
@@ -270,8 +277,11 @@ bool
 		}
 		else if (format[pos_format] == '%' && format[pos_format + 1] != '0') //matching subpattern(s)
 		{
-			if (!fmatch_subpattern(token, format, pos_token, pos_format))
+			++pos_format;
+			r_subpattern = fmatch_subpattern(token, format, pos_token, pos_format);
+			if (!r_subpattern.second)
 				return false;
+			pos_token = r_subpattern.first;
 		}
 		else //matching a single plain char or hex char
 		{
