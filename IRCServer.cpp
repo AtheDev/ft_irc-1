@@ -10,11 +10,13 @@ IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Serv
 	_commands["PASS"] = &IRCServer::_execute_pass;
 	_commands["NICK"] = &IRCServer::_execute_nick;
 	_commands["USER"] = &IRCServer::_execute_user;
+	_commands["MODE"] = &IRCServer::_execute_mode;
 	_commands["QUIT"] = &IRCServer::_execute_quit;
 	_commands["JOIN"] = &IRCServer::_execute_join;
 	_commands["PART"] = &IRCServer::_execute_part;
 	_commands["PRIVMSG"] = &IRCServer::_execute_privmsg;
 	_commands["TOPIC"] = &IRCServer::_execute_topic;
+	_commands["NAMES"] = &IRCServer::_execute_names;
 	_commands["LIST"] = &IRCServer::_execute_list;
 }
 
@@ -179,6 +181,14 @@ void IRCServer::_execute_user(IRCMessage & message) {
 }
 
 /**
+ * @brief Executes a MODE command.
+ * @param message The message containing the MODE command.
+ */
+void IRCServer::_execute_mode(IRCMessage & message) {
+	std::cout << "Executing MODE: " << message.get_command() << std::endl;
+}
+
+/**
  * @brief Executes a QUIT command.
  * @param message The message containing the QUIT command.
  */
@@ -237,7 +247,9 @@ void IRCServer::_execute_join(IRCMessage & message) {
 	} catch (std::out_of_range & e) {
 		// If it doesn't exist, create one
 		channel = new Channel(channel_name);
+		channel->add_client_to_channel_operator(client->get_fd());
 		_channels.insert(std::pair<std::string, Channel *>(channel_name, channel));
+
 		std::cout << "Channel was created" << std::endl;
 	}
 	channel->add_client(client->get_fd());
@@ -287,10 +299,12 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
 void IRCServer::_execute_topic(IRCMessage & message) {
 	std::cout << "Executing TOPIC: " << message.get_command() << std::endl;
     IRCClient * client = _clients.at(message.get_sender());
-	std::map<std::string, Channel *>::const_iterator it = find_channel(message.get_params()[0]);
-	if (it != _channels.end())
+	std::string channel_name = message.get_params()[0];
+
+	std::map<std::string, Channel *>::const_iterator it = find_channel(channel_name);
+	if (it == _channels.end())
 	{//TODO: change 403 ERR_NOSUHCHANNEL ??
-		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, message.get_params()[0]);
+		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
 		_tcp_server.messages_to_be_sent.push_back(reply);
 		return ;
 	}
@@ -298,7 +312,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 	if (find(channel_tmp->clients_begin(), channel_tmp->clients_end(), message.get_sender())
         == channel_tmp->clients_end())
 	{
-		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, message.get_params()[0]);
+		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
 		_tcp_server.messages_to_be_sent.push_back(reply);
 		return ;
 	}
@@ -307,7 +321,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 		if (find(channel_tmp->channel_op_begin(), channel_tmp->channel_op_end(), message.get_sender())
             == channel_tmp->channel_op_end())
 		{
-			TCPMessage	reply = make_reply_ERR_CHANOPRIVSNEEDED(*client, message.get_params()[0]);
+			TCPMessage	reply = make_reply_ERR_CHANOPRIVSNEEDED(*client, channel_name);
 			_tcp_server.messages_to_be_sent.push_back(TCPMessage(reply));
 		}
 		else
@@ -334,6 +348,46 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 }
 
 /**
+ * @brief Executes a NAMES command.
+ * @param message The message containing the NAMES command.
+ */
+void IRCServer::_execute_names(IRCMessage & message) {
+	std::cout << "Executing NAMES: " << message.get_command() << std::endl;
+    IRCClient * client = _clients.at(message.get_sender());
+	if (message.get_params().empty())
+	{
+		std::map<std::string, Channel *>::iterator it = _channels.begin();
+		for (; it != _channels.end(); it++)
+		{
+			TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(it->second), _clients);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+			reply = make_reply_RPL_ENDOFNAMES(*client, (*it->second).get_name());
+			_tcp_server.messages_to_be_sent.push_back(reply);
+		}
+		std::string channel_name = "*";
+		Channel tmp(channel_name);
+		TCPMessage reply = make_reply_RPL_NAMREPLY(*client, tmp, _clients);
+		_tcp_server.messages_to_be_sent.push_back(reply);
+		reply = make_reply_RPL_ENDOFNAMES(*client, channel_name);
+		_tcp_server.messages_to_be_sent.push_back(reply);
+	}
+	else
+	{
+		for (size_t i = 0; i < message.get_params().size(); i++)
+		{
+			std::map<std::string, Channel *>::const_iterator c_it = find_channel(message.get_params()[i]);
+			if (c_it != _channels.end())
+			{
+				TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(c_it->second), _clients);
+				_tcp_server.messages_to_be_sent.push_back(reply);
+				reply = make_reply_RPL_ENDOFNAMES(*client, message.get_params()[i]);
+				_tcp_server.messages_to_be_sent.push_back(reply);
+			}
+		}
+	}
+}
+
+/**
  * @brief Executes a LIST command.
  * @param message The message containing the LIST command.
  */
@@ -352,10 +406,9 @@ void IRCServer::_execute_list(IRCMessage & message) {
 	}
 	else
 	{
-		std::vector<std::string>::iterator it = message.get_params().begin();
-		for (; it != message.get_params().end(); it++)
+		for (size_t i = 0; i < message.get_params().size(); i++)
 		{
-			std::map<std::string, Channel *>::const_iterator c_it = find_channel(*it);
+			std::map<std::string, Channel *>::const_iterator c_it = find_channel(message.get_params()[i]);
 			if (c_it != _channels.end())
 			{
 				TCPMessage reply = make_reply_RPL_LIST(*client, *(c_it->second));

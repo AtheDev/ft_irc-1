@@ -3,7 +3,7 @@
 
 IRCClient::IRCClient(int fd) :
 		_fd(fd), _status(UNREGISTERED), _nickname(), _username(), _realname(), _password(),
-		_mode(0), _hostname(), _channels() {
+		_mode("w"), _hostname(), _channels() {
 }
 
 IRCClient::~IRCClient() {}
@@ -19,7 +19,7 @@ std::string const & IRCClient::get_hostname(void) const { return _hostname; }
 
 std::string const & IRCClient::get_realname(void) const { return _realname; }
 
-short const & IRCClient::get_mode(void) const { return _mode; }
+std::string const & IRCClient::get_mode(void) const { return _mode; }
 
 std::vector<std::string> IRCClient::get_channels(void) const { return _channels; }
 
@@ -42,7 +42,7 @@ void IRCClient::set_password(std::string password) { _password = password; }
 
 void IRCClient::set_status(int status) { _status = status; }
 
-void IRCClient::set_mode(char sign, char flag) {
+/*void IRCClient::set_mode(char sign, char flag) {
 
 	if (sign == '-') {
 		switch (flag) {
@@ -79,6 +79,25 @@ void IRCClient::set_mode(char sign, char flag) {
 				break;
 		}
 	}
+}*/
+
+void IRCClient::set_mode(char sign, char mode) {
+	if (sign == '+')
+	{
+		if (_mode.find(mode) == std::string::npos)
+			_mode += mode;
+	}
+	else
+	{
+		if (_mode.find(mode) != std::string::npos)
+			_mode.erase(_mode.find(mode));
+	}
+}
+
+bool IRCClient::is_visible(void) const {
+		if (_mode.find('i') != std::string::npos)
+			return false;
+	return true;
 }
 
 void IRCClient::join_channel(std::string channel) {

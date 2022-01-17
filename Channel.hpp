@@ -13,19 +13,24 @@ class Channel {
 		explicit Channel(std::string & name);
 		virtual ~Channel();
 
-		const std::vector<int> & get_clients() const;
-		void set_name(const std::string & name);
+		std::vector<int> get_clients() const;
 		const std::string & get_name() const;
-		bool add_client(int socketfd);
-		bool remove_client(int socketfd);
-		std::vector<int>::const_iterator clients_begin() const;
-		std::vector<int>::const_iterator clients_end() const;
-		friend std::ostream & operator<<(std::ostream & os, const Channel & channel);
-		std::vector<int>::iterator channel_op_begin();
-		std::vector<int>::iterator channel_op_end();
-		void set_topic(const std::string & topic);
 		const std::string & get_topic() const;
 		std::vector<int> get_channel_op() const;
+
+		void set_name(const std::string & name);
+		void set_topic(const std::string & topic);
+
+		bool add_client(int socketfd);
+		bool add_client_to_channel_operator(int socketfd);
+		bool remove_client(int socketfd);
+
+		std::vector<int>::const_iterator clients_begin() const;
+		std::vector<int>::const_iterator clients_end() const;
+		std::vector<int>::iterator channel_op_begin();
+		std::vector<int>::iterator channel_op_end();
+
+		friend std::ostream & operator<<(std::ostream & os, const Channel & channel);
 
 	private:
 		std::string _name; // The channel's name

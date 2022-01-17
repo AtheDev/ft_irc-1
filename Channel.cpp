@@ -27,6 +27,19 @@ bool Channel::add_client(int socketfd) {
 }
 
 /**
+ * @brief Tries to add a client to a channel operator.
+ * @param socketfd The client socketfd.
+ * @return true if adding was successful, else false.
+ */
+bool Channel::add_client_to_channel_operator(int socketfd) {
+	if (std::find(_channel_operators.begin(), _channel_operators.end(), socketfd) == _channel_operators.end()) {
+		_channel_operators.push_back(socketfd);
+		return true;
+	}
+	return false;
+}
+
+/**
  * @brief Tries to remove a client from a channel.
  * @param socketfd The client socketfd.
  * @return true if removing was successful, else false.
@@ -40,7 +53,7 @@ bool Channel::remove_client(int socketfd) {
 	return false;
 }
 
-const std::vector<int> & Channel::get_clients() const {
+std::vector<int> Channel::get_clients() const {
 	return _clients;
 }
 

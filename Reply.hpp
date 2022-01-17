@@ -2,6 +2,7 @@
 #define REPLY_HPP
 
 #include <vector>
+#include <map>
 #include "TCPMessage.hpp"
 #include "IRCClient.hpp"
 #include "Channel.hpp"
@@ -29,7 +30,7 @@ TCPMessage make_reply_RPL_MYINFO(const IRCClient & client,
 								 const std::string & servername, const std::string & version,
 								 const std::string & user_modes, const std::string & channel_modes);
 //221
-//TCPMessage make_reply_RPL_UMODEIS(const IRCClient & client, user_mode_str) ("221" + user_mode_str)
+TCPMessage make_reply_RPL_UMODEIS(const IRCClient & client);
 //301
 //TCPMessage make_reply_RPL_AWAY(const IRCClient & client, nick, away_message) ("301" + nick + " :" + away_message)
 //305
@@ -51,9 +52,9 @@ TCPMessage make_reply_RPL_TOPIC(const IRCClient & client, const Channel & channe
 //352
 //TCPMessage make_reply_RPL_WHOREPLY(const IRCClient & client, channel, user, host, server, nick, hopcount, realname) ("352" + channel + " " + user + " " + host + " " + server + " " + nick + /*( "H" / "G" > ["*"] [ ( "@" / "+" ) ]*/ " :" + hopcount + " " + realname)
 //353
-//TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, channel, list_nick) ("353" + channel + " :"list_nick)
+TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & channel, std::map<int, IRCClient *> clients);
 //366
-//TCPMessage make_reply_RPL_ENDOFNAMES(const IRCClient & client, channel) ("366" + channel + " :End of NAMES list")
+TCPMessage make_reply_RPL_ENDOFNAMES(const IRCClient & client, const std::string & channel_name);
 //367
 //TCPMessage make_reply_RPL_BANLIST(const IRCClient & client, channel, bannid) ("367" + channel + " " + banmask)
 //368
@@ -122,9 +123,9 @@ TCPMessage make_reply_ERR_CHANOPRIVSNEEDED(const IRCClient & client, const std::
 //491
 //TCPMessage make_reply_ERR_NOOPERHOST(const IRCClient & client, ) ("491 :No O-lines for your host")
 //501
-//TCPMessage make_reply_ERR_UMODEUNKNOWNFLAG(const IRCClient & client, ) ("501 :Unknown MODE flag")
+TCPMessage make_reply_ERR_UMODEUNKNOWNFLAG(const IRCClient & client);
 //502
-//TCPMessage make_reply_ERR_USERSDONTMATCH(const IRCClient & client, ) ("502 :Cannot change mode for other users")
+TCPMessage make_reply_ERR_USERSDONTMATCH(const IRCClient & client);
 
 
 
