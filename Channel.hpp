@@ -6,6 +6,7 @@
 #include <vector>
 #include <ostream>
 
+#define USER_MODES() ("iroO")
 
 class Channel {
 

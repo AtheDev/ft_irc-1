@@ -62,7 +62,11 @@ TCPMessage make_reply_RPL_MYINFO(const IRCClient & client, const std::string & s
 
 TCPMessage make_reply_RPL_UMODEIS(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "221 : " + client.get_mode();
+	std::string payload = "221 " + client.get_nickname() + " : ";
+	if (!client.get_mode().empty())
+		payload += "+" + client.get_mode();
+	else
+		payload += "No user mode is set";
 	return TCPMessage(receivers, payload);
 }
 

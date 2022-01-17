@@ -3,7 +3,7 @@
 
 IRCClient::IRCClient(int fd) :
 		_fd(fd), _status(UNREGISTERED), _nickname(), _username(), _realname(), _password(),
-		_mode("w"), _hostname(), _channels() {
+		_mode(""), _hostname(), _channels() {
 }
 
 IRCClient::~IRCClient() {}
@@ -85,7 +85,7 @@ void IRCClient::set_mode(char sign, char mode) {
 	if (sign == '+')
 	{
 		if (_mode.find(mode) == std::string::npos)
-			_mode += mode;
+			_mode.push_back(mode);
 	}
 	else
 	{
