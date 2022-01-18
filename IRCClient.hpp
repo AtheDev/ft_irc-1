@@ -7,16 +7,7 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-
-enum e_user_mode {
-
-	MODE_A = (1U << 1),
-	MODE_I = (1U << 2),
-	MODE_W = (1U << 3),
-	MODE_O_MIN = (1U << 4),
-	MODE_O_MAJ = (1U << 5),
-	MODE_S = (1U << 6)
-};
+#define USER_MODES() ("aiwroO")
 
 enum e_user_status {
 	UNREGISTERED, PASSWORD, NICKNAME, REGISTERED
@@ -61,7 +52,6 @@ class IRCClient {
 		std::string _username;
 		std::string _realname;
 		std::string _password;
-		//short _mode;
 		std::string	_mode;
 		//TODO: to be removed?
 		std::string _hostname;
