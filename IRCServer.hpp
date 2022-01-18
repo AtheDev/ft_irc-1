@@ -58,6 +58,8 @@ class IRCServer {
 		void	_execute_topic(IRCMessage & message);
 		void	_execute_names(IRCMessage & message);
 		void	_execute_list(IRCMessage & message);
+		//void	_execute_whois(IRCMessage & message);
+		void	_execute_ping(IRCMessage & message);
 };
 
 

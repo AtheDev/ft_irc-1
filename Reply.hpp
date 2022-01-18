@@ -18,6 +18,8 @@ TCPMessage make_reply_PART(const IRCClient & client, const Channel & channel,
 
 TCPMessage make_reply_TOPIC(const IRCClient & client, const Channel & channel);
 
+TCPMessage make_reply_PONG(const IRCClient & client, const std::string & servername);
+
 //001
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client);
 //002
@@ -37,6 +39,10 @@ TCPMessage make_reply_RPL_UMODEIS(const IRCClient & client);
 //TCPMessage make_reply_RPL_UNAWAY(const IRCClient & client, ) ("305 :You are no longer marked as being away")
 //306
 //TCPMessage make_reply_RPL_NOWAWAY(const IRCClient & client, ) ("306 :You have been marked as being away")
+//311
+//TCPMessage make_reply_RPL_WHOISUSER(const IRCClient & client);
+//313
+//TCPMessage make_reply_RPL_WHOISOPERATOR(const IRCClient & client);
 //315
 //TCPMessage make_reply_RPL_ENDOFWHO(const IRCClient & client, name) ("315" + name + " :End of WHO list")
 //322
@@ -75,6 +81,8 @@ TCPMessage make_reply_ERR_NOSUCHCHANNEL(const IRCClient & client, const std::str
 //TCPMessage make_reply_ERR_TOOMANYCHANNELS(const IRCClient & client, channel) ("405" + channel + " :You have joined too many channels")
 //407
 //TCPMessage make_reply_ERR_TOOMANYTARGETS(const IRCClient & client, target, err_code, abort_message) ("407" + target + " :" + err_code + " recipients. " + abort_message)
+//409
+TCPMessage make_reply_ERR_NOORIGIN(const IRCClient & client);
 //411
 //TCPMessage make_reply_ERR_NORECIPIENT(const IRCClient & client, command) ("411 :No recipient given (" + command + ")")
 //412

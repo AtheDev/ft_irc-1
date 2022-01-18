@@ -1,6 +1,6 @@
 #include "IRCServer.hpp"
 
-IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Server VTA !"), _version("42.42") {
+IRCServer::IRCServer(std::string port): _tcp_server(port), _servername(/*IRC Server VTA !*/"user42"), _version("42.42") {
 
 	time_t raw_time;
 	time(&raw_time);
@@ -18,6 +18,8 @@ IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Serv
 	_commands["TOPIC"] = &IRCServer::_execute_topic;
 	_commands["NAMES"] = &IRCServer::_execute_names;
 	_commands["LIST"] = &IRCServer::_execute_list;
+	//_commands["WHOIS"] = &IRCServer::_execute_whois;
+	_commands["PING"] = &IRCServer::_execute_ping;
 }
 
 IRCServer::~IRCServer() {}
@@ -266,9 +268,7 @@ void IRCServer::_execute_quit(IRCMessage & message) {
 
 	std::cout << "Executing QUIT: " << message.get_command() << std::endl;
 	std::string quit_message;
-	if (message.get_params().empty())
-		quit_message = "Has disconnected.";
-	else
+	if (!message.get_params().empty())
 	{
 		for (size_t i = 0; i < message.get_params().size(); i++)
 			quit_message += (message.get_params()[i] + " ");
@@ -280,7 +280,8 @@ void IRCServer::_execute_quit(IRCMessage & message) {
 	{
         Channel * channel = _channels[*it];
         client->quit_channel(channel->get_name());
-        _tcp_server.messages_to_be_sent.push_back(make_reply_PART(*client, *channel, quit_message));
+		TCPMessage reply = make_reply_PART(*client, *channel, quit_message);
+        _tcp_server.messages_to_be_sent.push_back(reply);
         channel->remove_client(message.get_sender());
 	    std::vector<int>::iterator it_op = channel->channel_op_begin();
 	    for (; it_op != channel->channel_op_end(); it_op++)
@@ -488,6 +489,39 @@ void IRCServer::_execute_list(IRCMessage & message) {
 	}
 	TCPMessage reply = make_reply_RPL_LISTEND(*client);
 	_tcp_server.messages_to_be_sent.push_back(reply);
+}
+
+/**
+ * @brief Executes a WHOIS command.
+ * @param message The message containing the WHOIS command.
+ */
+/*void IRCServer::_execute_whois(IRCMessage & message) {
+	std::cout << "Executing WHOIS: " << message.get_command() << std::endl;
+    IRCClient * client = _clients.at(message.get_sender());
+	//std::string servername = "user42";
+	TCPMessage reply = make_reply_RPL_WHOISUSER(*client);
+	_tcp_server.messages_to_be_sent.push_back(reply);
+	reply = make_reply_RPL_WHOISOPERATOR(*client);
+	_tcp_server.messages_to_be_sent.push_back(reply);
+}*/
+
+/**
+ * @brief Executes a PING command.
+ * @param message The message containing the PING command.
+ */
+void IRCServer::_execute_ping(IRCMessage & message) {
+	std::cout << "Executing PING: " << message.get_command() << std::endl;
+    IRCClient * client = _clients.at(message.get_sender());
+	if (message.get_params().empty())
+	{
+		TCPMessage reply = make_reply_ERR_NOORIGIN(*client);
+		_tcp_server.messages_to_be_sent.push_back(reply);
+	}
+	else
+	{
+		TCPMessage reply = make_reply_PONG(*client, message.get_params()[0]);
+		_tcp_server.messages_to_be_sent.push_back(reply);
+	}
 }
 
 std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(std::string & nickname) const {

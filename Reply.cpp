@@ -28,10 +28,17 @@ TCPMessage make_reply_TOPIC(const IRCClient & client, const Channel & channel) {
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_PONG(const IRCClient & client, const std::string & servername) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload;
+	payload = ":" + client.get_prefix() + " PONG " + servername;
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload;
-	payload += "001 : :Welcome to the Internet Relay Network ";
+	payload += "001 " + client.get_nickname() + " :Welcome to the Internet Relay Network ";
 	payload += client.get_nickname() + "!";
 	payload += client.get_username() + "@";
 	payload += client.get_hostname();
@@ -41,13 +48,14 @@ TCPMessage make_reply_RPL_WELCOME(const IRCClient & client) {
 TCPMessage make_reply_RPL_YOURHOST(const IRCClient & client,
 								   const std::string & servername, const std::string & version) {
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "002 : :Your host is " + servername + ", running version " + version;
+	std::string payload = "002 " + client.get_nickname();
+	payload +=  " :Your host is " + servername + ", running version " + version;
 	return TCPMessage(receivers, payload);
 }
 
 TCPMessage make_reply_RPL_CREATED(const IRCClient & client, const std::string & date) {
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "003 :This server was created " + date;
+	std::string payload = "003 " + client.get_nickname() + " :This server was created " + date;
 	return TCPMessage(receivers, payload);
 }
 
@@ -55,7 +63,7 @@ TCPMessage make_reply_RPL_MYINFO(const IRCClient & client, const std::string & s
 								 const std::string & version, const std::string & user_modes,
 								 const std::string & channel_modes) {
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "004 : :" + servername + " " + version + " ";
+	std::string payload = "004 " + client.get_nickname() + " :" + servername + " " + version + " ";
 	payload += user_modes + " " + channel_modes;
 	return TCPMessage(receivers, payload);
 }
@@ -70,6 +78,20 @@ TCPMessage make_reply_RPL_UMODEIS(const IRCClient & client) {
 	return TCPMessage(receivers, payload);
 }
 
+/*TCPMessage make_reply_RPL_WHOISUSER(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload;
+	payload = "311 " + client.get_nickname() + " " + client.get_username() + " ";
+	payload += client.get_hostname() + " * :" + client.get_realname();
+	return TCPMessage(receivers, payload);	
+}
+
+TCPMessage make_reply_RPL_WHOISOPERATOR(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "313 " + client.get_nickname() + " : is an IRC operator";
+	return TCPMessage(receivers, payload);	
+}
+*/
 TCPMessage make_reply_RPL_LIST(const IRCClient & client, const Channel & channel) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload;
@@ -138,6 +160,12 @@ TCPMessage make_reply_ERR_NOSUCHCHANNEL(const IRCClient & client,
 										const std::string & channel_name) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = "403 " + channel_name + " :No such channel";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_ERR_NOORIGIN(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "409 :No origin specified";
 	return TCPMessage(receivers, payload);
 }
 
