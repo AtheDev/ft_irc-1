@@ -3,7 +3,7 @@
 
 IRCClient::IRCClient(int fd) :
 		_fd(fd), _status(UNREGISTERED), _nickname(), _username(), _realname(), _password(),
-		_mode(""), _hostname(), _channels() {
+		_mode(""), _hostname(), _away_message(), _channels() {
 }
 
 IRCClient::~IRCClient() {}
@@ -20,6 +20,8 @@ std::string const & IRCClient::get_hostname(void) const { return _hostname; }
 std::string const & IRCClient::get_realname(void) const { return _realname; }
 
 std::string const & IRCClient::get_mode(void) const { return _mode; }
+
+std::string const & IRCClient::get_away_message(void) const { return _away_message; }
 
 std::vector<std::string> IRCClient::get_channels(void) const { return _channels; }
 
@@ -39,6 +41,8 @@ void IRCClient::set_hostname(std::string hostname) { _hostname = hostname; }
 void IRCClient::set_realname(std::string realname) { _realname = realname; }
 
 void IRCClient::set_password(std::string password) { _password = password; }
+
+void IRCClient::set_away_message(std::string message) { _away_message = message; }
 
 void IRCClient::set_status(int status) { _status = status; }
 
