@@ -1,9 +1,6 @@
 #include "Reply.hpp"
 #include "Utils.hpp"
 
-		//std::vector<int> channel_op = channel.get_channel_op();
-		//if (find(channel_op.begin(), channel_op.end(), *it_clients) != channel_op.end())
-
 TCPMessage make_reply_PRIVMSG_CHANNEL(const IRCClient & client, const Channel & channel,
 										const std::string & message) {
 	std::vector<int> receivers = channel.get_clients();
