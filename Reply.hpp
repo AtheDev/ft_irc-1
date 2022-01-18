@@ -17,6 +17,12 @@ TCPMessage make_reply_PRIVMSG_CHANNEL(const IRCClient & client, const Channel & 
 TCPMessage make_reply_PRIVMSG_USER(const IRCClient & client, const IRCClient & client_recipient,
 									const std::string & channel_name, const std::string & message);
 
+TCPMessage make_reply_NOTICE_CHANNEL(const IRCClient & client, const Channel & channel,
+										const std::string & message);
+
+TCPMessage make_reply_NOTICE_USER(const IRCClient & client, const IRCClient & client_recipient,
+									const std::string & channel_name, const std::string & message);
+
 TCPMessage make_reply_JOIN(const IRCClient & client, const Channel & channel);
 
 TCPMessage make_reply_PART(const IRCClient & client, const Channel & channel,

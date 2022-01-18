@@ -15,6 +15,7 @@ IRCServer::IRCServer(std::string port): _tcp_server(port), _servername(/*IRC Ser
 	_commands["JOIN"] = &IRCServer::_execute_join;
 	_commands["PART"] = &IRCServer::_execute_part;
 	_commands["PRIVMSG"] = &IRCServer::_execute_privmsg;
+	_commands["NOTICE"] = &IRCServer::_execute_notice;
 	_commands["TOPIC"] = &IRCServer::_execute_topic;
 	_commands["NAMES"] = &IRCServer::_execute_names;
 	_commands["LIST"] = &IRCServer::_execute_list;
@@ -358,7 +359,11 @@ void IRCServer::_execute_part(IRCMessage & message) {
 	}
 	std::cout << *_channels.at(channel_name) << std::endl;
 }
-#include <iostream>
+
+/**
+ * @brief Executes a PRIVMSG command.
+ * @param message The message containing the PRIVMSG command.
+ */
 void IRCServer::_execute_privmsg(IRCMessage & message) {
 	std::cout << "Executing PRIVMSG: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
@@ -423,6 +428,47 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
 				_tcp_server.messages_to_be_sent.push_back(reply);
 			}
 			TCPMessage reply = make_reply_PRIVMSG_USER(*client, *client_recipient,
+														target, message.get_params()[1]);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+		}
+	}
+}
+
+/**
+ * @brief Executes a NOTICE command.
+ * @param message The message containing the NOTICE command.
+ */
+void IRCServer::_execute_notice(IRCMessage & message) {
+	std::cout << "Executing NOTICE: " << message.get_command() << std::endl;
+	IRCClient * client = _clients.at(message.get_sender());
+	if (message.get_params().empty())
+		return ;
+	else if (message.get_params().size() == 1)
+		return ;
+	else
+	{
+		std::string	target = message.get_params()[0];
+		if (target[0] == '#')
+		{
+			Channel *channel;
+			try {
+				channel = _channels.at(target);
+			}
+			catch (std::out_of_range & e) {
+				return ;
+			}
+			if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) == channel->clients_end())
+				return ;
+			TCPMessage reply = make_reply_NOTICE_CHANNEL(*client, *channel, message.get_params()[1]);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+		}
+		else
+		{
+			std::map<int, IRCClient *>::const_iterator it = find_nickname(target);
+			if (it == _clients.end())
+				return ;
+			IRCClient * client_recipient = it->second;
+			TCPMessage reply = make_reply_NOTICE_USER(*client, *client_recipient,
 														target, message.get_params()[1]);
 			_tcp_server.messages_to_be_sent.push_back(reply);
 		}

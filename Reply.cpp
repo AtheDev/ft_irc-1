@@ -20,6 +20,25 @@ TCPMessage make_reply_PRIVMSG_USER(const IRCClient & client, const IRCClient & c
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_NOTICE_CHANNEL(const IRCClient & client, const Channel & channel,
+										const std::string & message) {
+	std::vector<int> receivers = channel.get_clients();
+	receivers.erase(find(receivers.begin(), receivers.end(), client.get_fd()));
+	std::string payload;
+	payload = ":" + client.get_prefix() + " NOTICE " + channel.get_name();
+	payload += " :" + message;
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_NOTICE_USER(const IRCClient & client, const IRCClient & client_recipient,
+									const std::string & channel_name, const std::string & message) {
+	std::vector<int> receivers(1u, client_recipient.get_fd());
+	std::string payload;
+	payload = ":" + client.get_prefix() + " NOTICE " + channel_name;
+	payload += " :" + message;
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_JOIN(const IRCClient & client, const Channel & channel) {
 	const std::vector<int>& receivers = channel.get_clients();
 	std::string payload = ":" + client.get_prefix() + " JOIN " + channel.get_name();
