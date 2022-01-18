@@ -11,6 +11,12 @@
 //TODO: THIS FILE CONTAINS COMMENTED PARTIALLY FORMATTED FUNCTION DECLARATION !
 // Update this file when add a new make_reply function
 
+TCPMessage make_reply_PRIVMSG_CHANNEL(const IRCClient & client, const Channel & channel,
+										const std::string & message);
+
+TCPMessage make_reply_PRIVMSG_USER(const IRCClient & client, const IRCClient & client_recipient,
+									const std::string & channel_name, const std::string & message);
+
 TCPMessage make_reply_JOIN(const IRCClient & client, const Channel & channel);
 
 TCPMessage make_reply_PART(const IRCClient & client, const Channel & channel,
@@ -34,7 +40,7 @@ TCPMessage make_reply_RPL_MYINFO(const IRCClient & client,
 //221
 TCPMessage make_reply_RPL_UMODEIS(const IRCClient & client);
 //301
-//TCPMessage make_reply_RPL_AWAY(const IRCClient & client, nick, away_message) ("301" + nick + " :" + away_message)
+TCPMessage make_reply_RPL_AWAY(const IRCClient & client, const IRCClient & client_away);
 //305
 //TCPMessage make_reply_RPL_UNAWAY(const IRCClient & client, ) ("305 :You are no longer marked as being away")
 //306
@@ -70,13 +76,13 @@ TCPMessage make_reply_RPL_ENDOFNAMES(const IRCClient & client, const std::string
 
 
 //401
-//TCPMessage make_reply_ERR_NOSUCHNICK(const IRCClient & client, nickname) ("401" + nickname + " :No such nick/channel")
+TCPMessage make_reply_ERR_NOSUCHNICK(const IRCClient & client, const std::string & target);
 //402
 //TCPMessage make_reply_ERR_NOSUCHSERVER(const IRCClient & client, server_name) ("402" + server name + " :No such server")
 //403
 TCPMessage make_reply_ERR_NOSUCHCHANNEL(const IRCClient & client, const std::string & channel_name);
 //404
-//TCPMessage make_reply_ERR_CANNOTSENDTOCHAN(const IRCClient & client, channel) ("404" + channel + " :Cannot send to channel")
+TCPMessage make_reply_ERR_CANNOTSENDTOCHAN(const IRCClient & client, const std::string & channel_name);
 //405
 //TCPMessage make_reply_ERR_TOOMANYCHANNELS(const IRCClient & client, channel) ("405" + channel + " :You have joined too many channels")
 //407
@@ -84,9 +90,9 @@ TCPMessage make_reply_ERR_NOSUCHCHANNEL(const IRCClient & client, const std::str
 //409
 TCPMessage make_reply_ERR_NOORIGIN(const IRCClient & client);
 //411
-//TCPMessage make_reply_ERR_NORECIPIENT(const IRCClient & client, command) ("411 :No recipient given (" + command + ")")
+TCPMessage make_reply_ERR_NORECIPIENT(const IRCClient & client, const std::string & command);
 //412
-//TCPMessage make_reply_ERR_NOTEXTTOSEND(const IRCClient & client, ) ("412 :No text to send")
+TCPMessage make_reply_ERR_NOTEXTTOSEND(const IRCClient & client);
 //413
 //TCPMessage make_reply_ERR_NOTOPLEVEL(const IRCClient & client, mask) ("413" + mask + " :No toplevel domain specified")
 //414

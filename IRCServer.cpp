@@ -358,9 +358,75 @@ void IRCServer::_execute_part(IRCMessage & message) {
 	}
 	std::cout << *_channels.at(channel_name) << std::endl;
 }
-
+#include <iostream>
 void IRCServer::_execute_privmsg(IRCMessage & message) {
 	std::cout << "Executing PRIVMSG: " << message.get_command() << std::endl;
+	IRCClient * client = _clients.at(message.get_sender());
+	if (message.get_params().empty())
+	{
+		TCPMessage reply = make_reply_ERR_NORECIPIENT(*client, message.get_command());
+		_tcp_server.messages_to_be_sent.push_back(reply);
+	}
+	else if (message.get_params().size() == 1)
+	{
+		TCPMessage reply = make_reply_ERR_NOTEXTTOSEND(*client);
+		_tcp_server.messages_to_be_sent.push_back(reply);
+	}
+	else
+	{
+		std::string	target = message.get_params()[0];
+		if (target[0] == '#')
+		{
+			Channel *channel;
+			try {
+				channel = _channels.at(target);
+			}
+			catch (std::out_of_range & e) {
+				TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, target);
+				_tcp_server.messages_to_be_sent.push_back(reply);
+				return ;
+			}
+			if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) == channel->clients_end())
+			{
+				TCPMessage reply = make_reply_ERR_CANNOTSENDTOCHAN(*client, channel->get_name());
+				_tcp_server.messages_to_be_sent.push_back(reply);
+				return ;
+			}
+			std::vector<int>::const_iterator it_client = channel->clients_begin();
+			for (; it_client != channel->clients_end(); it_client++)
+			{
+				if (*it_client != client->get_fd())
+				{
+					if (_clients[*it_client]->get_mode().find('a') != std::string::npos)
+					{
+						TCPMessage reply = make_reply_RPL_AWAY(*client, *(_clients[*it_client]));
+						_tcp_server.messages_to_be_sent.push_back(reply);
+					}
+				}
+			}
+			TCPMessage reply = make_reply_PRIVMSG_CHANNEL(*client, *channel, message.get_params()[1]);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+		}
+		else
+		{
+			std::map<int, IRCClient *>::const_iterator it = find_nickname(target);
+			if (it == _clients.end())
+			{
+				TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, target);
+				_tcp_server.messages_to_be_sent.push_back(reply);
+				return ;
+			}
+			IRCClient * client_recipient = it->second;
+			if (client_recipient->get_mode().find('a') != std::string::npos)
+			{
+				TCPMessage reply = make_reply_RPL_AWAY(*client, *client_recipient);
+				_tcp_server.messages_to_be_sent.push_back(reply);
+			}
+			TCPMessage reply = make_reply_PRIVMSG_USER(*client, *client_recipient,
+														target, message.get_params()[1]);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+		}
+	}
 }
 
 /**
