@@ -6,15 +6,13 @@
 #include <vector>
 #include <ostream>
 
-#define USER_MODES() ("iroO")
-
 class Channel {
 
 	public:
 		explicit Channel(std::string & name);
 		virtual ~Channel();
 
-		std::vector<int> get_clients() const;
+		const std::vector<int> & get_clients() const;
 		const std::string & get_name() const;
 		const std::string & get_topic() const;
 		std::vector<int> get_channel_op() const;

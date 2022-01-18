@@ -58,7 +58,7 @@ TCPMessage make_reply_RPL_TOPIC(const IRCClient & client, const Channel & channe
 //352
 //TCPMessage make_reply_RPL_WHOREPLY(const IRCClient & client, channel, user, host, server, nick, hopcount, realname) ("352" + channel + " " + user + " " + host + " " + server + " " + nick + /*( "H" / "G" > ["*"] [ ( "@" / "+" ) ]*/ " :" + hopcount + " " + realname)
 //353
-TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & channel, std::map<int, IRCClient *> clients);
+TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & channel, const std::map<int, IRCClient *>& clients);
 //366
 TCPMessage make_reply_RPL_ENDOFNAMES(const IRCClient & client, const std::string & channel_name);
 //367

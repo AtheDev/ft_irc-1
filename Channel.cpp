@@ -53,7 +53,7 @@ bool Channel::remove_client(int socketfd) {
 	return false;
 }
 
-std::vector<int> Channel::get_clients() const {
+const std::vector<int> & Channel::get_clients() const {
 	return _clients;
 }
 
