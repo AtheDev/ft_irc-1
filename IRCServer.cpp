@@ -1,6 +1,6 @@
 #include "IRCServer.hpp"
 
-IRCServer::IRCServer(std::string port): _tcp_server(port), _servername(/*IRC Server VTA !*/"user42"), _version("42.42") {
+IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Server VTA !"), _version("42.42") {
 
 	time_t raw_time;
 	time(&raw_time);
@@ -367,7 +367,7 @@ void IRCServer::_execute_part(IRCMessage & message) {
  */
 void IRCServer::_execute_privmsg(IRCMessage & message) {
 	std::cout << "Executing PRIVMSG: " << message.get_command() << std::endl;
-	/*IRCClient * client = _clients.at(message.get_sender());
+	IRCClient * client = _clients.at(message.get_sender());
 	if (message.get_params().empty())
 	{
 		TCPMessage reply = make_reply_ERR_NORECIPIENT(*client, message.get_command());
@@ -432,7 +432,7 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
 														target, message.get_params()[1]);
 			_tcp_server.messages_to_be_sent.push_back(reply);
 		}
-	}*/
+	}
 }
 
 /**
@@ -441,7 +441,7 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
  */
 void IRCServer::_execute_notice(IRCMessage & message) {
 	std::cout << "Executing NOTICE: " << message.get_command() << std::endl;
-	/*IRCClient * client = _clients.at(message.get_sender());
+	IRCClient * client = _clients.at(message.get_sender());
 	if (message.get_params().empty())
 		return ;
 	else if (message.get_params().size() == 1)
@@ -473,7 +473,7 @@ void IRCServer::_execute_notice(IRCMessage & message) {
 														target, message.get_params()[1]);
 			_tcp_server.messages_to_be_sent.push_back(reply);
 		}
-	}*/
+	}
 }
 
 /**
