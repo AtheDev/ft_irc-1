@@ -178,7 +178,7 @@ TCPMessage make_reply_RPL_TOPIC(const IRCClient & client, const Channel & channe
 TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & channel, const std::map<int, IRCClient *>& clients) {
 
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "353  =" + channel.get_name() + " :";
+	std::string payload = "353  " + client.get_nickname() + " = " + channel.get_name() + " :";
 	if (channel.get_name() != "*")
 	{
 		std::vector<int>::const_iterator it_clients = channel.clients_begin();

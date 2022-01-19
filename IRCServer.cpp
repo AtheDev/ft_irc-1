@@ -311,18 +311,6 @@ void IRCServer::_execute_join(IRCMessage & message) {
 	channel->add_client(client->get_fd());
 	TCPMessage reply = make_reply_JOIN(*client, *channel);
 	_tcp_server.messages_to_be_sent.push_back(reply);
-
-	/*if (!channel->get_topic().empty())
-	{
-        reply = make_reply_RPL_TOPIC(*client, *channel);
-		_tcp_server.messages_to_be_sent.push_back(reply);
-	}*/
-
-/*	reply = make_reply_RPL_NAMREPLY(*client, *channel, _clients);
-	_tcp_server.messages_to_be_sent.push_back(reply);
-	reply = make_reply_RPL_ENDOFNAMES(*client, channel_name);
-	_tcp_server.messages_to_be_sent.push_back(reply);*/
-
 	std::cout << *_channels.at(channel_name) << std::endl;
 }
 
