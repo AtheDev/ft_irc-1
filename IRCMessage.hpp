@@ -65,6 +65,14 @@ class IRCMessage
 			public:
 				virtual const char *what() const throw();
 		};
+		class Error_invalid_channel : public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
+		class Error_invalid_key : public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
 
 	protected:
 
