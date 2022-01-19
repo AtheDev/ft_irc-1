@@ -48,6 +48,10 @@ bool Channel::remove_client(int socketfd) {
 	std::vector<int>::iterator it;
 	if ((it = std::find(_clients.begin(), _clients.end(), socketfd)) != _clients.end()) {
 		_clients.erase(it);
+		std::vector<int>::iterator it2;
+		if ((it2 = std::find(_channel_operators.begin(), _channel_operators.end(), socketfd)) != _channel_operators.end()) {
+			_channel_operators.erase(it2);
+		}
 		return true;
 	}
 	return false;
@@ -108,4 +112,8 @@ void Channel::set_topic(const std::string & topic) {
 
 std::vector<int> Channel::get_channel_op() const {
 	return _channel_operators;
+}
+
+bool Channel::has_client(int socketfd) {
+	return std::find(_clients.begin(), _clients.end(), socketfd) != _clients.end();
 }

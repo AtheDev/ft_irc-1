@@ -10,7 +10,7 @@ IRCServer::IRCServer(std::string port): _tcp_server(port), _servername(/*IRC Ser
 	_commands["PASS"] = &IRCServer::_execute_pass;
 	_commands["NICK"] = &IRCServer::_execute_nick;
 	_commands["USER"] = &IRCServer::_execute_user;
-	_commands["MODE"] = &IRCServer::_execute_mode;
+//	_commands["MODE"] = &IRCServer::_execute_mode;
 	_commands["QUIT"] = &IRCServer::_execute_quit;
 	_commands["JOIN"] = &IRCServer::_execute_join;
 	_commands["PART"] = &IRCServer::_execute_part;
@@ -187,79 +187,79 @@ void IRCServer::_execute_user(IRCMessage & message) {
  * @brief Executes a MODE command.
  * @param message The message containing the MODE command.
  */
-void IRCServer::_execute_mode(IRCMessage & message) {
-	std::cout << "Executing MODE: " << message.get_command() << std::endl;
-	IRCClient * client = _clients.at(message.get_sender());
-	if (message.get_params()[0].find('#') != std::string::npos)
-	{
-		std::cout << "MODE CHANNEL" << std::endl;
-	}
-	else
-	{
-		std::cout << "MODE USER" << std::endl;
-		std::vector<std::string> params = message.get_params();
-		//TODO: delete
-		//=====================================================
-		if (params.size() == 8)
-			params.erase(params.begin(), params.begin() + 6);
-		for (std::vector<std::string>::iterator it = params.begin(); it != params.end(); it++)
-			std::cout << "params = " << *it << std::endl;
-		size_t pos = 0;
-		if ((pos = params[0].find('!')) != std::string::npos)
-			params[0] = params[0].substr(0, pos);
-		std::cout << "params[0] = " << params[0] << std::endl;
-		//=====================================================
-		if (params[0] != client->get_nickname())
-		{
-			TCPMessage reply = make_reply_ERR_USERSDONTMATCH(*client);
-			_tcp_server.messages_to_be_sent.push_back(reply);
-		}
-		else if (params[0] == client->get_nickname() && params.size() == 1)
-		{
-			TCPMessage reply = make_reply_RPL_UMODEIS(*client);
-			_tcp_server.messages_to_be_sent.push_back(reply);
-		}
-		else if (params[0] == client->get_nickname())
-		{
-			std::string	new_mode;
-			std::string user_modes = USER_MODES();
-			for (size_t i = 0; i < params[1].size(); i++)
-			{
-				if (params[1][i] != '+' && params[1][i] != '-')
-				{
-					TCPMessage reply = make_reply_ERR_UMODEUNKNOWNFLAG(*client);
-					_tcp_server.messages_to_be_sent.push_back(reply);
-					return;
-				}
-				else
-				{
-					size_t j = 1;
-					while ((user_modes.find(params[1][i + j]) != std::string::npos)
-					|| (params[1][i + j] != '+' && params[1][i + j] != '-'))
-					{
-						if (params[1][i + j] == 'i' || (params[1][i + j] == 'o' && params[1][i] == '-'))
-						{
-							new_mode.push_back(params[1][i]);
-							new_mode.push_back(params[1][i + j]);
-						}
-						j++;
-					}
-					i += j;
-					if (i < params[1].size() && user_modes.find(params[1][i]) == std::string::npos)
-					{
-						TCPMessage reply = make_reply_ERR_UMODEUNKNOWNFLAG(*client);
-						_tcp_server.messages_to_be_sent.push_back(reply);
-						return;
-					}
-				}
-			}
-			for (size_t i = 0; i < new_mode.size(); i += 2)
-				client->set_mode(new_mode[i], new_mode[i + 1]);
-			TCPMessage reply = make_reply_RPL_UMODEIS(*client);
-			_tcp_server.messages_to_be_sent.push_back(reply);
-		}
-	}
-}
+//void IRCServer::_execute_mode(IRCMessage & message) {
+//	std::cout << "Executing MODE: " << message.get_command() << std::endl;
+//	IRCClient * client = _clients.at(message.get_sender());
+//	if (message.get_params()[0].find('#') != std::string::npos)
+//	{
+//		std::cout << "MODE CHANNEL" << std::endl;
+//	}
+//	else
+//	{
+//		std::cout << "MODE USER" << std::endl;
+//		std::vector<std::string> params = message.get_params();
+//		//TODO: delete
+//		//=====================================================
+//		if (params.size() == 8)
+//			params.erase(params.begin(), params.begin() + 6);
+//		for (std::vector<std::string>::iterator it = params.begin(); it != params.end(); it++)
+//			std::cout << "params = " << *it << std::endl;
+//		size_t pos = 0;
+//		if ((pos = params[0].find('!')) != std::string::npos)
+//			params[0] = params[0].substr(0, pos);
+//		std::cout << "params[0] = " << params[0] << std::endl;
+//		//=====================================================
+//		if (params[0] != client->get_nickname())
+//		{
+//			TCPMessage reply = make_reply_ERR_USERSDONTMATCH(*client);
+//			_tcp_server.messages_to_be_sent.push_back(reply);
+//		}
+//		else if (params[0] == client->get_nickname() && params.size() == 1)
+//		{
+//			TCPMessage reply = make_reply_RPL_UMODEIS(*client);
+//			_tcp_server.messages_to_be_sent.push_back(reply);
+//		}
+//		else if (params[0] == client->get_nickname())
+//		{
+//			std::string	new_mode;
+//			std::string user_modes = USER_MODES();
+//			for (size_t i = 0; i < params[1].size(); i++)
+//			{
+//				if (params[1][i] != '+' && params[1][i] != '-')
+//				{
+//					TCPMessage reply = make_reply_ERR_UMODEUNKNOWNFLAG(*client);
+//					_tcp_server.messages_to_be_sent.push_back(reply);
+//					return;
+//				}
+//				else
+//				{
+//					size_t j = 1;
+//					while ((user_modes.find(params[1][i + j]) != std::string::npos)
+//					|| (params[1][i + j] != '+' && params[1][i + j] != '-'))
+//					{
+//						if (params[1][i + j] == 'i' || (params[1][i + j] == 'o' && params[1][i] == '-'))
+//						{
+//							new_mode.push_back(params[1][i]);
+//							new_mode.push_back(params[1][i + j]);
+//						}
+//						j++;
+//					}
+//					i += j;
+//					if (i < params[1].size() && user_modes.find(params[1][i]) == std::string::npos)
+//					{
+//						TCPMessage reply = make_reply_ERR_UMODEUNKNOWNFLAG(*client);
+//						_tcp_server.messages_to_be_sent.push_back(reply);
+//						return;
+//					}
+//				}
+//			}
+//			for (size_t i = 0; i < new_mode.size(); i += 2)
+//				client->set_mode(new_mode[i], new_mode[i + 1]);
+//			TCPMessage reply = make_reply_RPL_UMODEIS(*client);
+//			_tcp_server.messages_to_be_sent.push_back(reply);
+//		}
+//	}
+//}
 
 /**
  * @brief Executes a QUIT command.
@@ -267,6 +267,7 @@ void IRCServer::_execute_mode(IRCMessage & message) {
  */
 void IRCServer::_execute_quit(IRCMessage & message) {
 
+<<<<<<< HEAD
     std::cout << "Executing QUIT: " << message.get_command() << std::endl;
 /*    IRCClient * client = _clients[message.get_sender()];
     std::vector<Channel *> client_channels = _get_client_channels(client->get_fd());
@@ -283,6 +284,24 @@ void IRCServer::_execute_quit(IRCMessage & message) {
             _channels.erase(channel_name);
         }
     }*/
+=======
+	std::cout << "Executing QUIT: " << message.get_command() << std::endl;
+	IRCClient * client = _clients[message.get_sender()];
+	std::vector<Channel *> client_channels = _get_client_channels(client->get_fd());
+	std::vector<Channel *>::iterator it_channel = client_channels.begin();
+	for (; it_channel != client_channels.end(); it_channel++)
+	{
+		TCPMessage reply = make_reply_PART(*client, **it_channel, message.get_params()[0]);
+		_tcp_server.messages_to_be_sent.push_back(reply);
+		(*it_channel)->remove_client(message.get_sender());
+		if ((*it_channel)->get_clients().empty())
+		{
+			std::string channel_name = (*it_channel)->get_name();
+			delete *it_channel;
+			_channels.erase(channel_name);
+		}
+	}
+>>>>>>> master
 }
 
 /**
@@ -477,7 +496,7 @@ void IRCServer::_execute_notice(IRCMessage & message) {
  */
 void IRCServer::_execute_topic(IRCMessage & message) {
 	std::cout << "Executing TOPIC: " << message.get_command() << std::endl;
-    IRCClient * client = _clients.at(message.get_sender());
+	IRCClient * client = _clients.at(message.get_sender());
 	std::string channel_name = message.get_params()[0];
 
 	std::map<std::string, Channel *>::const_iterator it = find_channel(channel_name);
@@ -489,7 +508,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 	}
 	Channel * channel_tmp = it->second;
 	if (find(channel_tmp->clients_begin(), channel_tmp->clients_end(), message.get_sender())
-        == channel_tmp->clients_end())
+		== channel_tmp->clients_end())
 	{
 		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
 		_tcp_server.messages_to_be_sent.push_back(reply);
@@ -498,7 +517,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 	if (message.get_params().size() > 1)
 	{
 		if (find(channel_tmp->channel_op_begin(), channel_tmp->channel_op_end(), message.get_sender())
-            == channel_tmp->channel_op_end())
+			== channel_tmp->channel_op_end())
 		{
 			TCPMessage	reply = make_reply_ERR_CHANOPRIVSNEEDED(*client, channel_name);
 			_tcp_server.messages_to_be_sent.push_back(TCPMessage(reply));
@@ -506,7 +525,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 		else
 		{//TODO: if topic stored on several parameters ==> loop
 			channel_tmp->set_topic(message.get_params()[1]);
-            TCPMessage reply = make_reply_TOPIC(*client, *channel_tmp);
+			TCPMessage reply = make_reply_TOPIC(*client, *channel_tmp);
 			_tcp_server.messages_to_be_sent.push_back(reply);
 		}
 		return ;
@@ -532,7 +551,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
  */
 void IRCServer::_execute_names(IRCMessage & message) {
 	std::cout << "Executing NAMES: " << message.get_command() << std::endl;
-    IRCClient * client = _clients.at(message.get_sender());
+	IRCClient * client = _clients.at(message.get_sender());
 	if (message.get_params().empty())
 	{
 		std::map<std::string, Channel *>::iterator it = _channels.begin();
@@ -572,7 +591,7 @@ void IRCServer::_execute_names(IRCMessage & message) {
  */
 void IRCServer::_execute_list(IRCMessage & message) {
 	std::cout << "Executing LIST: " << message.get_command() << std::endl;
-    IRCClient * client = _clients.at(message.get_sender());
+	IRCClient * client = _clients.at(message.get_sender());
 	//TODO: see for the LIST command and the -YES parameter
 	if (message.get_params().empty())
 	{
@@ -605,6 +624,7 @@ void IRCServer::_execute_list(IRCMessage & message) {
  */
 void IRCServer::_execute_whois(IRCMessage & message) {
 	std::cout << "Executing WHOIS: " << message.get_command() << std::endl;
+<<<<<<< HEAD
  /*   IRCClient * client = _clients.at(message.get_sender());
 	std::map<int, IRCClient *>::iterator it_clients = _clients.begin();
 	for (;it_clients !=_clients.end(); it_clients++)
@@ -646,6 +666,13 @@ void IRCServer::_execute_whois(IRCMessage & message) {
 		}
 	}
 	TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, message.get_params()[0]);
+=======
+	IRCClient * client = _clients.at(message.get_sender());
+	//std::string servername = "user42";
+	TCPMessage reply = make_reply_RPL_WHOISUSER(*client);
+	_tcp_server.messages_to_be_sent.push_back(reply);
+	reply = make_reply_RPL_WHOISOPERATOR(*client);
+>>>>>>> master
 	_tcp_server.messages_to_be_sent.push_back(reply);
 	reply = make_reply_RPL_ENDOFWHOIS(*client);
 	_tcp_server.messages_to_be_sent.push_back(reply);*/
@@ -657,7 +684,7 @@ void IRCServer::_execute_whois(IRCMessage & message) {
  */
 void IRCServer::_execute_ping(IRCMessage & message) {
 	std::cout << "Executing PING: " << message.get_command() << std::endl;
-    IRCClient * client = _clients.at(message.get_sender());
+	IRCClient * client = _clients.at(message.get_sender());
 	if (message.get_params().empty())
 	{
 		TCPMessage reply = make_reply_ERR_NOORIGIN(*client);
@@ -684,4 +711,15 @@ std::map<std::string, Channel *>::const_iterator IRCServer::find_channel(std::st
 		if (it->second->get_name() == channel_name)
 			break;
 	return it;
+}
+
+std::vector<Channel *> IRCServer::_get_client_channels(int client_socketfd) {
+	std::vector<Channel *> client_channels;
+	std::map<std::string, Channel *>::const_iterator it_channel = _channels.begin();
+	for (; it_channel != _channels.end(); it_channel++) {
+		if (it_channel->second->has_client(client_socketfd)) {
+			client_channels.push_back(it_channel->second);
+		}
+	}
+	return client_channels;
 }
