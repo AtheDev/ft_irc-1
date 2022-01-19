@@ -19,7 +19,7 @@ IRCServer::IRCServer(std::string port): _tcp_server(port), _servername(/*IRC Ser
 	_commands["TOPIC"] = &IRCServer::_execute_topic;
 	_commands["NAMES"] = &IRCServer::_execute_names;
 	_commands["LIST"] = &IRCServer::_execute_list;
-	_commands["WHOIS"] = &IRCServer::_execute_whois;
+	//_commands["WHOIS"] = &IRCServer::_execute_whois;
 	_commands["PING"] = &IRCServer::_execute_ping;
 }
 
@@ -267,24 +267,6 @@ void IRCServer::_execute_user(IRCMessage & message) {
  */
 void IRCServer::_execute_quit(IRCMessage & message) {
 
-<<<<<<< HEAD
-    std::cout << "Executing QUIT: " << message.get_command() << std::endl;
-/*    IRCClient * client = _clients[message.get_sender()];
-    std::vector<Channel *> client_channels = _get_client_channels(client->get_fd());
-    std::vector<Channel *>::iterator it_channel = client_channels.begin();
-    for (; it_channel != client_channels.end(); it_channel++)
-    {
-        TCPMessage reply = make_reply_PART(client, *it_channel, message.get_params()[0]);
-        _tcp_server.messages_to_be_sent.push_back(reply);
-        (it_channel)->remove_client(message.get_sender());
-        if ((it_channel)->get_clients().empty())
-        {
-            std::string channel_name = (it_channel)->get_name();
-            delete *it_channel;
-            _channels.erase(channel_name);
-        }
-    }*/
-=======
 	std::cout << "Executing QUIT: " << message.get_command() << std::endl;
 	IRCClient * client = _clients[message.get_sender()];
 	std::vector<Channel *> client_channels = _get_client_channels(client->get_fd());
@@ -301,7 +283,6 @@ void IRCServer::_execute_quit(IRCMessage & message) {
 			_channels.erase(channel_name);
 		}
 	}
->>>>>>> master
 }
 
 /**
@@ -331,16 +312,16 @@ void IRCServer::_execute_join(IRCMessage & message) {
 	TCPMessage reply = make_reply_JOIN(*client, *channel);
 	_tcp_server.messages_to_be_sent.push_back(reply);
 
-	if (!channel->get_topic().empty())
+	/*if (!channel->get_topic().empty())
 	{
         reply = make_reply_RPL_TOPIC(*client, *channel);
 		_tcp_server.messages_to_be_sent.push_back(reply);
-	}
+	}*/
 
-	reply = make_reply_RPL_NAMREPLY(*client, *channel, _clients);
+/*	reply = make_reply_RPL_NAMREPLY(*client, *channel, _clients);
 	_tcp_server.messages_to_be_sent.push_back(reply);
 	reply = make_reply_RPL_ENDOFNAMES(*client, channel_name);
-	_tcp_server.messages_to_be_sent.push_back(reply);
+	_tcp_server.messages_to_be_sent.push_back(reply);*/
 
 	std::cout << *_channels.at(channel_name) << std::endl;
 }
@@ -358,21 +339,26 @@ void IRCServer::_execute_part(IRCMessage & message) {
 
 	try {
 		Channel * channel = _channels.at(channel_name);
-		if (!channel->remove_client(message.get_sender())) {
+		if (!channel->has_client(message.get_sender())) {
 			// If client isn't on the channel, send NOTONCHANNEL
 			TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
 			_tcp_server.messages_to_be_sent.push_back(reply);
 		} else {
 			// Else, broadcast to channel's users that a new user joined the channel
 			TCPMessage reply = make_reply_PART(*client, *channel);
+			channel->remove_client(message.get_sender());
 			_tcp_server.messages_to_be_sent.push_back(reply);
+			// And remove the channel if it's empty
+			if (channel->get_clients().empty()) {
+				delete channel;
+				_channels.erase(channel_name);
+			}
 		}
 	} catch (std::out_of_range & e) {
 		// If channel doesn't exist, send NOSUCHCHANNEL
 		TCPMessage reply = make_reply_ERR_NOSUCHCHANNEL(*client, channel_name);
 		_tcp_server.messages_to_be_sent.push_back(reply);
 	}
-	std::cout << *_channels.at(channel_name) << std::endl;
 }
 
 /**
@@ -381,7 +367,7 @@ void IRCServer::_execute_part(IRCMessage & message) {
  */
 void IRCServer::_execute_privmsg(IRCMessage & message) {
 	std::cout << "Executing PRIVMSG: " << message.get_command() << std::endl;
-	IRCClient * client = _clients.at(message.get_sender());
+	/*IRCClient * client = _clients.at(message.get_sender());
 	if (message.get_params().empty())
 	{
 		TCPMessage reply = make_reply_ERR_NORECIPIENT(*client, message.get_command());
@@ -446,7 +432,7 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
 														target, message.get_params()[1]);
 			_tcp_server.messages_to_be_sent.push_back(reply);
 		}
-	}
+	}*/
 }
 
 /**
@@ -455,7 +441,7 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
  */
 void IRCServer::_execute_notice(IRCMessage & message) {
 	std::cout << "Executing NOTICE: " << message.get_command() << std::endl;
-	IRCClient * client = _clients.at(message.get_sender());
+	/*IRCClient * client = _clients.at(message.get_sender());
 	if (message.get_params().empty())
 		return ;
 	else if (message.get_params().size() == 1)
@@ -487,7 +473,7 @@ void IRCServer::_execute_notice(IRCMessage & message) {
 														target, message.get_params()[1]);
 			_tcp_server.messages_to_be_sent.push_back(reply);
 		}
-	}
+	}*/
 }
 
 /**
@@ -622,10 +608,9 @@ void IRCServer::_execute_list(IRCMessage & message) {
  * @brief Executes a WHOIS command.
  * @param message The message containing the WHOIS command.
  */
-void IRCServer::_execute_whois(IRCMessage & message) {
+/*void IRCServer::_execute_whois(IRCMessage & message) {
 	std::cout << "Executing WHOIS: " << message.get_command() << std::endl;
-<<<<<<< HEAD
- /*   IRCClient * client = _clients.at(message.get_sender());
+    IRCClient * client = _clients.at(message.get_sender());
 	std::map<int, IRCClient *>::iterator it_clients = _clients.begin();
 	for (;it_clients !=_clients.end(); it_clients++)
 	{
@@ -666,17 +651,10 @@ void IRCServer::_execute_whois(IRCMessage & message) {
 		}
 	}
 	TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, message.get_params()[0]);
-=======
-	IRCClient * client = _clients.at(message.get_sender());
-	//std::string servername = "user42";
-	TCPMessage reply = make_reply_RPL_WHOISUSER(*client);
-	_tcp_server.messages_to_be_sent.push_back(reply);
-	reply = make_reply_RPL_WHOISOPERATOR(*client);
->>>>>>> master
 	_tcp_server.messages_to_be_sent.push_back(reply);
 	reply = make_reply_RPL_ENDOFWHOIS(*client);
-	_tcp_server.messages_to_be_sent.push_back(reply);*/
-}
+	_tcp_server.messages_to_be_sent.push_back(reply);
+}*/
 
 /**
  * @brief Executes a PING command.
