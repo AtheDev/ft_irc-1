@@ -50,7 +50,7 @@ class IRCServer {
 		void	_execute_pass(IRCMessage & message);
 		void	_execute_nick(IRCMessage & message);
 		void	_execute_user(IRCMessage & message);
-		void	_execute_mode(IRCMessage & message);
+//		void	_execute_mode(IRCMessage & message);
 		void	_execute_quit(IRCMessage & message);
 		void	_execute_join(IRCMessage & message);
 		void	_execute_part(IRCMessage & message);

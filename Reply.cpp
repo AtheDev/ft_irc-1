@@ -9,8 +9,7 @@ TCPMessage make_reply_JOIN(const IRCClient & client, const Channel & channel) {
 
 TCPMessage make_reply_PART(const IRCClient & client, const Channel & channel,
 						   const std::string & part_message) {
-	std::vector<int> receivers = channel.get_clients();
-	receivers.push_back(client.get_fd());
+	const std::vector<int>& receivers = channel.get_clients();
 	std::string payload = ":" + client.get_prefix() + " PART " + channel.get_name();
 	if (!part_message.empty()) {
 		payload += " :" + part_message;
@@ -136,15 +135,15 @@ TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & cha
 			}
 		}
 	}
-	else
-	{
-		std::map<int, IRCClient *>::const_iterator it_clients = clients.begin();
-		for (; it_clients != clients.end(); it_clients++)
-		{
-			if (it_clients->second->is_visible() == true && it_clients->second->get_channels().empty())
-				payload += it_clients->second->get_nickname() + " ";
-		}
-	}
+//	else
+//	{
+//		std::map<int, IRCClient *>::const_iterator it_clients = clients.begin();
+//		for (; it_clients != clients.end(); it_clients++)
+//		{
+//			if (it_clients->second->is_visible() == true && it_clients->second->get_channels().empty())
+//				payload += it_clients->second->get_nickname() + " ";
+//		}
+//	}
 	payload.erase(--payload.end());
 	return TCPMessage(receivers, payload);	
 }

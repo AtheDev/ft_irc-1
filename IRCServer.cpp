@@ -10,7 +10,7 @@ IRCServer::IRCServer(std::string port): _tcp_server(port), _servername(/*IRC Ser
 	_commands["PASS"] = &IRCServer::_execute_pass;
 	_commands["NICK"] = &IRCServer::_execute_nick;
 	_commands["USER"] = &IRCServer::_execute_user;
-	_commands["MODE"] = &IRCServer::_execute_mode;
+//	_commands["MODE"] = &IRCServer::_execute_mode;
 	_commands["QUIT"] = &IRCServer::_execute_quit;
 	_commands["JOIN"] = &IRCServer::_execute_join;
 	_commands["PART"] = &IRCServer::_execute_part;
@@ -186,79 +186,79 @@ void IRCServer::_execute_user(IRCMessage & message) {
  * @brief Executes a MODE command.
  * @param message The message containing the MODE command.
  */
-void IRCServer::_execute_mode(IRCMessage & message) {
-	std::cout << "Executing MODE: " << message.get_command() << std::endl;
-	IRCClient * client = _clients.at(message.get_sender());
-	if (message.get_params()[0].find('#') != std::string::npos)
-	{
-		std::cout << "MODE CHANNEL" << std::endl;
-	}
-	else
-	{
-		std::cout << "MODE USER" << std::endl;
-		std::vector<std::string> params = message.get_params();
-		//TODO: delete
-		//=====================================================
-		if (params.size() == 8)
-			params.erase(params.begin(), params.begin() + 6);
-		for (std::vector<std::string>::iterator it = params.begin(); it != params.end(); it++)
-			std::cout << "params = " << *it << std::endl;
-		size_t pos = 0;
-		if ((pos = params[0].find('!')) != std::string::npos)
-			params[0] = params[0].substr(0, pos);
-		std::cout << "params[0] = " << params[0] << std::endl;
-		//=====================================================
-		if (params[0] != client->get_nickname())
-		{
-			TCPMessage reply = make_reply_ERR_USERSDONTMATCH(*client);
-			_tcp_server.messages_to_be_sent.push_back(reply);
-		}
-		else if (params[0] == client->get_nickname() && params.size() == 1)
-		{
-			TCPMessage reply = make_reply_RPL_UMODEIS(*client);
-			_tcp_server.messages_to_be_sent.push_back(reply);
-		}
-		else if (params[0] == client->get_nickname())
-		{
-			std::string	new_mode;
-			std::string user_modes = USER_MODES();
-			for (size_t i = 0; i < params[1].size(); i++)
-			{
-				if (params[1][i] != '+' && params[1][i] != '-')
-				{
-					TCPMessage reply = make_reply_ERR_UMODEUNKNOWNFLAG(*client);
-					_tcp_server.messages_to_be_sent.push_back(reply);
-					return;
-				}
-				else
-				{
-					size_t j = 1;
-					while ((user_modes.find(params[1][i + j]) != std::string::npos)
-					|| (params[1][i + j] != '+' && params[1][i + j] != '-'))
-					{
-						if (params[1][i + j] == 'i' || (params[1][i + j] == 'o' && params[1][i] == '-'))
-						{
-							new_mode.push_back(params[1][i]);
-							new_mode.push_back(params[1][i + j]);
-						}
-						j++;
-					}
-					i += j;
-					if (i < params[1].size() && user_modes.find(params[1][i]) == std::string::npos)
-					{
-						TCPMessage reply = make_reply_ERR_UMODEUNKNOWNFLAG(*client);
-						_tcp_server.messages_to_be_sent.push_back(reply);
-						return;
-					}
-				}
-			}
-			for (size_t i = 0; i < new_mode.size(); i += 2)
-				client->set_mode(new_mode[i], new_mode[i + 1]);
-			TCPMessage reply = make_reply_RPL_UMODEIS(*client);
-			_tcp_server.messages_to_be_sent.push_back(reply);
-		}
-	}
-}
+//void IRCServer::_execute_mode(IRCMessage & message) {
+//	std::cout << "Executing MODE: " << message.get_command() << std::endl;
+//	IRCClient * client = _clients.at(message.get_sender());
+//	if (message.get_params()[0].find('#') != std::string::npos)
+//	{
+//		std::cout << "MODE CHANNEL" << std::endl;
+//	}
+//	else
+//	{
+//		std::cout << "MODE USER" << std::endl;
+//		std::vector<std::string> params = message.get_params();
+//		//TODO: delete
+//		//=====================================================
+//		if (params.size() == 8)
+//			params.erase(params.begin(), params.begin() + 6);
+//		for (std::vector<std::string>::iterator it = params.begin(); it != params.end(); it++)
+//			std::cout << "params = " << *it << std::endl;
+//		size_t pos = 0;
+//		if ((pos = params[0].find('!')) != std::string::npos)
+//			params[0] = params[0].substr(0, pos);
+//		std::cout << "params[0] = " << params[0] << std::endl;
+//		//=====================================================
+//		if (params[0] != client->get_nickname())
+//		{
+//			TCPMessage reply = make_reply_ERR_USERSDONTMATCH(*client);
+//			_tcp_server.messages_to_be_sent.push_back(reply);
+//		}
+//		else if (params[0] == client->get_nickname() && params.size() == 1)
+//		{
+//			TCPMessage reply = make_reply_RPL_UMODEIS(*client);
+//			_tcp_server.messages_to_be_sent.push_back(reply);
+//		}
+//		else if (params[0] == client->get_nickname())
+//		{
+//			std::string	new_mode;
+//			std::string user_modes = USER_MODES();
+//			for (size_t i = 0; i < params[1].size(); i++)
+//			{
+//				if (params[1][i] != '+' && params[1][i] != '-')
+//				{
+//					TCPMessage reply = make_reply_ERR_UMODEUNKNOWNFLAG(*client);
+//					_tcp_server.messages_to_be_sent.push_back(reply);
+//					return;
+//				}
+//				else
+//				{
+//					size_t j = 1;
+//					while ((user_modes.find(params[1][i + j]) != std::string::npos)
+//					|| (params[1][i + j] != '+' && params[1][i + j] != '-'))
+//					{
+//						if (params[1][i + j] == 'i' || (params[1][i + j] == 'o' && params[1][i] == '-'))
+//						{
+//							new_mode.push_back(params[1][i]);
+//							new_mode.push_back(params[1][i + j]);
+//						}
+//						j++;
+//					}
+//					i += j;
+//					if (i < params[1].size() && user_modes.find(params[1][i]) == std::string::npos)
+//					{
+//						TCPMessage reply = make_reply_ERR_UMODEUNKNOWNFLAG(*client);
+//						_tcp_server.messages_to_be_sent.push_back(reply);
+//						return;
+//					}
+//				}
+//			}
+//			for (size_t i = 0; i < new_mode.size(); i += 2)
+//				client->set_mode(new_mode[i], new_mode[i + 1]);
+//			TCPMessage reply = make_reply_RPL_UMODEIS(*client);
+//			_tcp_server.messages_to_be_sent.push_back(reply);
+//		}
+//	}
+//}
 
 /**
  * @brief Executes a QUIT command.
