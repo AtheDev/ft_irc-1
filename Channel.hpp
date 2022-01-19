@@ -24,10 +24,12 @@ class Channel {
 		bool add_client_to_channel_operator(int socketfd);
 		bool remove_client(int socketfd);
 
+		bool has_client(int socketfd);
+
 		std::vector<int>::const_iterator clients_begin() const;
 		std::vector<int>::const_iterator clients_end() const;
-		std::vector<int>::iterator channel_op_begin();
-		std::vector<int>::iterator channel_op_end();
+		std::vector<int>::const_iterator channel_op_begin() const;
+		std::vector<int>::const_iterator channel_op_end() const;
 
 		friend std::ostream & operator<<(std::ostream & os, const Channel & channel);
 

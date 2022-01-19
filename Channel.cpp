@@ -48,6 +48,10 @@ bool Channel::remove_client(int socketfd) {
 	std::vector<int>::iterator it;
 	if ((it = std::find(_clients.begin(), _clients.end(), socketfd)) != _clients.end()) {
 		_clients.erase(it);
+		std::vector<int>::iterator it2;
+		if ((it2 = std::find(_channel_operators.begin(), _channel_operators.end(), socketfd)) != _channel_operators.end()) {
+			_channel_operators.erase(it2);
+		}
 		return true;
 	}
 	return false;
@@ -86,16 +90,16 @@ std::ostream & operator<<(std::ostream & os, const Channel & channel) {
  * @brief Handle to iterate on socketfds of clients that are channel operators.
  * @return A begin iterator to channel operator clients.
  */
-std::vector<int>::iterator Channel::channel_op_begin() {
-	return _clients.begin();
+std::vector<int>::const_iterator Channel::channel_op_begin() const {
+	return _channel_operators.begin();
 }
 
 /**
  * @brief Handle to iterate on socketfds of clients that are channel operators.
  * @return An end iterator to channel operator clients.
  */
-std::vector<int>::iterator Channel::channel_op_end() {
-	return _clients.end();
+std::vector<int>::const_iterator Channel::channel_op_end() const {
+	return _channel_operators.end();
 }
 
 const std::string & Channel::get_topic() const {
@@ -108,4 +112,8 @@ void Channel::set_topic(const std::string & topic) {
 
 std::vector<int> Channel::get_channel_op() const {
 	return _channel_operators;
+}
+
+bool Channel::has_client(int socketfd) {
+	return std::find(_clients.begin(), _clients.end(), socketfd) != _clients.end();
 }

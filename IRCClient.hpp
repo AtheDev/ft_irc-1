@@ -37,9 +37,6 @@ class IRCClient {
 		void set_mode(char sign, char mode);
 		void set_status(int status);
 
-		void join_channel(std::string channel);
-		void quit_channel(std::string channel);
-		bool is_in_channel(std::string channel) const;
 		bool is_visible(void) const;
 
 
@@ -55,8 +52,6 @@ class IRCClient {
 		std::string	_mode;
 		//TODO: to be removed?
 		std::string _hostname;
-
-		std::vector<std::string> _channels;
 
 		IRCClient();
 		IRCClient(IRCClient const & cpy);

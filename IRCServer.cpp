@@ -267,36 +267,20 @@ void IRCServer::_execute_mode(IRCMessage & message) {
 void IRCServer::_execute_quit(IRCMessage & message) {
 
 	std::cout << "Executing QUIT: " << message.get_command() << std::endl;
-	std::string quit_message;
-	if (!message.get_params().empty())
-	{
-		for (size_t i = 0; i < message.get_params().size(); i++)
-			quit_message += (message.get_params()[i] + " ");
-		quit_message.erase(--quit_message.end());
-	}
 	IRCClient * client = _clients[message.get_sender()];
-	std::vector<std::string>::iterator it = client->get_channels().begin();
-	for (; it != client->get_channels().end(); it++)
+	std::vector<Channel *> client_channels = _get_client_channels(client->get_fd());
+	std::vector<Channel *>::iterator it_channel = client_channels.begin();
+	for (; it_channel != client_channels.end(); it_channel++)
 	{
-        Channel * channel = _channels[*it];
-        client->quit_channel(channel->get_name());
-		TCPMessage reply = make_reply_PART(*client, *channel, quit_message);
-        _tcp_server.messages_to_be_sent.push_back(reply);
-        channel->remove_client(message.get_sender());
-	    std::vector<int>::iterator it_op = channel->channel_op_begin();
-	    for (; it_op != channel->channel_op_end(); it_op++)
-        {
-            if (*it_op == message.get_sender())
-            {
-                channel->get_channel_op().erase(it_op);
-                break ;
-            }
-        }
-        if (channel->get_clients().empty())
-        {
-            delete channel;
-            _channels.erase(*it);
-        }
+		TCPMessage reply = make_reply_PART(*client, **it_channel, message.get_params()[0]);
+		_tcp_server.messages_to_be_sent.push_back(reply);
+		(*it_channel)->remove_client(message.get_sender());
+		if ((*it_channel)->get_clients().empty())
+		{
+			std::string channel_name = (*it_channel)->get_name();
+			delete *it_channel;
+			_channels.erase(channel_name);
+		}
 	}
 }
 
@@ -369,7 +353,7 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
  */
 void IRCServer::_execute_topic(IRCMessage & message) {
 	std::cout << "Executing TOPIC: " << message.get_command() << std::endl;
-    IRCClient * client = _clients.at(message.get_sender());
+	IRCClient * client = _clients.at(message.get_sender());
 	std::string channel_name = message.get_params()[0];
 
 	std::map<std::string, Channel *>::const_iterator it = find_channel(channel_name);
@@ -381,7 +365,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 	}
 	Channel * channel_tmp = it->second;
 	if (find(channel_tmp->clients_begin(), channel_tmp->clients_end(), message.get_sender())
-        == channel_tmp->clients_end())
+		== channel_tmp->clients_end())
 	{
 		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
 		_tcp_server.messages_to_be_sent.push_back(reply);
@@ -390,7 +374,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 	if (message.get_params().size() > 1)
 	{
 		if (find(channel_tmp->channel_op_begin(), channel_tmp->channel_op_end(), message.get_sender())
-            == channel_tmp->channel_op_end())
+			== channel_tmp->channel_op_end())
 		{
 			TCPMessage	reply = make_reply_ERR_CHANOPRIVSNEEDED(*client, channel_name);
 			_tcp_server.messages_to_be_sent.push_back(TCPMessage(reply));
@@ -398,7 +382,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 		else
 		{//TODO: if topic stored on several parameters ==> loop
 			channel_tmp->set_topic(message.get_params()[1]);
-            TCPMessage reply = make_reply_TOPIC(*client, *channel_tmp);
+			TCPMessage reply = make_reply_TOPIC(*client, *channel_tmp);
 			_tcp_server.messages_to_be_sent.push_back(reply);
 		}
 		return ;
@@ -424,7 +408,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
  */
 void IRCServer::_execute_names(IRCMessage & message) {
 	std::cout << "Executing NAMES: " << message.get_command() << std::endl;
-    IRCClient * client = _clients.at(message.get_sender());
+	IRCClient * client = _clients.at(message.get_sender());
 	if (message.get_params().empty())
 	{
 		std::map<std::string, Channel *>::iterator it = _channels.begin();
@@ -464,7 +448,7 @@ void IRCServer::_execute_names(IRCMessage & message) {
  */
 void IRCServer::_execute_list(IRCMessage & message) {
 	std::cout << "Executing LIST: " << message.get_command() << std::endl;
-    IRCClient * client = _clients.at(message.get_sender());
+	IRCClient * client = _clients.at(message.get_sender());
 	//TODO: see for the LIST command and the -YES parameter
 	if (message.get_params().empty())
 	{
@@ -497,7 +481,7 @@ void IRCServer::_execute_list(IRCMessage & message) {
  */
 /*void IRCServer::_execute_whois(IRCMessage & message) {
 	std::cout << "Executing WHOIS: " << message.get_command() << std::endl;
-    IRCClient * client = _clients.at(message.get_sender());
+	IRCClient * client = _clients.at(message.get_sender());
 	//std::string servername = "user42";
 	TCPMessage reply = make_reply_RPL_WHOISUSER(*client);
 	_tcp_server.messages_to_be_sent.push_back(reply);
@@ -511,7 +495,7 @@ void IRCServer::_execute_list(IRCMessage & message) {
  */
 void IRCServer::_execute_ping(IRCMessage & message) {
 	std::cout << "Executing PING: " << message.get_command() << std::endl;
-    IRCClient * client = _clients.at(message.get_sender());
+	IRCClient * client = _clients.at(message.get_sender());
 	if (message.get_params().empty())
 	{
 		TCPMessage reply = make_reply_ERR_NOORIGIN(*client);
@@ -538,4 +522,15 @@ std::map<std::string, Channel *>::const_iterator IRCServer::find_channel(std::st
 		if (it->second->get_name() == channel_name)
 			break;
 	return it;
+}
+
+std::vector<Channel *> IRCServer::_get_client_channels(int client_socketfd) {
+	std::vector<Channel *> client_channels;
+	std::map<std::string, Channel *>::const_iterator it_channel = _channels.begin();
+	for (; it_channel != _channels.end(); it_channel++) {
+		if (it_channel->second->has_client(client_socketfd)) {
+			client_channels.push_back(it_channel->second);
+		}
+	}
+	return client_channels;
 }
