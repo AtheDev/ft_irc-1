@@ -326,21 +326,26 @@ void IRCServer::_execute_part(IRCMessage & message) {
 
 	try {
 		Channel * channel = _channels.at(channel_name);
-		if (!channel->remove_client(message.get_sender())) {
+		if (!channel->has_client(message.get_sender())) {
 			// If client isn't on the channel, send NOTONCHANNEL
 			TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
 			_tcp_server.messages_to_be_sent.push_back(reply);
 		} else {
 			// Else, broadcast to channel's users that a new user joined the channel
 			TCPMessage reply = make_reply_PART(*client, *channel);
+			channel->remove_client(message.get_sender());
 			_tcp_server.messages_to_be_sent.push_back(reply);
+			// And remove the channel if it's empty
+			if (channel->get_clients().empty()) {
+				delete channel;
+				_channels.erase(channel_name);
+			}
 		}
 	} catch (std::out_of_range & e) {
 		// If channel doesn't exist, send NOSUCHCHANNEL
 		TCPMessage reply = make_reply_ERR_NOSUCHCHANNEL(*client, channel_name);
 		_tcp_server.messages_to_be_sent.push_back(reply);
 	}
-	std::cout << *_channels.at(channel_name) << std::endl;
 }
 
 void IRCServer::_execute_privmsg(IRCMessage & message) {
