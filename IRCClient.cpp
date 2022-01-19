@@ -3,7 +3,7 @@
 
 IRCClient::IRCClient(int fd) :
 		_fd(fd), _status(UNREGISTERED), _nickname(), _username(), _realname(), _password(),
-		_mode(""), _hostname(), _away_message(), _channels() {
+		_mode(""), _hostname(), _away_message() {
 }
 
 IRCClient::~IRCClient() {}
@@ -23,7 +23,6 @@ std::string const & IRCClient::get_mode(void) const { return _mode; }
 
 std::string const & IRCClient::get_away_message(void) const { return _away_message; }
 
-std::vector<std::string> IRCClient::get_channels(void) const { return _channels; }
 
 int IRCClient::get_status(void) const { return _status; }
 
@@ -62,27 +61,5 @@ void IRCClient::set_mode(char sign, char mode) {
 bool IRCClient::is_visible(void) const {
 		if (_mode.find('i') != std::string::npos)
 			return false;
-	return true;
-}
-
-void IRCClient::join_channel(std::string channel) {
-
-	if (is_in_channel(channel) == false) {
-		_channels.push_back(channel);
-	}
-}
-
-void IRCClient::quit_channel(std::string channel) {
-
-	if (is_in_channel(channel) == true) {
-		_channels.erase(find(get_channels().begin(), get_channels().end(), channel));
-	}
-}
-
-bool IRCClient::is_in_channel(std::string channel) const {
-
-	if (find(get_channels().begin(), get_channels().end(), channel) == get_channels().end()) {
-		return false;
-	}
 	return true;
 }

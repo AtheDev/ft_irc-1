@@ -26,7 +26,6 @@ class IRCClient {
 		std::string const & get_realname(void) const;
 		std::string const & get_mode(void) const;
 		std::string const & get_away_message(void) const;
-		std::vector<std::string> get_channels(void) const;
 		int get_status(void) const;
 		std::string get_prefix() const;
 
@@ -39,9 +38,6 @@ class IRCClient {
 		void set_mode(char sign, char mode);
 		void set_status(int status);
 
-		void join_channel(std::string channel);
-		void quit_channel(std::string channel);
-		bool is_in_channel(std::string channel) const;
 		bool is_visible(void) const;
 
 
@@ -58,8 +54,6 @@ class IRCClient {
 		//TODO: to be removed?
 		std::string _hostname;
 		std::string	_away_message;
-
-		std::vector<std::string> _channels;
 
 		IRCClient();
 		IRCClient(IRCClient const & cpy);

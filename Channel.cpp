@@ -86,16 +86,16 @@ std::ostream & operator<<(std::ostream & os, const Channel & channel) {
  * @brief Handle to iterate on socketfds of clients that are channel operators.
  * @return A begin iterator to channel operator clients.
  */
-std::vector<int>::iterator Channel::channel_op_begin() {
-	return _clients.begin();
+std::vector<int>::const_iterator Channel::channel_op_begin() const {
+	return _channel_operators.begin();
 }
 
 /**
  * @brief Handle to iterate on socketfds of clients that are channel operators.
  * @return An end iterator to channel operator clients.
  */
-std::vector<int>::iterator Channel::channel_op_end() {
-	return _clients.end();
+std::vector<int>::const_iterator Channel::channel_op_end() const {
+	return _channel_operators.end();
 }
 
 const std::string & Channel::get_topic() const {

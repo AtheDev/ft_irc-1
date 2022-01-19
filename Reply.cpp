@@ -48,7 +48,6 @@ TCPMessage make_reply_JOIN(const IRCClient & client, const Channel & channel) {
 TCPMessage make_reply_PART(const IRCClient & client, const Channel & channel,
 						   const std::string & part_message) {
 	std::vector<int> receivers = channel.get_clients();
-	receivers.push_back(client.get_fd());
 	std::string payload = ":" + client.get_prefix() + " PART " + channel.get_name();
 	if (!part_message.empty()) {
 		payload += " :" + part_message;
@@ -116,27 +115,40 @@ TCPMessage make_reply_RPL_UMODEIS(const IRCClient & client) {
 	return TCPMessage(receivers, payload);
 }
 
-//301
 TCPMessage make_reply_RPL_AWAY(const IRCClient & client, const IRCClient & client_away) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = "301 " + client_away.get_nickname() + " :" + client_away.get_away_message();
 	return TCPMessage(receivers, payload);
-}//("301" + nick + " :" + away_message)
+}
 
-/*TCPMessage make_reply_RPL_WHOISUSER(const IRCClient & client) {
+TCPMessage make_reply_RPL_WHOISUSER(const IRCClient & client, const IRCClient & client_target) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload;
-	payload = "311 " + client.get_nickname() + " " + client.get_username() + " ";
-	payload += client.get_hostname() + " * :" + client.get_realname();
+	payload = "311 "+ client.get_nickname() + " :" + client_target.get_nickname() + " " + client_target.get_username() + " ";
+	payload += client_target.get_hostname() + " * :" + client_target.get_realname();
 	return TCPMessage(receivers, payload);	
 }
 
-TCPMessage make_reply_RPL_WHOISOPERATOR(const IRCClient & client) {
+TCPMessage make_reply_RPL_WHOISOPERATOR(const IRCClient & client, const IRCClient & client_target) {
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "313 " + client.get_nickname() + " : is an IRC operator";
+	std::string payload = "313 " + client_target.get_nickname() + " : is an IRC operator";
 	return TCPMessage(receivers, payload);	
 }
-*/
+
+TCPMessage make_reply_RPL_ENDOFWHOIS(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "318 : :End of WHOIS list";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_RPL_WHOISCHANNELS(const IRCClient & client, const IRCClient & client_target,
+										const std::string & channels_names) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "319 " + client_target.get_nickname() + " :";
+	payload += channels_names;
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_RPL_LIST(const IRCClient & client, const Channel & channel) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload;
@@ -166,7 +178,7 @@ TCPMessage make_reply_RPL_TOPIC(const IRCClient & client, const Channel & channe
 TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & channel, const std::map<int, IRCClient *>& clients) {
 
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "353 = " + channel.get_name() + " :";
+	std::string payload = "353  =" + channel.get_name() + " :";
 	if (channel.get_name() != "*")
 	{
 		std::vector<int>::const_iterator it_clients = channel.clients_begin();
@@ -181,7 +193,7 @@ TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & cha
 			}
 		}
 	}
-	else
+/*	else
 	{
 		std::map<int, IRCClient *>::const_iterator it_clients = clients.begin();
 		for (; it_clients != clients.end(); it_clients++)
@@ -189,7 +201,7 @@ TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & cha
 			if (it_clients->second->is_visible() == true && it_clients->second->get_channels().empty())
 				payload += it_clients->second->get_nickname() + " ";
 		}
-	}
+	}*/
 	payload.erase(--payload.end());
 	return TCPMessage(receivers, payload);	
 }

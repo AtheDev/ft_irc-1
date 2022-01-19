@@ -52,11 +52,16 @@ TCPMessage make_reply_RPL_AWAY(const IRCClient & client, const IRCClient & clien
 //306
 //TCPMessage make_reply_RPL_NOWAWAY(const IRCClient & client, ) ("306 :You have been marked as being away")
 //311
-//TCPMessage make_reply_RPL_WHOISUSER(const IRCClient & client);
+TCPMessage make_reply_RPL_WHOISUSER(const IRCClient & client, const IRCClient & client_target);
 //313
-//TCPMessage make_reply_RPL_WHOISOPERATOR(const IRCClient & client);
+TCPMessage make_reply_RPL_WHOISOPERATOR(const IRCClient & client, const IRCClient & client_target);
 //315
 //TCPMessage make_reply_RPL_ENDOFWHO(const IRCClient & client, name) ("315" + name + " :End of WHO list")
+//318
+TCPMessage make_reply_RPL_ENDOFWHOIS(const IRCClient & client);
+//319
+TCPMessage make_reply_RPL_WHOISCHANNELS(const IRCClient & client, const IRCClient & client_target,
+										const std::string & channels_names);
 //322
 TCPMessage make_reply_RPL_LIST(const IRCClient & client, const Channel & channel);
 //323

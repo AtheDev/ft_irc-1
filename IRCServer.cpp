@@ -19,7 +19,7 @@ IRCServer::IRCServer(std::string port): _tcp_server(port), _servername(/*IRC Ser
 	_commands["TOPIC"] = &IRCServer::_execute_topic;
 	_commands["NAMES"] = &IRCServer::_execute_names;
 	_commands["LIST"] = &IRCServer::_execute_list;
-	//_commands["WHOIS"] = &IRCServer::_execute_whois;
+	_commands["WHOIS"] = &IRCServer::_execute_whois;
 	_commands["PING"] = &IRCServer::_execute_ping;
 }
 
@@ -267,38 +267,22 @@ void IRCServer::_execute_mode(IRCMessage & message) {
  */
 void IRCServer::_execute_quit(IRCMessage & message) {
 
-	std::cout << "Executing QUIT: " << message.get_command() << std::endl;
-	std::string quit_message;
-	if (!message.get_params().empty())
-	{
-		for (size_t i = 0; i < message.get_params().size(); i++)
-			quit_message += (message.get_params()[i] + " ");
-		quit_message.erase(--quit_message.end());
-	}
-	IRCClient * client = _clients[message.get_sender()];
-	std::vector<std::string>::iterator it = client->get_channels().begin();
-	for (; it != client->get_channels().end(); it++)
-	{
-        Channel * channel = _channels[*it];
-        client->quit_channel(channel->get_name());
-		TCPMessage reply = make_reply_PART(*client, *channel, quit_message);
+    std::cout << "Executing QUIT: " << message.get_command() << std::endl;
+/*    IRCClient * client = _clients[message.get_sender()];
+    std::vector<Channel *> client_channels = _get_client_channels(client->get_fd());
+    std::vector<Channel *>::iterator it_channel = client_channels.begin();
+    for (; it_channel != client_channels.end(); it_channel++)
+    {
+        TCPMessage reply = make_reply_PART(client, *it_channel, message.get_params()[0]);
         _tcp_server.messages_to_be_sent.push_back(reply);
-        channel->remove_client(message.get_sender());
-	    std::vector<int>::iterator it_op = channel->channel_op_begin();
-	    for (; it_op != channel->channel_op_end(); it_op++)
+        (it_channel)->remove_client(message.get_sender());
+        if ((it_channel)->get_clients().empty())
         {
-            if (*it_op == message.get_sender())
-            {
-                channel->get_channel_op().erase(it_op);
-                break ;
-            }
+            std::string channel_name = (it_channel)->get_name();
+            delete *it_channel;
+            _channels.erase(channel_name);
         }
-        if (channel->get_clients().empty())
-        {
-            delete channel;
-            _channels.erase(*it);
-        }
-	}
+    }*/
 }
 
 /**
@@ -327,6 +311,18 @@ void IRCServer::_execute_join(IRCMessage & message) {
 	channel->add_client(client->get_fd());
 	TCPMessage reply = make_reply_JOIN(*client, *channel);
 	_tcp_server.messages_to_be_sent.push_back(reply);
+
+	if (!channel->get_topic().empty())
+	{
+        reply = make_reply_RPL_TOPIC(*client, *channel);
+		_tcp_server.messages_to_be_sent.push_back(reply);
+	}
+
+	reply = make_reply_RPL_NAMREPLY(*client, *channel, _clients);
+	_tcp_server.messages_to_be_sent.push_back(reply);
+	reply = make_reply_RPL_ENDOFNAMES(*client, channel_name);
+	_tcp_server.messages_to_be_sent.push_back(reply);
+
 	std::cout << *_channels.at(channel_name) << std::endl;
 }
 
@@ -607,15 +603,53 @@ void IRCServer::_execute_list(IRCMessage & message) {
  * @brief Executes a WHOIS command.
  * @param message The message containing the WHOIS command.
  */
-/*void IRCServer::_execute_whois(IRCMessage & message) {
+void IRCServer::_execute_whois(IRCMessage & message) {
 	std::cout << "Executing WHOIS: " << message.get_command() << std::endl;
-    IRCClient * client = _clients.at(message.get_sender());
-	//std::string servername = "user42";
-	TCPMessage reply = make_reply_RPL_WHOISUSER(*client);
+ /*   IRCClient * client = _clients.at(message.get_sender());
+	std::map<int, IRCClient *>::iterator it_clients = _clients.begin();
+	for (;it_clients !=_clients.end(); it_clients++)
+	{
+		IRCClient * client_tmp = it_clients->second;
+		if (client_tmp->get_nickname() == message.get_params()[0])
+		{
+			TCPMessage reply = make_reply_RPL_WHOISUSER(*client,*client_tmp );
+			_tcp_server.messages_to_be_sent.push_back(reply);
+			if (client_tmp->get_mode().find('a') != std::string::npos)
+			{
+				reply = make_reply_RPL_AWAY(*client, *client_tmp);
+				_tcp_server.messages_to_be_sent.push_back(reply);
+			}
+			if (client_tmp->get_mode().find('o') != std::string::npos)
+			{
+				reply = make_reply_RPL_WHOISOPERATOR(*client, *client_tmp);
+				_tcp_server.messages_to_be_sent.push_back(reply);
+			}
+			std::vector<std::string> client_channels = client_tmp->get_channels();
+			std::string	channels_names;
+			std::vector<std::string>::iterator it = client_channels.begin();
+			for (; it != client_channels.end(); it++)
+			{
+				Channel *tmp = _channels[*it];
+				if (find(tmp->channel_op_begin(), tmp->channel_op_end(), client_tmp->get_fd()) != tmp->channel_op_end())
+					channels_names += ("@" + tmp->get_name() + " ");
+				else if (client_tmp->is_visible())
+					channels_names += (tmp->get_name() + " ");
+			}
+			if (!client_channels.empty())
+			{
+				reply = make_reply_RPL_WHOISCHANNELS(*client, *client_tmp, channels_names);
+				_tcp_server.messages_to_be_sent.push_back(reply);	
+			}
+			reply = make_reply_RPL_ENDOFWHOIS(*client);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+			return ;
+		}
+	}
+	TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, message.get_params()[0]);
 	_tcp_server.messages_to_be_sent.push_back(reply);
-	reply = make_reply_RPL_WHOISOPERATOR(*client);
-	_tcp_server.messages_to_be_sent.push_back(reply);
-}*/
+	reply = make_reply_RPL_ENDOFWHOIS(*client);
+	_tcp_server.messages_to_be_sent.push_back(reply);*/
+}
 
 /**
  * @brief Executes a PING command.
