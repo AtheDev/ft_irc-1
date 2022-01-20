@@ -58,12 +58,12 @@ void IRCServer::_run() {
 			throw e;
 		}
 		// Récupérer les nouveaux clients et supprimer les clients déconnectés
-		_add_clients(_tcp_server.new_clients);
-		_remove_clients(_tcp_server.disconnected_clients);
+		_add_clients(_tcp_server.get_new_clients());
+		_remove_clients(_tcp_server.get_disconnected_clients());
 
 		// Récupérer les nouveaux messages reçus.
-		std::list<TCPMessage>::iterator it_message = _tcp_server.messages_received.begin();
-		for (; it_message != _tcp_server.messages_received.end(); it_message++)
+		std::list<TCPMessage>::const_iterator it_message = _tcp_server.get_messages_received().begin();
+		for (; it_message != _tcp_server.get_messages_received().end(); it_message++)
 		{
 			IRCMessage tmp(*it_message);
 			_execute_command(tmp);
@@ -71,8 +71,8 @@ void IRCServer::_run() {
 	}
 }
 
-void IRCServer::_add_clients(std::vector<int> & new_clients) {
-	std::vector<int>::iterator it = new_clients.begin();
+void IRCServer::_add_clients(const std::vector<int> & new_clients) {
+	std::vector<int>::const_iterator it = new_clients.begin();
 	for (; it != new_clients.end(); it++)
 	{
 		IRCClient * new_client = new IRCClient(*it);
@@ -80,8 +80,8 @@ void IRCServer::_add_clients(std::vector<int> & new_clients) {
 	}
 }
 
-void IRCServer::_remove_clients(std::vector<int> & disconnected_clients) {
-	std::vector<int>::iterator it_client = disconnected_clients.begin();
+void IRCServer::_remove_clients(const std::vector<int> & disconnected_clients) {
+	std::vector<int>::const_iterator it_client = disconnected_clients.begin();
 	for (; it_client != disconnected_clients.end(); it_client++)
 	{
 		_remove_client_from_all_channels(*it_client);
@@ -118,7 +118,7 @@ void IRCServer::_execute_pass(IRCMessage & message) {
 		client->set_status(PASSWORD);
 	}
 	else {
-		_tcp_server.messages_to_be_sent.push_back(make_reply_ERR_ALREADYREGISTRED(*client));
+		_tcp_server.schedule_sent_message(make_reply_ERR_ALREADYREGISTRED(*client));
 	}
 }
 
@@ -134,12 +134,12 @@ void IRCServer::_execute_nick(IRCMessage & message) {
 	std::map<int, IRCClient *>::const_iterator it_client;
 	if (client->get_nickname() == nick) {
 		TCPMessage reply = make_reply_ERR_NICKNAMEINUSE(*client, nick);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 	}
 	else if ((it_client = find_nickname(nick)) != _clients.end()) {
 		IRCClient * collided_client = it_client->second;
 		TCPMessage reply = make_reply_ERR_NICKCOLLISION(*client, *collided_client);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 	}
 	else {
 		client->set_nickname(message.get_params()[0]);
@@ -161,7 +161,7 @@ void IRCServer::_execute_user(IRCMessage & message) {
 	if (status == REGISTERED)
 	{
 		TCPMessage reply = make_reply_ERR_ALREADYREGISTRED(*client);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 	}
 	else if (status == NICKNAME)
 	{
@@ -173,13 +173,13 @@ void IRCServer::_execute_user(IRCMessage & message) {
 		std::string user_modes("USER_MODES"), channel_modes("CHANNEL_MODES");
 
 		TCPMessage reply = make_reply_RPL_WELCOME(*client);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 		reply = make_reply_RPL_YOURHOST(*client, _servername, _version);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 		reply = make_reply_RPL_CREATED(*client, _server_creation_date);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 		reply = make_reply_RPL_MYINFO(*client, _servername, _version, user_modes, channel_modes);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 	}
 }
 
@@ -212,12 +212,12 @@ void IRCServer::_execute_user(IRCMessage & message) {
 //		if (params[0] != client->get_nickname())
 //		{
 //			TCPMessage reply = make_reply_ERR_USERSDONTMATCH(*client);
-//			_tcp_server.messages_to_be_sent.push_back(reply);
+//			_tcp_server.schedule_sent_message(reply);
 //		}
 //		else if (params[0] == client->get_nickname() && params.size() == 1)
 //		{
 //			TCPMessage reply = make_reply_RPL_UMODEIS(*client);
-//			_tcp_server.messages_to_be_sent.push_back(reply);
+//			_tcp_server.schedule_sent_message(reply);
 //		}
 //		else if (params[0] == client->get_nickname())
 //		{
@@ -228,7 +228,7 @@ void IRCServer::_execute_user(IRCMessage & message) {
 //				if (params[1][i] != '+' && params[1][i] != '-')
 //				{
 //					TCPMessage reply = make_reply_ERR_UMODEUNKNOWNFLAG(*client);
-//					_tcp_server.messages_to_be_sent.push_back(reply);
+//					_tcp_server.schedule_sent_message(reply);
 //					return;
 //				}
 //				else
@@ -248,7 +248,7 @@ void IRCServer::_execute_user(IRCMessage & message) {
 //					if (i < params[1].size() && user_modes.find(params[1][i]) == std::string::npos)
 //					{
 //						TCPMessage reply = make_reply_ERR_UMODEUNKNOWNFLAG(*client);
-//						_tcp_server.messages_to_be_sent.push_back(reply);
+//						_tcp_server.schedule_sent_message(reply);
 //						return;
 //					}
 //				}
@@ -256,7 +256,7 @@ void IRCServer::_execute_user(IRCMessage & message) {
 //			for (size_t i = 0; i < new_mode.size(); i += 2)
 //				client->set_mode(new_mode[i], new_mode[i + 1]);
 //			TCPMessage reply = make_reply_RPL_UMODEIS(*client);
-//			_tcp_server.messages_to_be_sent.push_back(reply);
+//			_tcp_server.schedule_sent_message(reply);
 //		}
 //	}
 //}
@@ -274,7 +274,7 @@ void IRCServer::_execute_quit(IRCMessage & message) {
 	for (; it_channel != client_channels.end(); it_channel++)
 	{
 		TCPMessage reply = make_reply_PART(*client, **it_channel, message.get_params()[0]);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 		(*it_channel)->remove_client(message.get_sender());
 		if ((*it_channel)->get_clients().empty())
 		{
@@ -316,9 +316,9 @@ void IRCServer::_execute_join(IRCMessage & message) {
 		// Add client and reply to client
 		channel->add_client(client->get_fd());
 		TCPMessage reply = make_reply_JOIN(*client, *channel);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 		reply = make_reply_TOPIC(*client, *channel);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 		//TODO: Send RPL_NAMREPLY
 	}
 }
@@ -342,12 +342,12 @@ void IRCServer::_execute_part(IRCMessage & message) {
 			if (!channel->has_client(message.get_sender())) {
 				// If client isn't on the channel, send NOTONCHANNEL
 				TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, *it_channel_name);
-				_tcp_server.messages_to_be_sent.push_back(reply);
+				_tcp_server.schedule_sent_message(reply);
 			} else {
 				// Else, broadcast to channel's users that a new user joined the channel
 				TCPMessage reply = make_reply_PART(*client, *channel, part_message);
 				channel->remove_client(message.get_sender());
-				_tcp_server.messages_to_be_sent.push_back(reply);
+				_tcp_server.schedule_sent_message(reply);
 				// And remove the channel if it's empty
 				if (channel->get_clients().empty()) {
 					std::cout << "Channel " << *it_channel_name << " deleted." << std::endl;
@@ -358,7 +358,7 @@ void IRCServer::_execute_part(IRCMessage & message) {
 		} catch (std::out_of_range & e) {
 			// If channel doesn't exist, send NOSUCHCHANNEL
 			TCPMessage reply = make_reply_ERR_NOSUCHCHANNEL(*client, *it_channel_name);
-			_tcp_server.messages_to_be_sent.push_back(reply);
+			_tcp_server.schedule_sent_message(reply);
 		}
 	}
 }
@@ -373,12 +373,12 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
 	if (message.get_params().empty())
 	{
 		TCPMessage reply = make_reply_ERR_NORECIPIENT(*client, message.get_command());
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 	}
 	else if (message.get_params().size() == 1)
 	{
 		TCPMessage reply = make_reply_ERR_NOTEXTTOSEND(*client);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 	}
 	else
 	{
@@ -391,13 +391,13 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
 			}
 			catch (std::out_of_range & e) {
 				TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, target);
-				_tcp_server.messages_to_be_sent.push_back(reply);
+				_tcp_server.schedule_sent_message(reply);
 				return ;
 			}
 			if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) == channel->clients_end())
 			{
 				TCPMessage reply = make_reply_ERR_CANNOTSENDTOCHAN(*client, channel->get_name());
-				_tcp_server.messages_to_be_sent.push_back(reply);
+				_tcp_server.schedule_sent_message(reply);
 				return ;
 			}
 			std::vector<int>::const_iterator it_client = channel->clients_begin();
@@ -408,12 +408,12 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
 					if (_clients[*it_client]->get_mode().find('a') != std::string::npos)
 					{
 						TCPMessage reply = make_reply_RPL_AWAY(*client, *(_clients[*it_client]));
-						_tcp_server.messages_to_be_sent.push_back(reply);
+						_tcp_server.schedule_sent_message(reply);
 					}
 				}
 			}
 			TCPMessage reply = make_reply_PRIVMSG_CHANNEL(*client, *channel, message.get_params()[1]);
-			_tcp_server.messages_to_be_sent.push_back(reply);
+			_tcp_server.schedule_sent_message(reply);
 		}
 		else
 		{
@@ -421,18 +421,18 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
 			if (it == _clients.end())
 			{
 				TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, target);
-				_tcp_server.messages_to_be_sent.push_back(reply);
+				_tcp_server.schedule_sent_message(reply);
 				return ;
 			}
 			IRCClient * client_recipient = it->second;
 			if (client_recipient->get_mode().find('a') != std::string::npos)
 			{
 				TCPMessage reply = make_reply_RPL_AWAY(*client, *client_recipient);
-				_tcp_server.messages_to_be_sent.push_back(reply);
+				_tcp_server.schedule_sent_message(reply);
 			}
 			TCPMessage reply = make_reply_PRIVMSG_USER(*client, *client_recipient,
 														target, message.get_params()[1]);
-			_tcp_server.messages_to_be_sent.push_back(reply);
+			_tcp_server.schedule_sent_message(reply);
 		}
 	}
 }
@@ -463,7 +463,7 @@ void IRCServer::_execute_notice(IRCMessage & message) {
 			if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) == channel->clients_end())
 				return ;
 			TCPMessage reply = make_reply_NOTICE_CHANNEL(*client, *channel, message.get_params()[1]);
-			_tcp_server.messages_to_be_sent.push_back(reply);
+			_tcp_server.schedule_sent_message(reply);
 		}
 		else
 		{
@@ -473,7 +473,7 @@ void IRCServer::_execute_notice(IRCMessage & message) {
 			IRCClient * client_recipient = it->second;
 			TCPMessage reply = make_reply_NOTICE_USER(*client, *client_recipient,
 														target, message.get_params()[1]);
-			_tcp_server.messages_to_be_sent.push_back(reply);
+			_tcp_server.schedule_sent_message(reply);
 		}
 	}
 }
@@ -491,7 +491,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 	if (it == _channels.end())
 	{//TODO: change 403 ERR_NOSUHCHANNEL ??
 		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 		return ;
 	}
 	Channel * channel_tmp = it->second;
@@ -499,7 +499,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 		== channel_tmp->clients_end())
 	{
 		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 		return ;
 	}
 	if (message.get_params().size() > 1)
@@ -508,13 +508,13 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 			== channel_tmp->channel_op_end())
 		{
 			TCPMessage	reply = make_reply_ERR_CHANOPRIVSNEEDED(*client, channel_name);
-			_tcp_server.messages_to_be_sent.push_back(TCPMessage(reply));
+			_tcp_server.schedule_sent_message(TCPMessage(reply));
 		}
 		else
 		{//TODO: if topic stored on several parameters ==> loop
 			channel_tmp->set_topic(message.get_params()[1]);
 			TCPMessage reply = make_reply_TOPIC(*client, *channel_tmp);
-			_tcp_server.messages_to_be_sent.push_back(reply);
+			_tcp_server.schedule_sent_message(reply);
 		}
 		return ;
 	}
@@ -523,12 +523,12 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 		if (!channel_tmp->get_topic().empty())
 		{
 			TCPMessage reply = make_reply_RPL_TOPIC(*client, *channel_tmp);
-			_tcp_server.messages_to_be_sent.push_back(reply);
+			_tcp_server.schedule_sent_message(reply);
 		}
 		else
 		{
 			TCPMessage reply = make_reply_RPL_NOTOPIC(*client, *channel_tmp);
-			_tcp_server.messages_to_be_sent.push_back(reply);
+			_tcp_server.schedule_sent_message(reply);
 		}
 	}
 }
@@ -546,16 +546,16 @@ void IRCServer::_execute_names(IRCMessage & message) {
 		for (; it != _channels.end(); it++)
 		{
 			TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(it->second), _clients);
-			_tcp_server.messages_to_be_sent.push_back(reply);
+			_tcp_server.schedule_sent_message(reply);
 			reply = make_reply_RPL_ENDOFNAMES(*client, (*it->second).get_name());
-			_tcp_server.messages_to_be_sent.push_back(reply);
+			_tcp_server.schedule_sent_message(reply);
 		}
 		std::string channel_name = "*";
 		Channel tmp(channel_name);
 		TCPMessage reply = make_reply_RPL_NAMREPLY(*client, tmp, _clients);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 		reply = make_reply_RPL_ENDOFNAMES(*client, channel_name);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 	}
 	else
 	{
@@ -565,9 +565,9 @@ void IRCServer::_execute_names(IRCMessage & message) {
 			if (c_it != _channels.end())
 			{
 				TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(c_it->second), _clients);
-				_tcp_server.messages_to_be_sent.push_back(reply);
+				_tcp_server.schedule_sent_message(reply);
 				reply = make_reply_RPL_ENDOFNAMES(*client, message.get_params()[i]);
-				_tcp_server.messages_to_be_sent.push_back(reply);
+				_tcp_server.schedule_sent_message(reply);
 			}
 		}
 	}
@@ -587,7 +587,7 @@ void IRCServer::_execute_list(IRCMessage & message) {
 		for (; it != _channels.end(); it++)
 		{
 			TCPMessage reply = make_reply_RPL_LIST(*client, *(it->second));
-			_tcp_server.messages_to_be_sent.push_back(reply);
+			_tcp_server.schedule_sent_message(reply);
 		}
 	}
 	else
@@ -598,12 +598,12 @@ void IRCServer::_execute_list(IRCMessage & message) {
 			if (c_it != _channels.end())
 			{
 				TCPMessage reply = make_reply_RPL_LIST(*client, *(c_it->second));
-				_tcp_server.messages_to_be_sent.push_back(reply);
+				_tcp_server.schedule_sent_message(reply);
 			}
 		}
 	}
 	TCPMessage reply = make_reply_RPL_LISTEND(*client);
-	_tcp_server.messages_to_be_sent.push_back(reply);
+	_tcp_server.schedule_sent_message(reply);
 }
 
 /**
@@ -620,16 +620,16 @@ void IRCServer::_execute_list(IRCMessage & message) {
 		if (client_tmp->get_nickname() == message.get_params()[0])
 		{
 			TCPMessage reply = make_reply_RPL_WHOISUSER(*client,*client_tmp );
-			_tcp_server.messages_to_be_sent.push_back(reply);
+			_tcp_server.schedule_sent_message(reply);
 			if (client_tmp->get_mode().find('a') != std::string::npos)
 			{
 				reply = make_reply_RPL_AWAY(*client, *client_tmp);
-				_tcp_server.messages_to_be_sent.push_back(reply);
+				_tcp_server.schedule_sent_message(reply);
 			}
 			if (client_tmp->get_mode().find('o') != std::string::npos)
 			{
 				reply = make_reply_RPL_WHOISOPERATOR(*client, *client_tmp);
-				_tcp_server.messages_to_be_sent.push_back(reply);
+				_tcp_server.schedule_sent_message(reply);
 			}
 			std::vector<std::string> client_channels = client_tmp->get_channels();
 			std::string	channels_names;
@@ -645,17 +645,17 @@ void IRCServer::_execute_list(IRCMessage & message) {
 			if (!client_channels.empty())
 			{
 				reply = make_reply_RPL_WHOISCHANNELS(*client, *client_tmp, channels_names);
-				_tcp_server.messages_to_be_sent.push_back(reply);	
+				_tcp_server.schedule_sent_message(reply);	
 			}
 			reply = make_reply_RPL_ENDOFWHOIS(*client);
-			_tcp_server.messages_to_be_sent.push_back(reply);
+			_tcp_server.schedule_sent_message(reply);
 			return ;
 		}
 	}
 	TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, message.get_params()[0]);
-	_tcp_server.messages_to_be_sent.push_back(reply);
+	_tcp_server.schedule_sent_message(reply);
 	reply = make_reply_RPL_ENDOFWHOIS(*client);
-	_tcp_server.messages_to_be_sent.push_back(reply);
+	_tcp_server.schedule_sent_message(reply);
 }*/
 
 /**
@@ -668,12 +668,12 @@ void IRCServer::_execute_ping(IRCMessage & message) {
 	if (message.get_params().empty())
 	{
 		TCPMessage reply = make_reply_ERR_NOORIGIN(*client);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 	}
 	else
 	{
 		TCPMessage reply = make_reply_PONG(*client, message.get_params()[0]);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		_tcp_server.schedule_sent_message(reply);
 	}
 }
 

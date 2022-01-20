@@ -35,7 +35,7 @@ class IRCMessage
 {
 	public: 
 
-		IRCMessage(TCPMessage &tcpmessage);
+		IRCMessage(const TCPMessage &tcpmessage);
 		~IRCMessage();
 		bool empty() const;
 		bool has_prefix() const;
