@@ -65,8 +65,7 @@ void IRCServer::_run() {
 		std::list<TCPMessage>::const_iterator it_message = _tcp_server.get_messages_received().begin();
 		for (; it_message != _tcp_server.get_messages_received().end(); it_message++)
 		{
-			IRCMessage tmp(*it_message);
-			_execute_command(tmp);
+			_execute_command(*it_message);
 		}
 	}
 }
@@ -97,9 +96,9 @@ void IRCServer::_remove_client_from_all_channels(int client_socketfd) {
 	}
 }
 
-void IRCServer::_execute_command(IRCMessage & message) {
+void IRCServer::_execute_command(IRCMessage const & message) {
 
-	std::map<std::string, void(IRCServer::*)(IRCMessage & message)>::iterator it = _commands.find(message.get_command());
+	std::map<std::string, void(IRCServer::*)(IRCMessage const & message)>::iterator it = _commands.find(message.get_command());
 	if (it != _commands.end())
 		(this->*_commands[message.get_command()])(message);
 	else
@@ -110,7 +109,7 @@ void IRCServer::_execute_command(IRCMessage & message) {
  * @brief Executes a PASS command.
  * @param message The message containing the PASS command.
  */
-void IRCServer::_execute_pass(IRCMessage & message) {
+void IRCServer::_execute_pass(IRCMessage const & message) {
 	std::cout << "Executing PASS: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	if (client->get_status() == UNREGISTERED) {
@@ -126,7 +125,7 @@ void IRCServer::_execute_pass(IRCMessage & message) {
  * @brief Executes a NICK command.
  * @param message The message containing the NICK command.
  */
-void IRCServer::_execute_nick(IRCMessage & message) {
+void IRCServer::_execute_nick(IRCMessage const & message) {
 	std::cout << "Executing NICK: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	std::string nick = message.get_params()[0];
@@ -153,7 +152,7 @@ void IRCServer::_execute_nick(IRCMessage & message) {
  * @brief Executes a USER command.
  * @param message The message containing the USER command.
  */
-void IRCServer::_execute_user(IRCMessage & message) {
+void IRCServer::_execute_user(IRCMessage const & message) {
 	std::cout << "Executing USER: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	int status = client->get_status();
@@ -187,7 +186,7 @@ void IRCServer::_execute_user(IRCMessage & message) {
  * @brief Executes a MODE command.
  * @param message The message containing the MODE command.
  */
-//void IRCServer::_execute_mode(IRCMessage & message) {
+//void IRCServer::_execute_mode(IRCMessage const & message) {
 //	std::cout << "Executing MODE: " << message.get_command() << std::endl;
 //	IRCClient * client = _clients.at(message.get_sender());
 //	if (message.get_params()[0].find('#') != std::string::npos)
@@ -265,7 +264,7 @@ void IRCServer::_execute_user(IRCMessage & message) {
  * @brief Executes a QUIT command.
  * @param message The message containing the QUIT command.
  */
-void IRCServer::_execute_quit(IRCMessage & message) {
+void IRCServer::_execute_quit(IRCMessage const & message) {
 
 	std::cout << "Executing QUIT: " << message.get_command() << std::endl;
 	IRCClient * client = _clients[message.get_sender()];
@@ -290,7 +289,7 @@ void IRCServer::_execute_quit(IRCMessage & message) {
  * @brief Executes a JOIN command.
  * @param message The message containing the JOIN command.
  */
-void IRCServer::_execute_join(IRCMessage & message) {
+void IRCServer::_execute_join(IRCMessage const & message) {
 	std::cout << "Executing JOIN: " << message.get_command() << std::endl;
 	//TODO: Support for keys (+ ERR_BADCHANNELKEY)
 	IRCClient * client = _clients.at(message.get_sender());
@@ -327,7 +326,7 @@ void IRCServer::_execute_join(IRCMessage & message) {
  * @brief Executes a PART command.
  * @param message The message containing the PART command.
  */
-void IRCServer::_execute_part(IRCMessage & message) {
+void IRCServer::_execute_part(IRCMessage const & message) {
 	std::cout << "Executing PART: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	std::vector<std::string> channel_names = ft_split(message.get_params()[0], ",");
@@ -367,7 +366,7 @@ void IRCServer::_execute_part(IRCMessage & message) {
  * @brief Executes a PRIVMSG command.
  * @param message The message containing the PRIVMSG command.
  */
-void IRCServer::_execute_privmsg(IRCMessage & message) {
+void IRCServer::_execute_privmsg(IRCMessage const & message) {
 	std::cout << "Executing PRIVMSG: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	if (message.get_params().empty())
@@ -441,7 +440,7 @@ void IRCServer::_execute_privmsg(IRCMessage & message) {
  * @brief Executes a NOTICE command.
  * @param message The message containing the NOTICE command.
  */
-void IRCServer::_execute_notice(IRCMessage & message) {
+void IRCServer::_execute_notice(IRCMessage const & message) {
 	std::cout << "Executing NOTICE: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	if (message.get_params().empty())
@@ -482,7 +481,7 @@ void IRCServer::_execute_notice(IRCMessage & message) {
  * @brief Executes a TOPIC command.
  * @param message The message containing the TOPIC command.
  */
-void IRCServer::_execute_topic(IRCMessage & message) {
+void IRCServer::_execute_topic(IRCMessage const & message) {
 	std::cout << "Executing TOPIC: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	std::string channel_name = message.get_params()[0];
@@ -537,7 +536,7 @@ void IRCServer::_execute_topic(IRCMessage & message) {
  * @brief Executes a NAMES command.
  * @param message The message containing the NAMES command.
  */
-void IRCServer::_execute_names(IRCMessage & message) {
+void IRCServer::_execute_names(IRCMessage const & message) {
 	std::cout << "Executing NAMES: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	if (message.get_params().empty())
@@ -577,7 +576,7 @@ void IRCServer::_execute_names(IRCMessage & message) {
  * @brief Executes a LIST command.
  * @param message The message containing the LIST command.
  */
-void IRCServer::_execute_list(IRCMessage & message) {
+void IRCServer::_execute_list(IRCMessage const & message) {
 	std::cout << "Executing LIST: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	//TODO: see for the LIST command and the -YES parameter
@@ -610,7 +609,7 @@ void IRCServer::_execute_list(IRCMessage & message) {
  * @brief Executes a WHOIS command.
  * @param message The message containing the WHOIS command.
  */
-/*void IRCServer::_execute_whois(IRCMessage & message) {
+/*void IRCServer::_execute_whois(IRCMessage const & message) {
 	std::cout << "Executing WHOIS: " << message.get_command() << std::endl;
     IRCClient * client = _clients.at(message.get_sender());
 	std::map<int, IRCClient *>::iterator it_clients = _clients.begin();
@@ -662,7 +661,7 @@ void IRCServer::_execute_list(IRCMessage & message) {
  * @brief Executes a PING command.
  * @param message The message containing the PING command.
  */
-void IRCServer::_execute_ping(IRCMessage & message) {
+void IRCServer::_execute_ping(IRCMessage const & message) {
 	std::cout << "Executing PING: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	if (message.get_params().empty())
