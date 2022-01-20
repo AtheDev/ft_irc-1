@@ -137,7 +137,7 @@ TCPMessage make_reply_RPL_WHOISOPERATOR(const IRCClient & client, const IRCClien
 
 TCPMessage make_reply_RPL_ENDOFWHOIS(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "318 : :End of WHOIS list";
+	std::string payload = "318 :End of WHOIS list";
 	return TCPMessage(receivers, payload);
 }
 
@@ -152,20 +152,20 @@ TCPMessage make_reply_RPL_WHOISCHANNELS(const IRCClient & client, const IRCClien
 TCPMessage make_reply_RPL_LIST(const IRCClient & client, const Channel & channel) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload;
-	payload = "322 : " + channel.get_name() + " ";
+	payload = "322 " + channel.get_name() + " ";
 	payload +=  to_string(channel.get_clients().size()) + " :" + channel.get_topic();
 	return TCPMessage(receivers, payload);
 }
 
 TCPMessage make_reply_RPL_LISTEND(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "323 : :End of LIST";
+	std::string payload = "323 :End of LIST";
 	return TCPMessage(receivers, payload);
 }
 
 TCPMessage make_reply_RPL_NOTOPIC(const IRCClient & client, const Channel & channel) {
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "331 : " + channel.get_name() + " :No topic is set";
+	std::string payload = "331 " + channel.get_name() + " :No topic is set";
 	return TCPMessage(receivers, payload);
 }
 
@@ -178,7 +178,7 @@ TCPMessage make_reply_RPL_TOPIC(const IRCClient & client, const Channel & channe
 TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & channel, const std::string & users_list) {
 
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "353  " + client.get_nickname();
+	std::string payload = "353 " + client.get_nickname();
 	payload += " = " + channel.get_name() + " :" + users_list;
 	return TCPMessage(receivers, payload);	
 }
