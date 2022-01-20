@@ -1,6 +1,6 @@
 #include "IRCServer.hpp"
 
-IRCServer::IRCServer(std::string port): _tcp_server(port), _servername(/*IRC Server VTA !*/"user42"), _version("42.42") {
+IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Server VTA !"), _version("42.42") {
 
 	time_t raw_time;
 	time(&raw_time);
@@ -15,6 +15,7 @@ IRCServer::IRCServer(std::string port): _tcp_server(port), _servername(/*IRC Ser
 	_commands["JOIN"] = &IRCServer::_execute_join;
 	_commands["PART"] = &IRCServer::_execute_part;
 	_commands["PRIVMSG"] = &IRCServer::_execute_privmsg;
+	_commands["NOTICE"] = &IRCServer::_execute_notice;
 	_commands["TOPIC"] = &IRCServer::_execute_topic;
 	_commands["NAMES"] = &IRCServer::_execute_names;
 	_commands["LIST"] = &IRCServer::_execute_list;
@@ -353,8 +354,119 @@ void IRCServer::_execute_part(IRCMessage & message) {
 	}
 }
 
+/**
+ * @brief Executes a PRIVMSG command.
+ * @param message The message containing the PRIVMSG command.
+ */
 void IRCServer::_execute_privmsg(IRCMessage & message) {
 	std::cout << "Executing PRIVMSG: " << message.get_command() << std::endl;
+	IRCClient * client = _clients.at(message.get_sender());
+	if (message.get_params().empty())
+	{
+		TCPMessage reply = make_reply_ERR_NORECIPIENT(*client, message.get_command());
+		_tcp_server.messages_to_be_sent.push_back(reply);
+	}
+	else if (message.get_params().size() == 1)
+	{
+		TCPMessage reply = make_reply_ERR_NOTEXTTOSEND(*client);
+		_tcp_server.messages_to_be_sent.push_back(reply);
+	}
+	else
+	{
+		std::string	target = message.get_params()[0];
+		if (target[0] == '#')
+		{
+			Channel *channel;
+			try {
+				channel = _channels.at(target);
+			}
+			catch (std::out_of_range & e) {
+				TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, target);
+				_tcp_server.messages_to_be_sent.push_back(reply);
+				return ;
+			}
+			if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) == channel->clients_end())
+			{
+				TCPMessage reply = make_reply_ERR_CANNOTSENDTOCHAN(*client, channel->get_name());
+				_tcp_server.messages_to_be_sent.push_back(reply);
+				return ;
+			}
+			std::vector<int>::const_iterator it_client = channel->clients_begin();
+			for (; it_client != channel->clients_end(); it_client++)
+			{
+				if (*it_client != client->get_fd())
+				{
+					if (_clients[*it_client]->get_mode().find('a') != std::string::npos)
+					{
+						TCPMessage reply = make_reply_RPL_AWAY(*client, *(_clients[*it_client]));
+						_tcp_server.messages_to_be_sent.push_back(reply);
+					}
+				}
+			}
+			TCPMessage reply = make_reply_PRIVMSG_CHANNEL(*client, *channel, message.get_params()[1]);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+		}
+		else
+		{
+			std::map<int, IRCClient *>::const_iterator it = find_nickname(target);
+			if (it == _clients.end())
+			{
+				TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, target);
+				_tcp_server.messages_to_be_sent.push_back(reply);
+				return ;
+			}
+			IRCClient * client_recipient = it->second;
+			if (client_recipient->get_mode().find('a') != std::string::npos)
+			{
+				TCPMessage reply = make_reply_RPL_AWAY(*client, *client_recipient);
+				_tcp_server.messages_to_be_sent.push_back(reply);
+			}
+			TCPMessage reply = make_reply_PRIVMSG_USER(*client, *client_recipient,
+														target, message.get_params()[1]);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+		}
+	}
+}
+
+/**
+ * @brief Executes a NOTICE command.
+ * @param message The message containing the NOTICE command.
+ */
+void IRCServer::_execute_notice(IRCMessage & message) {
+	std::cout << "Executing NOTICE: " << message.get_command() << std::endl;
+	IRCClient * client = _clients.at(message.get_sender());
+	if (message.get_params().empty())
+		return ;
+	else if (message.get_params().size() == 1)
+		return ;
+	else
+	{
+		std::string	target = message.get_params()[0];
+		if (target[0] == '#')
+		{
+			Channel *channel;
+			try {
+				channel = _channels.at(target);
+			}
+			catch (std::out_of_range & e) {
+				return ;
+			}
+			if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) == channel->clients_end())
+				return ;
+			TCPMessage reply = make_reply_NOTICE_CHANNEL(*client, *channel, message.get_params()[1]);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+		}
+		else
+		{
+			std::map<int, IRCClient *>::const_iterator it = find_nickname(target);
+			if (it == _clients.end())
+				return ;
+			IRCClient * client_recipient = it->second;
+			TCPMessage reply = make_reply_NOTICE_USER(*client, *client_recipient,
+														target, message.get_params()[1]);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+		}
+	}
 }
 
 /**
@@ -491,11 +603,49 @@ void IRCServer::_execute_list(IRCMessage & message) {
  */
 /*void IRCServer::_execute_whois(IRCMessage & message) {
 	std::cout << "Executing WHOIS: " << message.get_command() << std::endl;
-	IRCClient * client = _clients.at(message.get_sender());
-	//std::string servername = "user42";
-	TCPMessage reply = make_reply_RPL_WHOISUSER(*client);
+    IRCClient * client = _clients.at(message.get_sender());
+	std::map<int, IRCClient *>::iterator it_clients = _clients.begin();
+	for (;it_clients !=_clients.end(); it_clients++)
+	{
+		IRCClient * client_tmp = it_clients->second;
+		if (client_tmp->get_nickname() == message.get_params()[0])
+		{
+			TCPMessage reply = make_reply_RPL_WHOISUSER(*client,*client_tmp );
+			_tcp_server.messages_to_be_sent.push_back(reply);
+			if (client_tmp->get_mode().find('a') != std::string::npos)
+			{
+				reply = make_reply_RPL_AWAY(*client, *client_tmp);
+				_tcp_server.messages_to_be_sent.push_back(reply);
+			}
+			if (client_tmp->get_mode().find('o') != std::string::npos)
+			{
+				reply = make_reply_RPL_WHOISOPERATOR(*client, *client_tmp);
+				_tcp_server.messages_to_be_sent.push_back(reply);
+			}
+			std::vector<std::string> client_channels = client_tmp->get_channels();
+			std::string	channels_names;
+			std::vector<std::string>::iterator it = client_channels.begin();
+			for (; it != client_channels.end(); it++)
+			{
+				Channel *tmp = _channels[*it];
+				if (find(tmp->channel_op_begin(), tmp->channel_op_end(), client_tmp->get_fd()) != tmp->channel_op_end())
+					channels_names += ("@" + tmp->get_name() + " ");
+				else if (client_tmp->is_visible())
+					channels_names += (tmp->get_name() + " ");
+			}
+			if (!client_channels.empty())
+			{
+				reply = make_reply_RPL_WHOISCHANNELS(*client, *client_tmp, channels_names);
+				_tcp_server.messages_to_be_sent.push_back(reply);	
+			}
+			reply = make_reply_RPL_ENDOFWHOIS(*client);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+			return ;
+		}
+	}
+	TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, message.get_params()[0]);
 	_tcp_server.messages_to_be_sent.push_back(reply);
-	reply = make_reply_RPL_WHOISOPERATOR(*client);
+	reply = make_reply_RPL_ENDOFWHOIS(*client);
 	_tcp_server.messages_to_be_sent.push_back(reply);
 }*/
 

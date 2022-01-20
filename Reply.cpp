@@ -1,6 +1,44 @@
 #include "Reply.hpp"
 #include "Utils.hpp"
 
+TCPMessage make_reply_PRIVMSG_CHANNEL(const IRCClient & client, const Channel & channel,
+										const std::string & message) {
+	std::vector<int> receivers = channel.get_clients();
+	receivers.erase(find(receivers.begin(), receivers.end(), client.get_fd()));
+	std::string payload;
+	payload = ":" + client.get_prefix() + " PRIVMSG " + channel.get_name();
+	payload += " :" + message;
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_PRIVMSG_USER(const IRCClient & client, const IRCClient & client_recipient,
+									const std::string & channel_name, const std::string & message) {
+	std::vector<int> receivers(1u, client_recipient.get_fd());
+	std::string payload;
+	payload = ":" + client.get_prefix() + " PRIVMSG " + channel_name;
+	payload += " :" + message;
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_NOTICE_CHANNEL(const IRCClient & client, const Channel & channel,
+										const std::string & message) {
+	std::vector<int> receivers = channel.get_clients();
+	receivers.erase(find(receivers.begin(), receivers.end(), client.get_fd()));
+	std::string payload;
+	payload = ":" + client.get_prefix() + " NOTICE " + channel.get_name();
+	payload += " :" + message;
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_NOTICE_USER(const IRCClient & client, const IRCClient & client_recipient,
+									const std::string & channel_name, const std::string & message) {
+	std::vector<int> receivers(1u, client_recipient.get_fd());
+	std::string payload;
+	payload = ":" + client.get_prefix() + " NOTICE " + channel_name;
+	payload += " :" + message;
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_JOIN(const IRCClient & client, const Channel & channel) {
 	const std::vector<int>& receivers = channel.get_clients();
 	std::string payload = ":" + client.get_prefix() + " JOIN " + channel.get_name();
@@ -77,20 +115,40 @@ TCPMessage make_reply_RPL_UMODEIS(const IRCClient & client) {
 	return TCPMessage(receivers, payload);
 }
 
-/*TCPMessage make_reply_RPL_WHOISUSER(const IRCClient & client) {
+TCPMessage make_reply_RPL_AWAY(const IRCClient & client, const IRCClient & client_away) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "301 " + client_away.get_nickname() + " :" + client_away.get_away_message();
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_RPL_WHOISUSER(const IRCClient & client, const IRCClient & client_target) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload;
-	payload = "311 " + client.get_nickname() + " " + client.get_username() + " ";
-	payload += client.get_hostname() + " * :" + client.get_realname();
+	payload = "311 "+ client.get_nickname() + " :" + client_target.get_nickname() + " " + client_target.get_username() + " ";
+	payload += client_target.get_hostname() + " * :" + client_target.get_realname();
 	return TCPMessage(receivers, payload);	
 }
 
-TCPMessage make_reply_RPL_WHOISOPERATOR(const IRCClient & client) {
+TCPMessage make_reply_RPL_WHOISOPERATOR(const IRCClient & client, const IRCClient & client_target) {
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "313 " + client.get_nickname() + " : is an IRC operator";
+	std::string payload = "313 " + client_target.get_nickname() + " : is an IRC operator";
 	return TCPMessage(receivers, payload);	
 }
-*/
+
+TCPMessage make_reply_RPL_ENDOFWHOIS(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "318 : :End of WHOIS list";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_RPL_WHOISCHANNELS(const IRCClient & client, const IRCClient & client_target,
+										const std::string & channels_names) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "319 " + client_target.get_nickname() + " :";
+	payload += channels_names;
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_RPL_LIST(const IRCClient & client, const Channel & channel) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload;
@@ -120,7 +178,7 @@ TCPMessage make_reply_RPL_TOPIC(const IRCClient & client, const Channel & channe
 TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & channel, const std::map<int, IRCClient *>& clients) {
 
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "353 = " + channel.get_name() + " :";
+	std::string payload = "353  " + client.get_nickname() + " = " + channel.get_name() + " :";
 	if (channel.get_name() != "*")
 	{
 		std::vector<int>::const_iterator it_clients = channel.clients_begin();
@@ -154,6 +212,12 @@ TCPMessage make_reply_RPL_ENDOFNAMES(const IRCClient & client, const std::string
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_ERR_NOSUCHNICK(const IRCClient & client, const std::string & target) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "401 " + target + " :No such nick/channel";
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_ERR_NOSUCHCHANNEL(const IRCClient & client,
 										const std::string & channel_name) {
 	std::vector<int> receivers(1u, client.get_fd());
@@ -161,9 +225,27 @@ TCPMessage make_reply_ERR_NOSUCHCHANNEL(const IRCClient & client,
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_ERR_CANNOTSENDTOCHAN(const IRCClient & client, const std::string & channel_name) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "404 " + channel_name + " :Cannot send to channel";
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_ERR_NOORIGIN(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = "409 :No origin specified";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_ERR_NORECIPIENT(const IRCClient & client, const std::string & command) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "411 :No recipient given (" + command + ")";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_ERR_NOTEXTTOSEND(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = "412 :No text to send";
 	return TCPMessage(receivers, payload);
 }
 
