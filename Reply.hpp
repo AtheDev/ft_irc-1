@@ -6,22 +6,27 @@
 #include "TCPMessage.hpp"
 #include "IRCClient.hpp"
 #include "Channel.hpp"
+#include "Utils.hpp"
 
 
 //TODO: THIS FILE CONTAINS COMMENTED PARTIALLY FORMATTED FUNCTION DECLARATION !
 // Update this file when add a new make_reply function
 
+std::string prepare_reply_command(const IRCClient & client);
+
+std::string get_prefix_RPL_ERR(const std::string & hostname);
+
 TCPMessage make_reply_PRIVMSG_CHANNEL(const IRCClient & client, const Channel & channel,
-										const std::string & message);
+									  const std::string & message);
 
 TCPMessage make_reply_PRIVMSG_USER(const IRCClient & client, const IRCClient & client_recipient,
-									const std::string & channel_name, const std::string & message);
+								   const std::string & channel_name, const std::string & message);
 
 TCPMessage make_reply_NOTICE_CHANNEL(const IRCClient & client, const Channel & channel,
-										const std::string & message);
+									 const std::string & message);
 
 TCPMessage make_reply_NOTICE_USER(const IRCClient & client, const IRCClient & client_recipient,
-									const std::string & channel_name, const std::string & message);
+								  const std::string & channel_name, const std::string & message);
 
 TCPMessage make_reply_JOIN(const IRCClient & client, const Channel & channel);
 
@@ -35,14 +40,14 @@ TCPMessage make_reply_PONG(const IRCClient & client, const std::string & servern
 //001
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client);
 //002
-TCPMessage make_reply_RPL_YOURHOST(const IRCClient & client,
-								   const std::string & servername, const std::string & version);
+TCPMessage make_reply_RPL_YOURHOST(const IRCClient & client, const std::string & servername,
+								   const std::string & version);
 //003
 TCPMessage make_reply_RPL_CREATED(const IRCClient & client, const std::string & date);
 //004
-TCPMessage make_reply_RPL_MYINFO(const IRCClient & client,
-								 const std::string & servername, const std::string & version,
-								 const std::string & user_modes, const std::string & channel_modes);
+TCPMessage make_reply_RPL_MYINFO(const IRCClient & client, const std::string & servername,
+								 const std::string & version, const std::string & user_modes,
+								 const std::string & channel_modes);
 //221
 TCPMessage make_reply_RPL_UMODEIS(const IRCClient & client);
 //301
@@ -75,7 +80,8 @@ TCPMessage make_reply_RPL_TOPIC(const IRCClient & client, const Channel & channe
 //352
 //TCPMessage make_reply_RPL_WHOREPLY(const IRCClient & client, channel, user, host, server, nick, hopcount, realname) ("352" + channel + " " + user + " " + host + " " + server + " " + nick + /*( "H" / "G" > ["*"] [ ( "@" / "+" ) ]*/ " :" + hopcount + " " + realname)
 //353
-TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & channel, const std::string & users_list);
+TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & channel,
+								   const std::string & users_list);
 //366
 TCPMessage make_reply_RPL_ENDOFNAMES(const IRCClient & client, const std::string & channel_name);
 //367
@@ -87,13 +93,14 @@ TCPMessage make_reply_RPL_ENDOFNAMES(const IRCClient & client, const std::string
 
 
 //401
-TCPMessage make_reply_ERR_NOSUCHNICK(const IRCClient & client, const std::string & target);
+TCPMessage make_reply_ERR_NOSUCHNICK(const IRCClient & client, const std::string & nickname);
 //402
 //TCPMessage make_reply_ERR_NOSUCHSERVER(const IRCClient & client, server_name) ("402" + server name + " :No such server")
 //403
 TCPMessage make_reply_ERR_NOSUCHCHANNEL(const IRCClient & client, const std::string & channel_name);
 //404
-TCPMessage make_reply_ERR_CANNOTSENDTOCHAN(const IRCClient & client, const std::string & channel_name);
+TCPMessage make_reply_ERR_CANNOTSENDTOCHAN(const IRCClient & client,
+										   const std::string & channel_name);
 //405
 //TCPMessage make_reply_ERR_TOOMANYCHANNELS(const IRCClient & client, channel) ("405" + channel + " :You have joined too many channels")
 //407
@@ -113,7 +120,7 @@ TCPMessage make_reply_ERR_NOTEXTTOSEND(const IRCClient & client);
 //432
 //TCPMessage make_reply_ERR_ERRONEUSNICKNAME(const IRCClient & client, nick) ("432" + nick + " :Erroneous nickname")
 //433
-TCPMessage make_reply_ERR_NICKNAMEINUSE(const IRCClient & client, const std::string & nick);
+TCPMessage make_reply_ERR_NICKNAMEINUSE(const IRCClient & client, const std::string & nickname);
 //436
 TCPMessage make_reply_ERR_NICKCOLLISION(const IRCClient & client,
 										const IRCClient & collided_client);
@@ -142,7 +149,8 @@ TCPMessage make_reply_ERR_ALREADYREGISTRED(const IRCClient & client);
 //481
 //TCPMessage make_reply_ERR_NOPRIVILEGES(const IRCClient & client, ) ("481 :Permission Denied- You're not an IRC operator")
 //482
-TCPMessage make_reply_ERR_CHANOPRIVSNEEDED(const IRCClient & client, const std::string & channel_name);
+TCPMessage make_reply_ERR_CHANOPRIVSNEEDED(const IRCClient & client,
+										   const std::string & channel_name);
 //483
 //TCPMessage make_reply_ERR_CANTKILLSERVER(const IRCClient & client, ) ("483 :You can't kill a server!")
 //491
