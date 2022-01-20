@@ -303,7 +303,11 @@ void IRCServer::_execute_join(IRCMessage const & message) {
 		TCPMessage reply = make_reply_JOIN(*client, *channel);
 		_tcp_server.schedule_sent_message(reply);
 		_tcp_server.schedule_sent_message(make_reply_RPL_TOPIC(*client, *channel));
-		//TODO: Send RPL_NAMREPLY
+		std::string users_list = _get_formatted_clients_from_channel(*it_channel_name);
+		reply = make_reply_RPL_NAMREPLY(*client, *channel, users_list);
+		_tcp_server.schedule_sent_message(reply);
+		reply = make_reply_RPL_ENDOFNAMES(*client, *it_channel_name);
+		_tcp_server.schedule_sent_message(reply);
 	}
 }
 

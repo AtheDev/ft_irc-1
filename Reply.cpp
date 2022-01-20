@@ -204,8 +204,7 @@ TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & cha
 								   const std::string & users_list) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("353", client);
-	//TODO: to be verified
-	payload += client.get_nickname() + " = " + channel.get_name() + " :" + users_list;
+	payload += "= " + channel.get_name() + " :" + users_list;
 	return TCPMessage(receivers, payload);
 }
 
