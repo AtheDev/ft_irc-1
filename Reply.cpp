@@ -175,34 +175,11 @@ TCPMessage make_reply_RPL_TOPIC(const IRCClient & client, const Channel & channe
 	return TCPMessage(receivers, payload);
 }
 
-TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & channel, const std::map<int, IRCClient *>& clients) {
+TCPMessage make_reply_RPL_NAMREPLY(const IRCClient & client, const Channel & channel, const std::string & users_list) {
 
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = "353  " + client.get_nickname() + " = " + channel.get_name() + " :";
-	if (channel.get_name() != "*")
-	{
-		std::vector<int>::const_iterator it_clients = channel.clients_begin();
-		for (; it_clients != channel.clients_end(); it_clients++)
-		{
-			if (clients.at(*it_clients)->is_visible() == true)
-			{
-				std::vector<int> channel_op = channel.get_channel_op();
-				if (find(channel_op.begin(), channel_op.end(), *it_clients) != channel_op.end())
-					payload += "@";
-				payload += clients.at(*it_clients)->get_nickname() + " ";
-			}
-		}
-	}
-//	else
-//	{
-//		std::map<int, IRCClient *>::const_iterator it_clients = clients.begin();
-//		for (; it_clients != clients.end(); it_clients++)
-//		{
-//			if (it_clients->second->is_visible() == true && it_clients->second->get_channels().empty())
-//				payload += it_clients->second->get_nickname() + " ";
-//		}
-//	}
-	payload.erase(--payload.end());
+	std::string payload = "353  " + client.get_nickname();
+	payload += " = " + channel.get_name() + " :" + users_list;
 	return TCPMessage(receivers, payload);	
 }
 
