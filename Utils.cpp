@@ -23,5 +23,6 @@ std::vector<std::string> ft_split(std::string s, std::string const & delimiter) 
 		tokens.push_back(s.substr(0, pos));
 		s.erase(0, pos + delimiter.length());
 	}
+	tokens.push_back(s.substr(0, pos));
 	return tokens;
 }
