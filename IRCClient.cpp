@@ -3,7 +3,7 @@
 
 IRCClient::IRCClient(int fd) :
 		_fd(fd), _status(UNREGISTERED), _nickname(), _username(), _realname(), _password(),
-		_mode(""), _hostname() {
+		_mode(""), _hostname(), _away_message() {
 }
 
 IRCClient::~IRCClient() {}
@@ -21,6 +21,9 @@ std::string const & IRCClient::get_realname(void) const { return _realname; }
 
 std::string const & IRCClient::get_mode(void) const { return _mode; }
 
+std::string const & IRCClient::get_away_message(void) const { return _away_message; }
+
+
 int IRCClient::get_status(void) const { return _status; }
 
 std::string IRCClient::get_prefix() const {
@@ -37,6 +40,8 @@ void IRCClient::set_hostname(std::string hostname) { _hostname = hostname; }
 void IRCClient::set_realname(std::string realname) { _realname = realname; }
 
 void IRCClient::set_password(std::string password) { _password = password; }
+
+void IRCClient::set_away_message(std::string message) { _away_message = message; }
 
 void IRCClient::set_status(int status) { _status = status; }
 
