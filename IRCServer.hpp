@@ -63,6 +63,8 @@ class IRCServer {
 		void	_execute_ping(IRCMessage & message);
 
 		std::vector<Channel *> _get_client_channels(int client_socketfd);
+		std::string _get_channel_clients(const std::string & channel_name);
+		std::string _get_clients_without_channel(void);
 };
 
 

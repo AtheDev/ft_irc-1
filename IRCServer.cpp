@@ -198,17 +198,6 @@ void IRCServer::_execute_user(IRCMessage & message) {
 //	{
 //		std::cout << "MODE USER" << std::endl;
 //		std::vector<std::string> params = message.get_params();
-//		//TODO: delete
-//		//=====================================================
-//		if (params.size() == 8)
-//			params.erase(params.begin(), params.begin() + 6);
-//		for (std::vector<std::string>::iterator it = params.begin(); it != params.end(); it++)
-//			std::cout << "params = " << *it << std::endl;
-//		size_t pos = 0;
-//		if ((pos = params[0].find('!')) != std::string::npos)
-//			params[0] = params[0].substr(0, pos);
-//		std::cout << "params[0] = " << params[0] << std::endl;
-//		//=====================================================
 //		if (params[0] != client->get_nickname())
 //		{
 //			TCPMessage reply = make_reply_ERR_USERSDONTMATCH(*client);
@@ -237,7 +226,7 @@ void IRCServer::_execute_user(IRCMessage & message) {
 //					while ((user_modes.find(params[1][i + j]) != std::string::npos)
 //					|| (params[1][i + j] != '+' && params[1][i + j] != '-'))
 //					{
-//						if (params[1][i + j] == 'i' || (params[1][i + j] == 'o' && params[1][i] == '-'))
+//						if (params[1][i + j] == 'o' && params[1][i] == '-')
 //						{
 //							new_mode.push_back(params[1][i]);
 //							new_mode.push_back(params[1][i + j]);
@@ -526,31 +515,38 @@ void IRCServer::_execute_topic(IRCMessage & message) {
 void IRCServer::_execute_names(IRCMessage & message) {
 	std::cout << "Executing NAMES: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
+	std::string users_list;
 	if (message.get_params().empty())
 	{
 		std::map<std::string, Channel *>::iterator it = _channels.begin();
 		for (; it != _channels.end(); it++)
 		{
-			TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(it->second), _clients);
+			users_list = _get_channel_clients(it->second->get_name());
+			TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(it->second), users_list);
 			_tcp_server.messages_to_be_sent.push_back(reply);
 			reply = make_reply_RPL_ENDOFNAMES(*client, (*it->second).get_name());
 			_tcp_server.messages_to_be_sent.push_back(reply);
 		}
-		std::string channel_name = "*";
-		Channel tmp(channel_name);
-		TCPMessage reply = make_reply_RPL_NAMREPLY(*client, tmp, _clients);
-		_tcp_server.messages_to_be_sent.push_back(reply);
-		reply = make_reply_RPL_ENDOFNAMES(*client, channel_name);
-		_tcp_server.messages_to_be_sent.push_back(reply);
+		users_list = _get_clients_without_channel();
+		if (!users_list.empty())
+		{
+			std::string channel_name = "*";
+			Channel tmp(channel_name);
+			TCPMessage reply = make_reply_RPL_NAMREPLY(*client, tmp, users_list);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+			reply = make_reply_RPL_ENDOFNAMES(*client, channel_name);
+			_tcp_server.messages_to_be_sent.push_back(reply);
+		}
 	}
 	else
 	{
 		for (size_t i = 0; i < message.get_params().size(); i++)
 		{
-			std::map<std::string, Channel *>::const_iterator c_it = find_channel(message.get_params()[i]);
-			if (c_it != _channels.end())
+			std::map<std::string, Channel *>::const_iterator it = find_channel(message.get_params()[i]);
+			if (it != _channels.end())
 			{
-				TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(c_it->second), _clients);
+				users_list = _get_channel_clients(it->second->get_name());
+				TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(it->second), users_list);
 				_tcp_server.messages_to_be_sent.push_back(reply);
 				reply = make_reply_RPL_ENDOFNAMES(*client, message.get_params()[i]);
 				_tcp_server.messages_to_be_sent.push_back(reply);
@@ -688,4 +684,43 @@ std::vector<Channel *> IRCServer::_get_client_channels(int client_socketfd) {
 		}
 	}
 	return client_channels;
+}
+
+std::string IRCServer::_get_channel_clients(const std::string & channel_name) {
+	std::string	users_list;
+	Channel *channel = _channels.at(channel_name);
+	std::vector<int>::const_iterator it_client = channel->clients_begin();
+	for (; it_client != channel->clients_end(); it_client++)
+	{
+		if (find(channel->channel_op_begin(), channel->channel_op_end(), *it_client) != channel->channel_op_end())
+			users_list += "@";
+		users_list += _clients.at(*it_client)->get_nickname() + " ";
+	}
+	users_list.erase(--users_list.end());
+	return users_list;
+}
+
+std::string IRCServer::_get_clients_without_channel(void) {
+	std::string	users_list;
+	int find_client;
+	std::map<int, IRCClient *>::const_iterator it_client = _clients.begin();
+	for (;it_client != _clients.end(); it_client++)
+	{
+		find_client = 0;
+		std::map<std::string, Channel *>::const_iterator it_channel = _channels.begin();
+		for (;it_channel != _channels.end(); it_channel++)
+		{
+			Channel *tmp = it_channel->second;
+			if (find(tmp->clients_begin(), tmp->clients_end(), it_client->first) != tmp->clients_end())
+			{
+				find_client = 1;
+				break ;
+			}
+		}
+		if (find_client == 0)
+			users_list += it_client->second->get_nickname() + " ";
+	}
+	if (!users_list.empty())
+		users_list.erase(--users_list.end());
+	return users_list;
 }
