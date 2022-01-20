@@ -66,7 +66,8 @@ void IRCServer::_run() {
 		std::list<TCPMessage>::const_iterator it_message = _tcp_server.get_messages_received().begin();
 		for (; it_message != _tcp_server.get_messages_received().end(); it_message++)
 		{
-			_execute_command(*it_message);
+			IRCMessage const & irc_message = IRCMessage(*it_message);
+			_execute_command(irc_message);
 		}
 	}
 }
@@ -306,8 +307,11 @@ void IRCServer::_execute_join(IRCMessage const & message) {
 		channel->add_client(client->get_fd());
 		TCPMessage reply = make_reply_JOIN(*client, *channel);
 		_tcp_server.schedule_sent_message(reply);
-		reply = make_reply_TOPIC(*client, *channel);
-		_tcp_server.schedule_sent_message(reply);
+		if (channel->get_topic().empty()) {
+			_tcp_server.schedule_sent_message(make_reply_RPL_NOTOPIC(*client, *channel));
+		} else {
+			_tcp_server.schedule_sent_message(make_reply_RPL_TOPIC(*client, *channel));
+		}
 		//TODO: Send RPL_NAMREPLY
 	}
 }
