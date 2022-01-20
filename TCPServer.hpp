@@ -31,10 +31,10 @@ class TCPServer {
 		void update();
 		void stop();
 
-		std::vector<int> new_clients;
-		std::vector<int> disconnected_clients;
-		std::list<TCPMessage> messages_received;
-		std::list<TCPMessage> messages_to_be_sent;
+		std::vector<int> const & get_new_clients() const;
+		std::vector<int> const & get_disconnected_clients() const;
+		std::list<TCPMessage> const & get_messages_received() const;
+		void schedule_sent_message(TCPMessage const & message);
 
 		class ErrorSignalException : public std::exception {
 			public:
@@ -51,6 +51,10 @@ class TCPServer {
 		std::vector<struct pollfd> _pollfds;
 		std::map<int, TCPClient *> _clients;
 		std::list<TCPMessage> _messages_failed_to_be_sent;
+		std::vector<int> _new_clients;
+		std::vector<int> _disconnected_clients;
+		std::list<TCPMessage> _messages_received;
+		std::list<TCPMessage> _messages_to_be_sent;
 
 		void _add_clients();
 		void _add_client(int socket_fd);
@@ -61,7 +65,7 @@ class TCPServer {
 		void _handle_reception(std::vector<struct pollfd>::iterator & it);
 		void _add_failed_message(int receiver, std::string payload);
 
-			TCPServer();
+		TCPServer();
 		TCPServer(TCPServer const & cpy);
 		TCPServer & operator=(TCPServer const & rhs);
 };

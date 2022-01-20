@@ -1,6 +1,6 @@
 #include "IRCMessage.hpp"
 
-IRCMessage::IRCMessage(TCPMessage &tcpmessage)
+IRCMessage::IRCMessage(const TCPMessage &tcpmessage)
 {
 	_sender = tcpmessage.get_sender();
 	_receivers = tcpmessage.get_receivers();

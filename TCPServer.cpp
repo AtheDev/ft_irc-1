@@ -63,11 +63,11 @@ void TCPServer::stop(void) {
  *  and messages_to_be_sent is cleared after the messages were all sent.
  */
 void TCPServer::update() {
-	new_clients.clear();
-	disconnected_clients.clear();
-	messages_received.clear();
+	_new_clients.clear();
+	_disconnected_clients.clear();
+	_messages_received.clear();
 	_send_messages();
-	messages_to_be_sent.clear();
+	_messages_to_be_sent.clear();
 
 	if (poll(&(*_pollfds.begin()), _pollfds.size(), 100) == -1) {
 		throw ErrorPollException();
@@ -127,7 +127,7 @@ void TCPServer::_add_client(int socket_fd) {
 	new_pollfd.events = POLLIN | POLLHUP;
 	new_pollfd.revents = 0;
 	_pollfds.push_back(new_pollfd);
-	new_clients.push_back(socket_fd);
+	_new_clients.push_back(socket_fd);
 	std::cout << "\033[0;32m" << "Client n°" << socket_fd << " connected." << "\033[0m" << std::endl;
 }
 
@@ -147,7 +147,7 @@ void TCPServer::_remove_client(int socket_fd) {
 	}
 	delete _clients[socket_fd];
 	_clients.erase(socket_fd);
-	disconnected_clients.push_back(socket_fd);
+	_disconnected_clients.push_back(socket_fd);
 	std::cout << "\033[0;32m" << "Client n°" << socket_fd << " disconnected." << "\033[0m" << std::endl;
 }
 
@@ -168,7 +168,7 @@ void TCPServer::_handle_reception(std::vector<struct pollfd>::iterator & it) {
 	std::list<std::string>::iterator it_message = messages.begin();
 	for (; it_message != messages.end(); it_message++) {
 		TCPMessage new_message = TCPMessage(it->fd, *it_message);
-		messages_received.push_back(new_message);
+		_messages_received.push_back(new_message);
 		std::cout << "Message received: " << new_message << std::endl;
 	}
 }
@@ -178,8 +178,8 @@ void TCPServer::_handle_reception(std::vector<struct pollfd>::iterator & it) {
  */
 void TCPServer::_send_messages() {
 	_send_failed_messages();
-	std::list<TCPMessage>::iterator it_message = messages_to_be_sent.begin();
-	for (; it_message != messages_to_be_sent.end(); it_message++) {
+	std::list<TCPMessage>::iterator it_message = _messages_to_be_sent.begin();
+	for (; it_message != _messages_to_be_sent.end(); it_message++) {
 		_send_message(*it_message);
 	}
 }
@@ -248,6 +248,22 @@ void TCPServer::_add_failed_message(int receiver, std::string payload) {
 	std::vector<int> receivers(1, receiver);
 	TCPMessage failed_message(receivers, payload);
 	_messages_failed_to_be_sent.push_back(failed_message);
+}
+
+std::vector<int> const & TCPServer::get_new_clients() const {
+	return _new_clients;
+}
+
+std::vector<int> const & TCPServer::get_disconnected_clients() const {
+	return _disconnected_clients;
+}
+
+std::list<TCPMessage> const & TCPServer::get_messages_received() const {
+	return _messages_received;
+}
+
+void TCPServer::schedule_sent_message(const TCPMessage & message) {
+	_messages_to_be_sent.push_back(message);
 }
 
 const char * TCPServer::ErrorSignalException::what() const throw() {
