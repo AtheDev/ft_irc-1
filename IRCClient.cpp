@@ -57,9 +57,3 @@ void IRCClient::set_mode(char sign, char mode) {
 			_mode.erase(_mode.find(mode));
 	}
 }
-
-bool IRCClient::is_visible(void) const {
-		if (_mode.find('i') != std::string::npos)
-			return false;
-	return true;
-}

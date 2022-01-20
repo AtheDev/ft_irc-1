@@ -38,9 +38,6 @@ class IRCClient {
 		void set_mode(char sign, char mode);
 		void set_status(int status);
 
-		bool is_visible(void) const;
-
-
 	private:
 
 		int _fd;
