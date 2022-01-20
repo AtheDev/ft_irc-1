@@ -21,6 +21,7 @@ IRCServer::IRCServer(std::string port): _tcp_server(port), _servername("IRC Serv
 	_commands["LIST"] = &IRCServer::_execute_list;
 	//_commands["WHOIS"] = &IRCServer::_execute_whois;
 	_commands["PING"] = &IRCServer::_execute_ping;
+	_commands["AWAY"] = &IRCServer::_execute_away;
 }
 
 IRCServer::~IRCServer() {}
@@ -669,6 +670,32 @@ void IRCServer::_execute_ping(IRCMessage const & message) {
 	{
 		TCPMessage reply = make_reply_PONG(*client, message.get_params()[0]);
 		_tcp_server.schedule_sent_message(reply);
+	}
+}
+
+/**
+ * @brief Executes a AWAY command.
+ * @param message The message containing the AWAY command.
+ */
+void IRCServer::_execute_away(IRCMessage const & message) {
+	std::cout << "Executing AWAY: " << message.get_command() << std::endl;
+	IRCClient * client = _clients.at(message.get_sender());
+
+	if (message.params().empty())
+	{
+		if (client->get_mode().find('a') != std::string::npos)
+		{
+			client->set_mode('-', 'a');
+			client->set_away_message("");
+			_tcp_server.schedule_sent_message(make_reply_RPL_UNAWAY(*client));
+		}
+	}
+	else
+	{
+		if (client->get_mode().find('a') == std::string::npos)
+			client->set_mode('+', 'a');
+		client->set_away_message(message.get_params()[0]);
+		_tcp_server.schedule_sent_message(make_reply_RPL_NOAWAY(*client));
 	}
 }
 
