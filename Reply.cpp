@@ -77,7 +77,7 @@ TCPMessage make_reply_PONG(const IRCClient & client, const std::string & servern
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("001", client);
-	payload += client.get_nickname() + ":Welcome to the Internet Relay Network ";
+	payload += ":Welcome to the Internet Relay Network ";
 	payload += client.get_nickname() + "!";
 	payload += client.get_username() + "@";
 	payload += client.get_hostname();
