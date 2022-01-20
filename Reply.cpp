@@ -127,6 +127,20 @@ TCPMessage make_reply_RPL_AWAY(const IRCClient & client, const IRCClient & clien
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_RPL_UNAWAY(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("305", client);
+	payload += ":You are no longer marked as being away";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_RPL_NOWAWAY(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("306", client);
+	payload += ":You have been marked as being away";
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_RPL_WHOISUSER(const IRCClient & client, const IRCClient & client_target) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload;
