@@ -291,31 +291,34 @@ void IRCServer::_execute_quit(IRCMessage & message) {
  */
 void IRCServer::_execute_join(IRCMessage & message) {
 	std::cout << "Executing JOIN: " << message.get_command() << std::endl;
-	//TODO: For now, it doesn't use keys
-	//TODO: Manage errors !
+	//TODO: Support for keys (+ ERR_BADCHANNELKEY)
 	IRCClient * client = _clients.at(message.get_sender());
 	std::vector<std::string> channel_names = ft_split(message.get_params()[0], ",");
+	//TODO: validate channel names !
 	std::vector<std::string>::const_iterator it_channel_name = channel_names.begin();
 	for (; it_channel_name != channel_names.end(); it_channel_name++) {
-		std::cout << *it_channel_name << std::endl;
+		std::cout << *it_channel_name << std::endl; //DEBUG
 		Channel * channel;
 		try {
 			// Get the channel
 			channel = _channels.at(*it_channel_name);
-			std::cout << "Channel exists" << std::endl;
-			std::cout << *_channels.at(*it_channel_name) << std::endl;
+			std::cout << "Channel exists" << std::endl; //DEBUG
+			std::cout << *_channels.at(*it_channel_name) << std::endl; //DEBUG
 		} catch (std::out_of_range & e) {
 			// If it doesn't exist, create one
 			channel = new Channel(*it_channel_name);
 			channel->add_client_to_channel_operator(client->get_fd());
 			_channels.insert(std::pair<std::string, Channel *>(*it_channel_name, channel));
-			std::cout << "Channel was created" << std::endl;
-			std::cout << *_channels.at(*it_channel_name) << std::endl;
+			std::cout << "Channel was created" << std::endl; //DEBUG
+			std::cout << *_channels.at(*it_channel_name) << std::endl; //DEBUG
 		}
 		// Add client and reply to client
 		channel->add_client(client->get_fd());
 		TCPMessage reply = make_reply_JOIN(*client, *channel);
 		_tcp_server.messages_to_be_sent.push_back(reply);
+		reply = make_reply_TOPIC(*client, *channel);
+		_tcp_server.messages_to_be_sent.push_back(reply);
+		//TODO: Send RPL_NAMREPLY
 	}
 }
 
