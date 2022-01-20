@@ -15,3 +15,14 @@ std::string to_string(size_t number) {
     }
     return str;
 }
+
+std::vector<std::string> ft_split(std::string s, std::string const & delimiter) {
+	size_t pos;
+	std::vector<std::string> tokens;
+	while ((pos = s.find(delimiter)) != std::string::npos) {
+		tokens.push_back(s.substr(0, pos));
+		s.erase(0, pos + delimiter.length());
+	}
+	tokens.push_back(s.substr(0, pos));
+	return tokens;
+}

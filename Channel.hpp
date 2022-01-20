@@ -9,7 +9,7 @@
 class Channel {
 
 	public:
-		explicit Channel(std::string & name);
+		explicit Channel(const std::string & name);
 		virtual ~Channel();
 
 		const std::vector<int> & get_clients() const;

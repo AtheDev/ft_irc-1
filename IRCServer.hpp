@@ -11,6 +11,7 @@
 #include "IRCClient.hpp"
 #include "Reply.hpp"
 #include "Channel.hpp"
+#include "Utils.hpp"
 
 class IRCMessage;
 
