@@ -260,6 +260,19 @@ static std::pair<size_t, bool>
 		pos_subpattern_str = 0; //it's ugly but we pass pos_format by ref so we need this to not make another function
 		while (subppatern_str[pos_subpattern_str])
 		{
+			if (subppatern_str[pos_subpattern_str] == '*')
+			{
+				pos_subpattern_str += 2;
+				r_pattern = fmatch_pattern(token, subppatern_str, pos_token, pos_subpattern_str);
+				if (!r_pattern.second)
+				{
+					match_fail = true;
+					break ;
+				}
+				pos_token = r_pattern.first;
+				++pos_subpattern_str;
+				continue ;
+			}
 			r_subpattern = fmatch_subpattern(token, subppatern_str, pos_token, pos_subpattern_str);
 			if (!r_subpattern.second)
 			{
