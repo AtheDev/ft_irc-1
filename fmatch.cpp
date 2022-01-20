@@ -336,6 +336,7 @@ static std::pair<size_t, bool>
  * % cannot be used as a plain char, you must use %0x25
  * * cannot be used as a plain char, you must use %0x2A
  * + cannot be used as a plain char, you must use %0x2B
+ * 0 and x cannot be used as a plain chars in a row
  */
 bool
 	fmatch(std::string token, std::string format)

@@ -73,6 +73,14 @@ class IRCMessage
 			public:
 				virtual const char *what() const throw();
 		};
+		class Error_invalid_msgtarget : public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
+		class Error_invalid_servername : public std::exception {
+			public:
+				virtual const char *what() const throw();
+		};
 
 	protected:
 

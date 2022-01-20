@@ -172,6 +172,12 @@ const char*
 const char*
 	IRCMessage::Error_invalid_key::what() const throw() { return ("Invalid key"); }
 
+const char*
+	IRCMessage::Error_invalid_msgtarget::what() const throw() { return ("Invalid message target(s)"); }
+
+const char*
+	IRCMessage::Error_invalid_servername::what() const throw() { return ("Invalid message target(s)"); }
+
 /**
  * @brief Check IRCMessage prefix, command and parameters sanity and assigns type to its parameters
  * throws exceptions is the formatting is wrong
@@ -256,18 +262,26 @@ void
 	}
 	else if (_command == "PRIVMSG")
 	{
-
+		if (_params.size() != 2)
+			throw Error_wrong_param_amount();
+		//todo: targetmask
+		if (!fmatch(_params[0].second, MSGTARGET))
+			throw Error_invalid_msgtarget();
+		//Is there forbidden octets in privmsg body?
 	}
-	else if (_command == "PING")
+	else if (_command == "PING" || _command == "PONG")
 	{
-
-	}
-	else if (_command == "PONG")
-	{
-
+		if (_params.size() == 0 || _params.size() > 2)
+			throw Error_wrong_param_amount();
+		if (!fmatch(_params[0].second, SERVERNAME))
+			throw Error_invalid_servername();
+		if (_params.size() == 2 && !fmatch(_params[0].second, SERVERNAME))
+			throw Error_invalid_servername();
 	}
 	else if (_command == "ERROR")
 	{
-
+		if (_params.size() != 1)
+			throw Error_wrong_param_amount();
+		//forbidden octets in error message?
 	}
 }
