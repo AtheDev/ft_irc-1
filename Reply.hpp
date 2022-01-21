@@ -37,6 +37,8 @@ TCPMessage make_reply_TOPIC(const IRCClient & client, const Channel & channel);
 
 TCPMessage make_reply_PONG(const IRCClient & client, const std::string & servername);
 
+TCPMessage make_reply_QUIT(const IRCClient & client, const std::string & quit_message);
+
 //001
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client);
 //002

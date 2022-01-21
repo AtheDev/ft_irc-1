@@ -74,6 +74,12 @@ TCPMessage make_reply_PONG(const IRCClient & client, const std::string & servern
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_QUIT(const IRCClient & client, const std::string & quit_message) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_command("QUIT", client) + ":" + quit_message;
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("001", client);

@@ -255,10 +255,14 @@ void IRCServer::_execute_quit(IRCMessage const & message) {
 
 	std::cout << "Executing QUIT: " << message.get_command() << std::endl;
 	IRCClient * client = _clients[message.get_sender()];
+	std::string quit_message;
+	if (message.get_params().size() == 1) {
+		quit_message = message.get_params()[0];
+	}
 	std::vector<Channel *> client_channels = _get_client_channels(client->get_fd());
 	std::vector<Channel *>::iterator it_channel = client_channels.begin();
 	for (; it_channel != client_channels.end(); it_channel++) {
-		TCPMessage reply = make_reply_PART(*client, **it_channel, message.get_params()[0]);
+		TCPMessage reply = make_reply_PART(*client, **it_channel, quit_message);
 		_tcp_server.schedule_sent_message(reply);
 		(*it_channel)->remove_client(message.get_sender());
 		if ((*it_channel)->get_clients().empty()) {
@@ -268,6 +272,7 @@ void IRCServer::_execute_quit(IRCMessage const & message) {
 			_channels.erase(channel_name);
 		}
 	}
+	_tcp_server.schedule_sent_message(make_reply_QUIT(*client, quit_message));
 }
 
 /**
@@ -354,56 +359,58 @@ void IRCServer::_execute_privmsg(IRCMessage const & message) {
 	std::cout << "Executing PRIVMSG: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	if (message.get_params().empty()) {
+		// If no params, send ERR_NORECIPIENT
 		TCPMessage reply = make_reply_ERR_NORECIPIENT(*client, message.get_command());
 		_tcp_server.schedule_sent_message(reply);
+		return;
 	} else if (message.get_params().size() == 1) {
-		TCPMessage reply = make_reply_ERR_NOTEXTTOSEND(*client);
-		_tcp_server.schedule_sent_message(reply);
-	} else {
-		std::string target = message.get_params()[0];
-		if (target[0] == '#') {
-			Channel * channel;
-			try {
-				channel = _channels.at(target);
-			} catch (std::out_of_range & e) {
-				TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, target);
-				_tcp_server.schedule_sent_message(reply);
-				return;
-			}
-			if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) ==
-				channel->clients_end()) {
-				TCPMessage reply = make_reply_ERR_CANNOTSENDTOCHAN(*client, channel->get_name());
-				_tcp_server.schedule_sent_message(reply);
-				return;
-			}
-			std::vector<int>::const_iterator it_client = channel->clients_begin();
-			for (; it_client != channel->clients_end(); it_client++) {
-				if (*it_client != client->get_fd()) {
-					if (_clients[*it_client]->get_mode().find('a') != std::string::npos) {
-						TCPMessage reply = make_reply_RPL_AWAY(*client, *(_clients[*it_client]));
-						_tcp_server.schedule_sent_message(reply);
-					}
+		// If 1 param, send ERR_NOTEXTTOSEND
+		_tcp_server.schedule_sent_message(make_reply_ERR_NOTEXTTOSEND(*client));
+		return;
+	}
+	std::string target = message.get_params()[0];
+	if (target[0] == '#') {
+		Channel * channel;
+		try {
+			channel = _channels.at(target);
+		} catch (std::out_of_range & e) {
+			// If channel doesn't exist, send ERR_NOSUCHNICK
+			_tcp_server.schedule_sent_message(make_reply_ERR_NOSUCHNICK(*client, target));
+			return;
+		}
+		if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) ==
+			channel->clients_end()) {
+			// If not in channel, send ERR_CANNOTSENDTOCHAN
+			TCPMessage reply = make_reply_ERR_CANNOTSENDTOCHAN(*client, channel->get_name());
+			_tcp_server.schedule_sent_message(reply);
+			return;
+		}
+		std::vector<int>::const_iterator it_client = channel->clients_begin();
+		for (; it_client != channel->clients_end(); it_client++) {
+			if (*it_client != client->get_fd()) {
+				if (_clients[*it_client]->get_mode().find('a') != std::string::npos) {
+					TCPMessage reply = make_reply_RPL_AWAY(*client, *(_clients[*it_client]));
+					_tcp_server.schedule_sent_message(reply);
 				}
 			}
-			TCPMessage
-					reply = make_reply_PRIVMSG_CHANNEL(*client, *channel, message.get_params()[1]);
+		}
+		TCPMessage reply = make_reply_PRIVMSG_CHANNEL(*client, *channel, message.get_params()[1]);
+		_tcp_server.schedule_sent_message(reply);
+	} else {
+		std::map<int, IRCClient *>::const_iterator it = find_nickname(target);
+		if (it == _clients.end()) {
+			TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, target);
 			_tcp_server.schedule_sent_message(reply);
-		} else {
-			std::map<int, IRCClient *>::const_iterator it = find_nickname(target);
-			if (it == _clients.end()) {
-				TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, target);
-				_tcp_server.schedule_sent_message(reply);
-				return;
-			}
-			IRCClient * client_recipient = it->second;
-			if (client_recipient->get_mode().find('a') != std::string::npos) {
-				TCPMessage reply = make_reply_RPL_AWAY(*client, *client_recipient);
-				_tcp_server.schedule_sent_message(reply);
-			}
-			TCPMessage reply = make_reply_PRIVMSG_USER(*client, *client_recipient, target,
-													   message.get_params()[1]);
+			return;
+		}
+		IRCClient * client_recipient = it->second;
+		if (client_recipient->get_mode().find('a') != std::string::npos) {
+			TCPMessage reply = make_reply_RPL_AWAY(*client, *client_recipient);
 			_tcp_server.schedule_sent_message(reply);
 		}
+		TCPMessage reply = make_reply_PRIVMSG_USER(*client, *client_recipient, target,
+												   message.get_params()[1]);
+		_tcp_server.schedule_sent_message(reply);
 	}
 }
 
