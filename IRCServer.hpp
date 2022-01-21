@@ -40,6 +40,8 @@ class IRCServer {
 		std::map<std::string, void(IRCServer::*)(IRCMessage const & message)>	_commands;
 		std::map<int, IRCClient *>	_clients;
 		std::map<std::string, Channel *> _channels;
+		std::string _operator_name;
+		std::string _operator_password;
 
 
 		void	_run();
@@ -63,6 +65,7 @@ class IRCServer {
 //		void	_execute_whois(IRCMessage const & message);
 		void	_execute_ping(IRCMessage const & message);
 		void	_execute_away(IRCMessage const & message);
+		void	_execute_oper(IRCMessage const & message);
 
 		std::vector<Channel *> _get_client_channels(int client_socketfd);
 		std::string _get_formatted_clients_from_channel(const std::string & channel_name);

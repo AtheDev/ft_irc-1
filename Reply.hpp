@@ -93,7 +93,7 @@ TCPMessage make_reply_RPL_ENDOFNAMES(const IRCClient & client, const std::string
 //368
 //TCPMessage make_reply_RPL_ENDOFBANLIST(const IRCClient & client, channel) ("368" + channel + " :End of channel ban list")
 //381
-//TCPMessage make_reply_RPL_YOUREOPER(const IRCClient & client, ) ("381 :You are now an IRC operator")
+TCPMessage make_reply_RPL_YOUREOPER(const IRCClient & client);
 
 
 //401
@@ -135,7 +135,7 @@ TCPMessage make_reply_ERR_NOTONCHANNEL(const IRCClient & client, const std::stri
 //462
 TCPMessage make_reply_ERR_ALREADYREGISTRED(const IRCClient & client);
 //464
-//TCPMessage make_reply_ERR_PASSWDMISMATCH(const IRCClient & client, ) ("464 :Password incorrect")
+TCPMessage make_reply_ERR_PASSWDMISMATCH(const IRCClient & client);
 //467
 //TCPMessage make_reply_ERR_KEYSET(const IRCClient & client, channel) ("467" + channel + " :Channel key already set")
 //471

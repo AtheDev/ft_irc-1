@@ -8,6 +8,8 @@ IRCServer::IRCServer(std::string port) :
 	time(&raw_time);
 	_server_creation_date = ctime(&raw_time);
 	_server_creation_date.erase(--_server_creation_date.end());
+	_operator_name = "root";
+	_operator_password = "ircforlife";
 
 	_commands["PASS"] = &IRCServer::_execute_pass;
 	_commands["NICK"] = &IRCServer::_execute_nick;
@@ -24,6 +26,7 @@ IRCServer::IRCServer(std::string port) :
 	//_commands["WHOIS"] = &IRCServer::_execute_whois;
 	_commands["PING"] = &IRCServer::_execute_ping;
 	_commands["AWAY"] = &IRCServer::_execute_away;
+	_commands["OPER"] = &IRCServer::_execute_oper;
 }
 
 IRCServer::~IRCServer() {}
@@ -665,6 +668,21 @@ void IRCServer::_execute_away(IRCMessage const & message) {
 		_tcp_server.schedule_sent_message(make_reply_RPL_NOWAWAY(*client));
 	}
 }
+
+void IRCServer::_execute_oper(const IRCMessage & message) {
+	IRCClient * client = _clients.at(message.get_sender());
+	//TODO: Sanity check -> ERR_NEEDMOREPARAMS
+	if (message.get_params()[0] != _operator_name
+	|| message.get_params()[1] != _operator_password) {
+		// If operator name or password is incorrect, send ERR_PASSWDMISMATCH
+		_tcp_server.schedule_sent_message(make_reply_ERR_PASSWDMISMATCH(*client));
+	} else {
+		// Else, add operator mode to user and send RPL_YOUREOPER
+		client->set_mode('+', 'o');
+		_tcp_server.schedule_sent_message(make_reply_RPL_YOUREOPER(*client));
+	}
+}
+
 
 std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(std::string & nickname) const {
 	std::map<int, IRCClient *>::const_iterator it = _clients.begin();

@@ -227,6 +227,13 @@ TCPMessage make_reply_RPL_ENDOFNAMES(const IRCClient & client, const std::string
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_RPL_YOUREOPER(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("381", client) + ":You are now an IRC operator";
+	return TCPMessage(receivers, payload);
+}
+
+
 TCPMessage make_reply_ERR_NOSUCHNICK(const IRCClient & client, const std::string & nickname) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("401", client);
@@ -296,6 +303,12 @@ TCPMessage make_reply_ERR_ALREADYREGISTRED(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("462", client);
 	payload += ":Unauthorized command (already registered)";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_ERR_PASSWDMISMATCH(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("464", client) + ":Password incorrect";
 	return TCPMessage(receivers, payload);
 }
 
