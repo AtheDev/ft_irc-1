@@ -27,7 +27,7 @@
 
 //rfc2812 bnf formats for fmatch function
 
-# define LETTER				"[a:z]+[A-Z]"
+# define LETTER				"[a:z]+[A:Z]"
 # define DIGIT				"[0:9]"
 # define HEXDIGIT			DIGIT "+A+B+C+D+E+F"
 # define SPECIAL			"[%0x5B:%0x60]+[%0x7B:%0x7D]"
@@ -36,7 +36,7 @@
 # define USERNAME			"%(1:)[%0x01:%0x09]+[%0x0B:%0x0C]+[%0x0E:%0x1F]+[%0x21:%0x3F]+[%0x41:%0xFF]"
 # define REALNAME			"%" LETTER "%(:)" LETTER "+ "
 //I assume real name start with a letter and then any letter and spaces (like in the example)
-# define USERMODE			"*((:)[%0x2B+-%(:)i+w+o+O+r])"
+# define USERMODE			"*((:)[%%0x2B+-%(:)i+w+o+O+r])"
 # define CHANSTRING			"%(1:)[%0x01:%0x09]+[%0x0B:%0x0C]+[%0x0E:%0x1F]+[%0x21:%0x2B]+[%0x2D:%0x39]+[%0x3B:%0xFF]"
 //It's not clear in rfc2812 but I assume a CHANSTRING is a least one char long
 # define CHANNELID			"%(5)[A:Z]+" DIGIT

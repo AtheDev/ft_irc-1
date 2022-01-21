@@ -123,7 +123,7 @@ static size_t
 	size_t					pos_x;
 	size_t					r;
 
-	if (s.find(':') == s.npos) //only one char to add to the mask
+	if (s.find(':') == s.npos || s == ":") //only one char to add to the mask, s == ":" is for : single plain char
 	{
 		char_read = get_char(s);
 		char_mask[char_read.second] = true; 
@@ -345,7 +345,7 @@ bool
 	std::pair<size_t, int>	char_read;
 	std::pair<size_t, bool>	r_subpattern, r_pattern;
 
-	while (format[pos_format] && token[pos_token])
+	while (format[pos_format])
 	{
 		if (format[pos_format] == '*') //matching pattern(s)
 		{
@@ -373,7 +373,5 @@ bool
 			++pos_token;
 		}
 	}
-	if (format[pos_format])
-		; //check if all remaining patterns and subptatterns accept 0 repetition
 	return !format[pos_format] && !token[pos_token];
 }
