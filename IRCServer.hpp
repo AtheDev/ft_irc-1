@@ -17,7 +17,7 @@ class IRCMessage;
 
 class IRCServer {
 	public:
-		IRCServer(std::string port);
+		IRCServer(std::string port, std::string password);
 		virtual ~IRCServer();
 
 		void start();
@@ -34,6 +34,7 @@ class IRCServer {
 
 	private:
 		TCPServer _tcp_server;
+		std::string	_password;
 		std::string	_servername;
 		std::string	_version;
 		std::string	_server_creation_date;
@@ -70,6 +71,7 @@ class IRCServer {
 		std::vector<Channel *> _get_client_channels(int client_socketfd);
 		std::string _get_formatted_clients_from_channel(const std::string & channel_name);
 		std::string _get_formatted_clients_without_channel(void);
+		bool _is_connected(int client_socketfd);
 };
 
 

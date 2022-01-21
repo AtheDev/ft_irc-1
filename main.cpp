@@ -16,7 +16,7 @@ int main(int ac, char **av)
 		std::cout << "./ircserv <port> <password>" << std::endl;
 		return 1;
 	}
-	IRCServer server(static_cast<std::string>(av[1]));
+	IRCServer server(static_cast<std::string>(av[1]), static_cast<std::string>(av[2]));
 	try {
 		server.start();
 	}

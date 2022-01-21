@@ -30,7 +30,7 @@ class TCPServer {
 		void start();
 		void update();
 		void stop();
-
+		std::vector<int> & get_failed_clients_connections();
 		std::vector<int> const & get_new_clients() const;
 		std::vector<int> const & get_disconnected_clients() const;
 		std::list<TCPMessage> const & get_messages_received() const;
@@ -55,7 +55,7 @@ class TCPServer {
 		std::vector<int> _disconnected_clients;
 		std::list<TCPMessage> _messages_received;
 		std::list<TCPMessage> _messages_to_be_sent;
-
+		std::vector<int> _failed_clients_connections;
 		void _add_clients();
 		void _add_client(int socket_fd);
 		void _remove_client(int socket_fd);

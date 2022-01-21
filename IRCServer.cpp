@@ -1,8 +1,8 @@
 #include "IRCServer.hpp"
 
 
-IRCServer::IRCServer(std::string port) :
-		_tcp_server(port), _servername("IRC Server VTA !"), _version("42.42") {
+IRCServer::IRCServer(std::string port, std::string password) :
+		_tcp_server(port), _password(password), _servername("IRC Server VTA !"), _version("42.42") {
 
 	time_t raw_time;
 	time(&raw_time);
@@ -73,7 +73,8 @@ void IRCServer::_run() {
 				it_message = _tcp_server.get_messages_received().begin();
 		for (; it_message != _tcp_server.get_messages_received().end(); it_message++) {
 			IRCMessage const & irc_message = IRCMessage(*it_message);
-			_execute_command(irc_message);
+			if (_is_connected(irc_message.get_sender()) == true)
+				_execute_command(irc_message);
 		}
 	}
 }
@@ -121,8 +122,18 @@ void IRCServer::_execute_pass(IRCMessage const & message) {
 	std::cout << "Executing PASS: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	if (client->get_status() == UNREGISTERED) {
-		client->set_password(message.get_params()[0]);
-		client->set_status(PASSWORD);
+		if (_password == message.get_params()[0])
+		{
+			client->set_password(message.get_params()[0]);
+			client->set_status(PASSWORD);
+		}
+		else
+		{
+			std::cout << "Wrong password" << std::endl; //DEBUG
+			std::vector<int> disconnected_client(1u, client->get_fd());
+			_tcp_server.get_failed_clients_connections().push_back(client->get_fd());
+			_remove_clients(disconnected_client);
+		}
 	} else {
 		_tcp_server.schedule_sent_message(make_reply_ERR_ALREADYREGISTRED(*client));
 	}
@@ -138,7 +149,14 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 	std::string nick = message.get_params()[0];
 
 	std::map<int, IRCClient *>::const_iterator it_client;
-	if (client->get_nickname() == nick) {
+	if (client->get_status() == UNREGISTERED)
+	{
+		std::cout << "PASS command not executed before NICK command" << std::endl; //DEBUG
+		std::vector<int> disconnected_client(1u, client->get_fd());
+		_tcp_server.get_failed_clients_connections().push_back(client->get_fd());
+		_remove_clients(disconnected_client);
+	}
+	else if (client->get_nickname() == nick) {
 		TCPMessage reply = make_reply_ERR_NICKNAMEINUSE(*client, nick);
 		_tcp_server.schedule_sent_message(reply);
 	} else if ((it_client = find_nickname(nick)) != _clients.end()) {
@@ -147,7 +165,7 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 		_tcp_server.schedule_sent_message(reply);
 	} else {
 		client->set_nickname(message.get_params()[0]);
-		if (client->get_status() == PASSWORD || client->get_status() == UNREGISTERED) {
+		if (client->get_status() == PASSWORD /*|| client->get_status() == UNREGISTERED*/) {
 			client->set_status(NICKNAME);
 		}
 	}
@@ -754,4 +772,14 @@ std::string IRCServer::_get_formatted_clients_without_channel(void) {
 		users_list.erase(--users_list.end());
 	}
 	return users_list;
+}
+
+bool IRCServer::_is_connected(int client_socketfd) {
+	try {
+		_clients.at(client_socketfd);
+		return true;
+	}
+	catch (std::out_of_range & e) {
+		return false;
+	}
 }
