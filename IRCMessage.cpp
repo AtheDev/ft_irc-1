@@ -248,6 +248,8 @@ void
 				throw Error_wrong_param_amount();
 			if (!fmatch(_params[0].second, CHANNEL_LIST))
 				throw Error_invalid_channel();
+			//key list not really checking properly, need to split between ,
+			//we get the correct result though
 			if (_params.size() == 2 && !fmatch(_params[1].second, KEY_LIST))
 				throw Error_invalid_key();
 		}
