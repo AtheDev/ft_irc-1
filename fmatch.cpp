@@ -215,15 +215,18 @@ static std::pair<size_t, bool>
 static std::string
 	get_subpattern_string(std::string &format, size_t pos_format)
 {
-	size_t	tmp = pos_format;
-	size_t	eop = format.find(']', tmp); //eop means end of pattern
+	int		n_brackets_to_skip = 0;
+	size_t	eop = pos_format + 1; //eop = end of pattern
 
-	while (format.find('[', tmp + 1) != format.npos && format.find('[', tmp + 1) < eop)
+	while (format[eop] != ']' || n_brackets_to_skip != 0)
 	{
-		tmp = eop;
-		eop = format.find(']', tmp + 1);
+		if (format[eop] == ']')
+			--n_brackets_to_skip;
+		if (format[eop] == '[')
+			++n_brackets_to_skip;
+		++eop;
 	}
-	return format.substr(pos_format + 1, eop - pos_format - 1);
+	return format.substr(pos_format + 1, eop - (pos_format + 1));
 }
 
 /**
