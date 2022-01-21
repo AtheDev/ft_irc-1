@@ -165,7 +165,7 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 		_tcp_server.schedule_sent_message(reply);
 	} else {
 		client->set_nickname(message.get_params()[0]);
-		if (client->get_status() == PASSWORD /*|| client->get_status() == UNREGISTERED*/) {
+		if (client->get_status() == PASSWORD) {
 			client->set_status(NICKNAME);
 		}
 	}
