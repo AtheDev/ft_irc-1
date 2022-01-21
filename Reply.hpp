@@ -55,9 +55,9 @@ TCPMessage make_reply_RPL_UMODEIS(const IRCClient & client);
 //301
 TCPMessage make_reply_RPL_AWAY(const IRCClient & client, const IRCClient & client_away);
 //305
-//TCPMessage make_reply_RPL_UNAWAY(const IRCClient & client, ) ("305 :You are no longer marked as being away")
+TCPMessage make_reply_RPL_UNAWAY(const IRCClient & client);
 //306
-//TCPMessage make_reply_RPL_NOWAWAY(const IRCClient & client, ) ("306 :You have been marked as being away")
+TCPMessage make_reply_RPL_NOWAWAY(const IRCClient & client);
 //311
 TCPMessage make_reply_RPL_WHOISUSER(const IRCClient & client, const IRCClient & client_target);
 //313

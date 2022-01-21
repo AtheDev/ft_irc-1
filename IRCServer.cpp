@@ -23,6 +23,7 @@ IRCServer::IRCServer(std::string port) :
 	_commands["LIST"] = &IRCServer::_execute_list;
 	//_commands["WHOIS"] = &IRCServer::_execute_whois;
 	_commands["PING"] = &IRCServer::_execute_ping;
+	_commands["AWAY"] = &IRCServer::_execute_away;
 }
 
 IRCServer::~IRCServer() {}
@@ -307,7 +308,11 @@ void IRCServer::_execute_join(IRCMessage const & message) {
 		TCPMessage reply = make_reply_JOIN(*client, *channel);
 		_tcp_server.schedule_sent_message(reply);
 		_tcp_server.schedule_sent_message(make_reply_RPL_TOPIC(*client, *channel));
-		//TODO: Send RPL_NAMREPLY
+		std::string users_list = _get_formatted_clients_from_channel(*it_channel_name);
+		reply = make_reply_RPL_NAMREPLY(*client, *channel, users_list);
+		_tcp_server.schedule_sent_message(reply);
+		reply = make_reply_RPL_ENDOFNAMES(*client, *it_channel_name);
+		_tcp_server.schedule_sent_message(reply);
 	}
 }
 
@@ -509,13 +514,13 @@ void IRCServer::_execute_names(IRCMessage const & message) {
 	if (message.get_params().empty()) {
 		std::map<std::string, Channel *>::iterator it = _channels.begin();
 		for (; it != _channels.end(); it++) {
-			users_list = _get_channel_clients(it->second->get_name());
+			users_list = _get_formatted_clients_from_channel(it->second->get_name());
 			TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(it->second), users_list);
 			_tcp_server.schedule_sent_message(reply);
 			reply = make_reply_RPL_ENDOFNAMES(*client, (*it->second).get_name());
 			_tcp_server.schedule_sent_message(reply);
 		}
-		users_list = _get_clients_without_channel();
+		users_list = _get_formatted_clients_without_channel();
 		if (!users_list.empty()) {
 			std::string channel_name = "*";
 			Channel tmp(channel_name);
@@ -529,7 +534,7 @@ void IRCServer::_execute_names(IRCMessage const & message) {
 			std::map<std::string, Channel *>::const_iterator
 					it = find_channel(message.get_params()[i]);
 			if (it != _channels.end()) {
-				users_list = _get_channel_clients(it->second->get_name());
+				users_list = _get_formatted_clients_from_channel(it->second->get_name());
 				TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(it->second), users_list);
 				_tcp_server.schedule_sent_message(reply);
 				reply = make_reply_RPL_ENDOFNAMES(*client, message.get_params()[i]);
@@ -635,6 +640,32 @@ void IRCServer::_execute_ping(IRCMessage const & message) {
 	}
 }
 
+/**
+ * @brief Executes a AWAY command.
+ * @param message The message containing the AWAY command.
+ */
+void IRCServer::_execute_away(IRCMessage const & message) {
+	std::cout << "Executing AWAY: " << message.get_command() << std::endl;
+	IRCClient * client = _clients.at(message.get_sender());
+
+	if (message.get_params().empty())
+	{
+		if (client->get_mode().find('a') != std::string::npos)
+		{
+			client->set_mode('-', 'a');
+			client->set_away_message("");
+			_tcp_server.schedule_sent_message(make_reply_RPL_UNAWAY(*client));
+		}
+	}
+	else
+	{
+		if (client->get_mode().find('a') == std::string::npos)
+			client->set_mode('+', 'a');
+		client->set_away_message(message.get_params()[0]);
+		_tcp_server.schedule_sent_message(make_reply_RPL_NOWAWAY(*client));
+	}
+}
+
 std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(std::string & nickname) const {
 	std::map<int, IRCClient *>::const_iterator it = _clients.begin();
 	for (; it != _clients.end(); it++) {
@@ -667,7 +698,7 @@ std::vector<Channel *> IRCServer::_get_client_channels(int client_socketfd) {
 	return client_channels;
 }
 
-std::string IRCServer::_get_channel_clients(const std::string & channel_name) {
+std::string IRCServer::_get_formatted_clients_from_channel(const std::string & channel_name) {
 	std::string users_list;
 	Channel * channel = _channels.at(channel_name);
 	std::vector<int>::const_iterator it_client = channel->clients_begin();
@@ -682,7 +713,7 @@ std::string IRCServer::_get_channel_clients(const std::string & channel_name) {
 	return users_list;
 }
 
-std::string IRCServer::_get_clients_without_channel(void) {
+std::string IRCServer::_get_formatted_clients_without_channel(void) {
 	std::string users_list;
 	int find_client;
 	std::map<int, IRCClient *>::const_iterator it_client = _clients.begin();
