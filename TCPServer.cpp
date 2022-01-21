@@ -81,8 +81,7 @@ void TCPServer::update() {
 				// Remove client only if it hasn't been removed first
 				_remove_client(it->fd);
 			}
-		}
-		if (it->revents & POLLIN) {
+		} else if (it->revents & POLLIN) {
 			if (it->fd == _socket.get_socket_fd()) {
 				_add_clients();
 			} else {
