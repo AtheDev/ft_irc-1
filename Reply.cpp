@@ -80,6 +80,12 @@ TCPMessage make_reply_QUIT(const IRCClient & client, const std::string & quit_me
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_ERROR(const IRCClient & client, const std::string & error_message) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_command("ERROR", client) + ":" + error_message;
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("001", client);

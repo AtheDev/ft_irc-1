@@ -39,6 +39,8 @@ TCPMessage make_reply_PONG(const IRCClient & client, const std::string & servern
 
 TCPMessage make_reply_QUIT(const IRCClient & client, const std::string & quit_message);
 
+TCPMessage make_reply_ERROR(const IRCClient & client, const std::string & error_message);
+
 //001
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client);
 //002

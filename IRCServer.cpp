@@ -273,7 +273,7 @@ void IRCServer::_execute_quit(IRCMessage const & message) {
 			_channels.erase(channel_name);
 		}
 	}
-	_tcp_server.schedule_sent_message(make_reply_QUIT(*client, quit_message));
+	_tcp_server.schedule_sent_message(make_reply_ERROR(*client, quit_message));
 }
 
 /**
