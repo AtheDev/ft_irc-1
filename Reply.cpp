@@ -86,6 +86,12 @@ TCPMessage make_reply_ERROR(const IRCClient & client, const std::string & error_
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_NICK(const IRCClient & client, const std::string & new_nick, const std::vector<int> & receivers_nick) {
+	std::vector<int> receivers = receivers_nick;
+	std::string payload = prepare_reply_command("NICK", client) + " " + new_nick;
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("001", client);

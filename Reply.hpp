@@ -41,6 +41,8 @@ TCPMessage make_reply_QUIT(const IRCClient & client, const std::string & quit_me
 
 TCPMessage make_reply_ERROR(const IRCClient & client, const std::string & error_message);
 
+TCPMessage make_reply_NICK(const IRCClient & client, const std::string & new_nick, const std::vector<int> & receivers);
+
 //001
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client);
 //002
