@@ -14,7 +14,7 @@ IRCServer::IRCServer(std::string port, std::string password) :
 	_commands["PASS"] = &IRCServer::_execute_pass;
 	_commands["NICK"] = &IRCServer::_execute_nick;
 	_commands["USER"] = &IRCServer::_execute_user;
-//	_commands["MODE"] = &IRCServer::_execute_mode;
+	_commands["MODE"] = &IRCServer::_execute_mode;
 	_commands["QUIT"] = &IRCServer::_execute_quit;
 	_commands["JOIN"] = &IRCServer::_execute_join;
 	_commands["PART"] = &IRCServer::_execute_part;
@@ -216,71 +216,146 @@ void IRCServer::_execute_user(IRCMessage const & message) {
 }
 
 /**
+ * @brief Executes a MODE command for user.
+ * @param message The message containing the MODE command for user.
+ */
+void IRCServer::_execute_mode_user(IRCMessage const & message)
+{
+	std::cout << "Executing MODE USER: " << message.get_command() << std::endl;
+	IRCClient * client = _clients.at(message.get_sender());
+	std::vector<std::string> params = message.get_params();
+	if (params[0] != client->get_nickname())
+		_tcp_server.schedule_sent_message(make_reply_ERR_USERSDONTMATCH(*client));
+	else if (params[0] == client->get_nickname() && params.size() == 1)
+		_tcp_server.schedule_sent_message(make_reply_RPL_UMODEIS(*client));
+	else if (params[0] == client->get_nickname())
+	{
+		//std::string	new_mode;
+		std::string user_modes = USER_MODES();
+		bool sign = 1;
+		for (size_t i = 0; i < params[1].size(); i++)
+		{
+			if (params[1][i] == '+')
+				sign = 1;
+			else if (params[1][i] == '-')
+				sign = 0;
+			else if (params[1][i] == 'o')
+			{
+				if (sign == 0)
+					client->set_mode(sign, params[1][i]);
+			}
+			else if (user_modes.find(params[1][i]) == std::string::npos)
+				_tcp_server.schedule_sent_message(make_reply_ERR_UMODEUNKNOWNFLAG(*client));
+		}
+		_tcp_server.schedule_sent_message(make_reply_RPL_UMODEIS(*client));
+	}
+}
+
+/**
+ * @brief Executes a MODE command for channel.
+ * @param message The message containing the MODE command for channel.
+ */
+void IRCServer::_execute_mode_channel(IRCMessage const & message)
+{
+	std::cout << "Executing MODE CHANNEL: " << message.get_command() << std::endl;
+	IRCClient * client = _clients.at(message.get_sender());
+	std::vector<std::string> params = message.get_params();
+	Channel * channel;
+	try {
+		channel = _channels.at(params[0]);
+	}
+	catch (std::out_of_range & e) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_NOSUCHCHANNEL(*client, params[0]));
+		return ;
+	}
+	if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) == channel->clients_end())
+	{
+		_tcp_server.schedule_sent_message(make_reply_ERR_NOTONCHANNEL(*client, params[0]));
+		return ;
+	}
+	if (params.size() == 1)
+	{
+		_tcp_server.schedule_sent_message(make_reply_RPL_CHANNELMODEIS(*client, *channel));
+		return ;
+	}
+	if (find(channel->channel_op_begin(), channel->channel_op_end(), client->get_fd()) == channel->channel_op_end())
+	{
+		_tcp_server.schedule_sent_message(make_reply_ERR_CHANOPRIVSNEEDED(*client, params[0]));
+		return ;
+	}
+
+	bool sign = 1;
+	int number = 2;
+	std::string channel_modes = CHANNEL_MODES();
+	std::string channel_modes_without_params = CHANNEL_MODES_WITHOUT_PARAMS();
+	std::string channel_modes_with_params = CHANNEL_MODES_WITHOUT_PARAMS();
+	for (size_t i = 0; i < params[1].size(); i++)
+	{
+		if (params[1][i] == '+')
+			sign = 1;
+		else if (params[1][i] == '-')
+			sign = 0;
+		else if (params[1][i] == 'o')
+		{
+			std::map<int, IRCClient *>::const_iterator it = find_nickname(params[number]);
+			if (it == _clients.end() ||
+			(find(channel->clients_begin(), channel->clients_end(), it->second->get_fd()) == channel->clients_end()))
+				_tcp_server.schedule_sent_message(make_reply_ERR_USERNOTINCHANNEL(*client, params[0], params[number]));
+			else if (sign == 1)
+			{
+				channel->add_client_to_channel_operator(it->first);
+			}
+			else
+			{
+				if (it->second->get_nickname() == client->get_nickname())
+					channel->remove_client_to_channel_operator(client->get_fd());
+			}
+			number++;
+		}
+		else if (params[1][i] == 'k')
+		{
+			if (sign == 1)
+			{
+				std::string mode = channel->get_mode();
+				if (mode.find(params[1][i]) != std::string::npos)
+					_tcp_server.schedule_sent_message(make_reply_ERR_KEYSET(*client, params[0]));
+				else
+				{
+					channel->set_mode('+', 'k');
+					channel->set_key(params[number]);
+				}
+			}
+			else
+			{
+				if (params[number] == channel->get_key())
+				{
+					channel->set_mode('-', 'k');
+					channel->set_key("");
+				}
+			}
+			number++;
+		}
+		else if (channel_modes_without_params.find(params[1][i]) != std::string::npos)
+			continue ;
+		else if (channel_modes_with_params.find(params[1][i]) != std::string::npos)
+			number++;
+		else
+			_tcp_server.schedule_sent_message(make_reply_ERR_UNKNOWNMODE(*client, params[0], params[1][i]));
+	}
+	_tcp_server.schedule_sent_message(make_reply_MODE(*client, *channel));
+}
+
+/**
  * @brief Executes a MODE command.
  * @param message The message containing the MODE command.
  */
-//void IRCServer::_execute_mode(IRCMessage const & message) {
-//	std::cout << "Executing MODE: " << message.get_command() << std::endl;
-//	IRCClient * client = _clients.at(message.get_sender());
-//	if (message.get_params()[0].find('#') != std::string::npos)
-//	{
-//		std::cout << "MODE CHANNEL" << std::endl;
-//	}
-//	else
-//	{
-//		std::cout << "MODE USER" << std::endl;
-//		std::vector<std::string> params = message.get_params();
-//		if (params[0] != client->get_nickname())
-//		{
-//			TCPMessage reply = make_reply_ERR_USERSDONTMATCH(*client);
-//			_tcp_server.schedule_sent_message(reply);
-//		}
-//		else if (params[0] == client->get_nickname() && params.size() == 1)
-//		{
-//			TCPMessage reply = make_reply_RPL_UMODEIS(*client);
-//			_tcp_server.schedule_sent_message(reply);
-//		}
-//		else if (params[0] == client->get_nickname())
-//		{
-//			std::string	new_mode;
-//			std::string user_modes = USER_MODES();
-//			for (size_t i = 0; i < params[1].size(); i++)
-//			{
-//				if (params[1][i] != '+' && params[1][i] != '-')
-//				{
-//					TCPMessage reply = make_reply_ERR_UMODEUNKNOWNFLAG(*client);
-//					_tcp_server.schedule_sent_message(reply);
-//					return;
-//				}
-//				else
-//				{
-//					size_t j = 1;
-//					while ((user_modes.find(params[1][i + j]) != std::string::npos)
-//					|| (params[1][i + j] != '+' && params[1][i + j] != '-'))
-//					{
-//						if (params[1][i + j] == 'o' && params[1][i] == '-')
-//						{
-//							new_mode.push_back(params[1][i]);
-//							new_mode.push_back(params[1][i + j]);
-//						}
-//						j++;
-//					}
-//					i += j;
-//					if (i < params[1].size() && user_modes.find(params[1][i]) == std::string::npos)
-//					{
-//						TCPMessage reply = make_reply_ERR_UMODEUNKNOWNFLAG(*client);
-//						_tcp_server.schedule_sent_message(reply);
-//						return;
-//					}
-//				}
-//			}
-//			for (size_t i = 0; i < new_mode.size(); i += 2)
-//				client->set_mode(new_mode[i], new_mode[i + 1]);
-//			TCPMessage reply = make_reply_RPL_UMODEIS(*client);
-//			_tcp_server.schedule_sent_message(reply);
-//		}
-//	}
-//}
+void IRCServer::_execute_mode(IRCMessage const & message) {
+	std::cout << "Executing MODE: " << message.get_command() << std::endl;
+	if (message.get_params()[0].find('#') != std::string::npos)
+		_execute_mode_channel(message);
+	else
+		_execute_mode_user(message);
+}
 
 /**
  * @brief Executes a QUIT command.

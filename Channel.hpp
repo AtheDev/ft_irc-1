@@ -6,6 +6,10 @@
 #include <vector>
 #include <ostream>
 
+#define CHANNEL_MODES() ("ok")
+#define CHANNEL_MODES_WITHOUT_PARAMS() ("imnpst")
+#define CHANNEL_MODES_WITH_PARAMS() ("blv")
+
 class Channel {
 
 	public:
@@ -16,13 +20,18 @@ class Channel {
 		const std::string & get_name() const;
 		const std::string & get_topic() const;
 		std::vector<int> get_channel_op() const;
+		const std::string & get_key() const;
+		const std::string & get_mode() const;
 
 		void set_name(const std::string & name);
 		void set_topic(const std::string & topic);
+		void set_key(const std::string & key);
+		void set_mode(char sign, char mode);
 
 		bool add_client(int socketfd);
 		bool add_client_to_channel_operator(int socketfd);
 		bool remove_client(int socketfd);
+		bool remove_client_to_channel_operator(int socketfd);
 
 		bool has_client(int socketfd);
 
@@ -42,6 +51,8 @@ class Channel {
 
 		//2811::2.3: Channels with '+' as prefix do not support channel modes !
 		std::string	_topic;
+		std::string _key;
+		std::string _mode;
 
 };
 

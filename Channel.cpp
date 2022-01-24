@@ -57,6 +57,20 @@ bool Channel::remove_client(int socketfd) {
 	return false;
 }
 
+/**
+ * @brief Tries to remove a client from a channel operator.
+ * @param socketfd The client socketfd.
+ * @return true if removing was successful, else false.
+ */
+bool Channel::remove_client_to_channel_operator(int socketfd) {
+	std::vector<int>::iterator it;
+	if ((it = std::find(_channel_operators.begin(), _channel_operators.end(), socketfd)) != _channel_operators.end()) {
+		_channel_operators.erase(it);
+		return true;
+	}
+	return false;
+}
+
 const std::vector<int> & Channel::get_clients() const {
 	return _clients;
 }
@@ -106,8 +120,33 @@ const std::string & Channel::get_topic() const {
 	return _topic;
 }
 
+const std::string & Channel::get_key() const {
+	return _key;
+}
+
+const std::string & Channel::get_mode() const {
+	return _mode;
+}
+
 void Channel::set_topic(const std::string & topic) {
 	_topic = topic;
+}
+
+void Channel::set_key(const std::string & key) {
+	_key = key;
+}
+
+void Channel::set_mode(char sign, char mode) {
+	if (sign == '+')
+	{
+		if (_mode.find(mode) == std::string::npos)
+			_mode.push_back(mode);
+	}
+	else
+	{
+		if (_mode.find(mode) != std::string::npos)
+			_mode.erase(_mode.find(mode));
+	}
 }
 
 std::vector<int> Channel::get_channel_op() const {

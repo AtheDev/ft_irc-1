@@ -43,6 +43,8 @@ TCPMessage make_reply_ERROR(const IRCClient & client, const std::string & error_
 
 TCPMessage make_reply_NICK(const IRCClient & client, const std::string & new_nick, const std::vector<int> & receivers);
 
+TCPMessage make_reply_MODE(const IRCClient & client, const Channel & channel);
+
 //001
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client);
 //002
@@ -78,7 +80,7 @@ TCPMessage make_reply_RPL_LIST(const IRCClient & client, const Channel & channel
 //323
 TCPMessage make_reply_RPL_LISTEND(const IRCClient & client);
 //324
-//TCPMessage make_reply_RPL_CHANNELMODEIS(const IRCClient & client, channel, mode, mode_params) ("324" + channel + " " + mode + " " + mode params)
+TCPMessage make_reply_RPL_CHANNELMODEIS(const IRCClient & client, const Channel & channel);
 //331
 TCPMessage make_reply_RPL_NOTOPIC(const IRCClient & client, const Channel & channel);
 //332
@@ -130,6 +132,8 @@ TCPMessage make_reply_ERR_NICKNAMEINUSE(const IRCClient & client, const std::str
 //436
 TCPMessage make_reply_ERR_NICKCOLLISION(const IRCClient & client,
 										const IRCClient & collided_client);
+//441
+TCPMessage make_reply_ERR_USERNOTINCHANNEL(const IRCClient & client, const std::string & channel_name, const std::string & target);
 //442
 TCPMessage make_reply_ERR_NOTONCHANNEL(const IRCClient & client, const std::string & channel_name);
 //461
@@ -139,11 +143,11 @@ TCPMessage make_reply_ERR_ALREADYREGISTRED(const IRCClient & client);
 //464
 TCPMessage make_reply_ERR_PASSWDMISMATCH(const IRCClient & client);
 //467
-//TCPMessage make_reply_ERR_KEYSET(const IRCClient & client, channel) ("467" + channel + " :Channel key already set")
+TCPMessage make_reply_ERR_KEYSET(const IRCClient & client, const std::string & channel_name);
 //471
 //TCPMessage make_reply_ERR_CHANNELISFULL(const IRCClient & client, channel) ("471" + channel + " :Cannot join channel (+l)")
 //472
-//TCPMessage make_reply_ERR_UNKNOWNMODE(const IRCClient & client, char, channel) ("472" + char + " :is unknown mode char to me for " + channel)
+TCPMessage make_reply_ERR_UNKNOWNMODE(const IRCClient & client, const std::string & channel_name, const char & mode);
 //473
 //TCPMessage make_reply_ERR_INVITEONLYCHAN(const IRCClient & client, channel) ("473" + channel + " :Cannot join channel (+i)")
 //474

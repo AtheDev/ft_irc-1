@@ -92,6 +92,14 @@ TCPMessage make_reply_NICK(const IRCClient & client, const std::string & new_nic
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_MODE(const IRCClient & client, const Channel & channel) {
+	const std::vector<int> & receivers = channel.get_clients();
+	//std::string payload = prepare_reply_command("MODE", client) + " :" + channel.get_name();
+	std::string payload = ":" + client.get_hostname() + " MODE " + channel.get_name();
+	payload += " " + channel.get_mode();
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("001", client);
@@ -133,7 +141,7 @@ TCPMessage make_reply_RPL_UMODEIS(const IRCClient & client) {
 	if (!client.get_mode().empty()) {
 		payload += "+" + client.get_mode();
 	} else {
-		payload += "No user mode is set";
+		payload += "none";;
 	}
 	return TCPMessage(receivers, payload);
 }
@@ -200,7 +208,19 @@ TCPMessage make_reply_RPL_LIST(const IRCClient & client, const Channel & channel
 
 TCPMessage make_reply_RPL_LISTEND(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = prepare_reply_RPL_ERR("322", client) + ":End of LIST";
+	std::string payload = prepare_reply_RPL_ERR("323", client) + ":End of LIST";
+	return TCPMessage(receivers, payload);
+}
+
+//TODO: to be verified
+TCPMessage make_reply_RPL_CHANNELMODEIS(const IRCClient & client, const Channel & channel) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("324", client);
+	payload += channel.get_name();
+	if (!channel.get_mode().empty())
+		payload += " +" + channel.get_mode() + " " + channel.get_key();
+	else
+		payload += " none";
 	return TCPMessage(receivers, payload);
 }
 
@@ -238,7 +258,6 @@ TCPMessage make_reply_RPL_YOUREOPER(const IRCClient & client) {
 	std::string payload = prepare_reply_RPL_ERR("381", client) + ":You are now an IRC operator";
 	return TCPMessage(receivers, payload);
 }
-
 
 TCPMessage make_reply_ERR_NOSUCHNICK(const IRCClient & client, const std::string & nickname) {
 	std::vector<int> receivers(1u, client.get_fd());
@@ -298,6 +317,14 @@ TCPMessage make_reply_ERR_NICKCOLLISION(const IRCClient & client,
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_ERR_USERNOTINCHANNEL(const IRCClient & client, const std::string & channel_name,
+											const std::string & target) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("441", client);
+	payload += target + " " + channel_name + " :They aren't on that channel";
+	return TCPMessage(receivers, payload);	
+}
+
 TCPMessage make_reply_ERR_NOTONCHANNEL(const IRCClient & client, const std::string & channel_name) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("442", client);
@@ -315,6 +342,21 @@ TCPMessage make_reply_ERR_ALREADYREGISTRED(const IRCClient & client) {
 TCPMessage make_reply_ERR_PASSWDMISMATCH(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("464", client) + ":Password incorrect";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_ERR_KEYSET(const IRCClient & client, const std::string & channel_name) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("467", client);
+	payload += channel_name + " :Channel key already set";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_ERR_UNKNOWNMODE(const IRCClient & client, const std::string & channel_name, const char & mode) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("472", client);
+	payload.push_back(mode);
+	payload += " :is unknown mode char to me for " + channel_name;
 	return TCPMessage(receivers, payload);
 }
 

@@ -54,7 +54,9 @@ class IRCServer {
 		void	_execute_pass(IRCMessage const & message);
 		void	_execute_nick(IRCMessage const & message);
 		void	_execute_user(IRCMessage const & message);
-//		void	_execute_mode(IRCMessage const & message);
+		void	_execute_mode(IRCMessage const & message);
+		void	_execute_mode_user(IRCMessage const & message);
+		void	_execute_mode_channel(IRCMessage const & message);
 		void	_execute_quit(IRCMessage const & message);
 		void	_execute_join(IRCMessage const & message);
 		void	_execute_part(IRCMessage const & message);
