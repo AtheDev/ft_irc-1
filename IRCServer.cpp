@@ -27,6 +27,8 @@ IRCServer::IRCServer(std::string port, std::string password) :
 	_commands["PING"] = &IRCServer::_execute_ping;
 	_commands["AWAY"] = &IRCServer::_execute_away;
 	_commands["OPER"] = &IRCServer::_execute_oper;
+	_commands["KILL"] = &IRCServer::_execute_kill;
+	_commands["kill"] = &IRCServer::_execute_kill;
 }
 
 IRCServer::~IRCServer() {}
@@ -797,6 +799,28 @@ void IRCServer::_execute_oper(const IRCMessage & message) {
 	}
 }
 
+void IRCServer::_execute_kill(const IRCMessage & message) {
+	IRCClient * killer = _clients.at(message.get_sender());
+	//TODO: Sanity check -> ERR_NEEDMOREPARAMS
+	//TODO: Pass as ref sur const !
+	std::string nick_killed = message.get_params()[0];
+	std::string comment = message.get_params()[1];
+	if (!killer->is_mode('o')) {
+		// If killer isn't oper -> ERR_NOPRIVILEGES
+		_tcp_server.schedule_sent_message(make_reply_ERR_NOPRIVILEGES(*killer));
+		return;
+	} else if (find_nickname(nick_killed) == _clients.end()) {
+		// If nick doesn't exist -> ERR_NOSUCHNICK
+		_tcp_server.schedule_sent_message(make_reply_ERR_NOSUCHNICK(*killer, nick_killed));
+		return;
+	}
+	// Else send them a kill message, broadcast a QUIT, send them an ERROR and finally remove them
+	IRCClient * killed = find_nickname(nick_killed)->second;
+	_tcp_server.schedule_sent_message(make_reply_KILL(*killer, *killed, comment));
+	//TODO: broadcast a QUIT message to all uses sharing a channel with killed ?
+	_tcp_server.add_client_to_disconnect(killed->get_fd()); //TODO: to check ?
+	_tcp_server.schedule_sent_message(make_reply_ERROR(*killed, comment));
+}
 
 std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(std::string & nickname) const {
 	std::map<int, IRCClient *>::const_iterator it = _clients.begin();

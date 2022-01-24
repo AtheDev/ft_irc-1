@@ -100,6 +100,14 @@ TCPMessage make_reply_MODE(const IRCClient & client, const Channel & channel,
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_KILL(const IRCClient & client_killer, const IRCClient & client_killed,
+						   const std::string & comment) {
+	std::vector<int> receivers(1u, client_killed.get_fd());
+	std::string payload = prepare_reply_command("KILL", client_killer);
+	payload += client_killed.get_nickname() + " " + comment;
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("001", client);
@@ -357,6 +365,13 @@ TCPMessage make_reply_ERR_UNKNOWNMODE(const IRCClient & client, const std::strin
 	std::string payload = prepare_reply_RPL_ERR("472", client);
 	payload.push_back(mode);
 	payload += " :is unknown mode char to me for " + channel_name;
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_ERR_NOPRIVILEGES(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("481", client);
+	payload += ":Permission Denied- You\'re not an IRC operator";
 	return TCPMessage(receivers, payload);
 }
 

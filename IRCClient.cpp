@@ -30,6 +30,9 @@ std::string IRCClient::get_prefix() const {
 	return std::string(_nickname + "!" + _username + "@" + _hostname);
 }
 
+bool IRCClient::is_mode(char mode) const {
+	return _mode.find(mode) != std::string::npos;
+}
 
 void IRCClient::set_nickname(std::string nickname) { _nickname = nickname; }
 

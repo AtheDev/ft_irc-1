@@ -28,6 +28,7 @@ class IRCClient {
 		std::string const & get_away_message(void) const;
 		int get_status(void) const;
 		std::string get_prefix() const;
+		bool is_mode(char mode) const;
 
 		void set_nickname(std::string nickname);
 		void set_username(std::string username);
