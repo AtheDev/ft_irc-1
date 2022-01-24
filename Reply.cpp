@@ -282,6 +282,13 @@ TCPMessage make_reply_ERR_CANNOTSENDTOCHAN(const IRCClient & client,
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_ERR_TOOMANYCHANNELS(const IRCClient & client, const std::string & channel_name) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("405", client);
+	payload += channel_name + " :You have joined too many channels";
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_ERR_NOORIGIN(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("409", client) + ":No origin specified";
@@ -357,6 +364,13 @@ TCPMessage make_reply_ERR_UNKNOWNMODE(const IRCClient & client, const std::strin
 	std::string payload = prepare_reply_RPL_ERR("472", client);
 	payload.push_back(mode);
 	payload += " :is unknown mode char to me for " + channel_name;
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_ERR_BADCHANNELKEY(const IRCClient & client, const std::string & channel_name) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("475", client);
+	payload += channel_name + " :Cannot join channel (+k)";
 	return TCPMessage(receivers, payload);
 }
 

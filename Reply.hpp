@@ -111,7 +111,7 @@ TCPMessage make_reply_ERR_NOSUCHCHANNEL(const IRCClient & client, const std::str
 TCPMessage make_reply_ERR_CANNOTSENDTOCHAN(const IRCClient & client,
 										   const std::string & channel_name);
 //405
-//TCPMessage make_reply_ERR_TOOMANYCHANNELS(const IRCClient & client, channel) ("405" + channel + " :You have joined too many channels")
+TCPMessage make_reply_ERR_TOOMANYCHANNELS(const IRCClient & client, const std::string & channel_name);
 //407
 //TCPMessage make_reply_ERR_TOOMANYTARGETS(const IRCClient & client, target, err_code, abort_message) ("407" + target + " :" + err_code + " recipients. " + abort_message)
 //409
@@ -154,7 +154,7 @@ TCPMessage make_reply_ERR_UNKNOWNMODE(const IRCClient & client, const std::strin
 //474
 //TCPMessage make_reply_ERR_BANNEDFROMCHAN(const IRCClient & client, channel) ("474" + channel + " :Cannot join channel (+b)")
 //475
-//TCPMessage make_reply_ERR_BADCHANNELKEY(const IRCClient & client, channel) ("475" + channel + " :Cannot join channel (+k)")
+TCPMessage make_reply_ERR_BADCHANNELKEY(const IRCClient & client, const std::string & channel_name);
 //476
 //TCPMessage make_reply_ERR_BADCHANMASK(const IRCClient & client, channel) ("476" + channel + " :Bad Channel Mask")
 //481

@@ -8,6 +8,7 @@
 #include <netdb.h>
 
 #define USER_MODES() ("aiwroO")
+#define MAX_CHANNELS 10
 
 enum e_user_status {
 	UNREGISTERED, PASSWORD, NICKNAME, REGISTERED

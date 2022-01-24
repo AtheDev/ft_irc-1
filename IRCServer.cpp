@@ -393,45 +393,106 @@ void IRCServer::_execute_quit(IRCMessage const & message) {
 	_tcp_server.schedule_sent_message(make_reply_ERROR(*client, quit_message));
 }
 
+void IRCServer::_join_channel(const IRCClient & client, Channel & channel) {
+	channel.add_client(client.get_fd());
+	_tcp_server.schedule_sent_message(make_reply_JOIN(client, channel));
+	_tcp_server.schedule_sent_message(make_reply_RPL_TOPIC(client, channel));
+	std::string users_list = _get_formatted_clients_from_channel(channel.get_name());
+	_tcp_server.schedule_sent_message(make_reply_RPL_NAMREPLY(client, channel, users_list));
+	_tcp_server.schedule_sent_message(make_reply_RPL_ENDOFNAMES(client, channel.get_name()));
+}
+
+void IRCServer::_leave_all_channels(const IRCClient & client) {
+	std::vector<Channel *> channels = _get_client_channels(client.get_fd());
+	std::vector<Channel *>::iterator it_channel = channels.begin();
+	for (; it_channel != channels.end(); it_channel++)
+	{
+		Channel *channel = _channels.at((*it_channel)->get_name());
+		_tcp_server.schedule_sent_message(make_reply_PART(client, *channel, ""));
+		channel->remove_client(client.get_fd());
+		if (channel->get_clients().empty()) {
+			delete channel;
+			_channels.erase((*it_channel)->get_name());
+		}
+	}
+}
+
 /**
  * @brief Executes a JOIN command.
  * @param message The message containing the JOIN command.
  */
 void IRCServer::_execute_join(IRCMessage const & message) {
 	std::cout << "Executing JOIN: " << message.get_command() << std::endl;
-	//TODO: Support for keys (+ ERR_BADCHANNELKEY)
 	IRCClient * client = _clients.at(message.get_sender());
 	std::vector<std::string> channel_names = ft_split(message.get_params()[0], ",");
-	//TODO: validate channel names !
+	if (*channel_names.begin() == "0")
+	{
+		_leave_all_channels(*client);
+		return ;
+	}
+	bool new_channel = false;
+	std::vector<std::string> channel_keys;
+	std::vector<std::string>::const_iterator it_keys;
+	std::vector<std::string>::const_iterator it_keys_end;
+	if (message.get_params().size() > 1)
+	{
+		channel_keys = ft_split(message.get_params()[1], ",");
+		it_keys = channel_keys.begin();
+		it_keys_end = channel_keys.end();
+	}
 	std::vector<std::string>::const_iterator it_channel_name = channel_names.begin();
 	for (; it_channel_name != channel_names.end(); it_channel_name++) {
-		std::cout << *it_channel_name << std::endl; //DEBUG
+	
 		Channel * channel;
 		try {
-			// Get the channel
 			channel = _channels.at(*it_channel_name);
-			std::cout << "Channel exists" << std::endl; //DEBUG
-			std::cout << *_channels.at(*it_channel_name) << std::endl; //DEBUG
+			new_channel = false;
 		} catch (std::out_of_range & e) {
-			// If it doesn't exist, create one
+			new_channel = true;
+		}
+		if (_get_client_channels(client->get_fd()).size() == MAX_CHANNELS)
+			_tcp_server.schedule_sent_message(make_reply_ERR_TOOMANYCHANNELS(*client, *it_channel_name));
+		else if (new_channel == false)
+		{
+			if (channel->get_mode().find('k') != std::string::npos)
+			{
+				if (it_keys == it_keys_end)
+					_tcp_server.schedule_sent_message(make_reply_ERR_BADCHANNELKEY(*client, *it_channel_name));
+				else
+				{
+					if (*it_keys != channel->get_key())
+						_tcp_server.schedule_sent_message(make_reply_ERR_BADCHANNELKEY(*client, *it_channel_name));
+					else
+						_join_channel(*client, *channel);
+					it_keys++;
+				}
+			}
+			else
+			{
+				_join_channel(*client, *channel);
+				if (it_keys != it_keys_end)
+					it_keys++;
+			}
+		}
+		else
+		{
 			channel = new Channel(*it_channel_name);
 			channel->add_client_to_channel_operator(client->get_fd());
 			_channels.insert(std::pair<std::string, Channel *>(*it_channel_name, channel));
-			std::cout << "Channel was created" << std::endl; //DEBUG
-			std::cout << *_channels.at(*it_channel_name) << std::endl; //DEBUG
+			_join_channel(*client, *channel);
+			//TODO: maybe delete
+			if (it_keys != it_keys_end)
+			{
+				channel->set_key(*it_keys);
+				channel->set_mode('+', 'k');
+				std::string channel_mode = "+k";
+				_tcp_server.schedule_sent_message(make_reply_MODE(*client, *channel, channel_mode, *it_keys));
+				it_keys++;
+			}
 		}
-		// Add client and reply to client
-		channel->add_client(client->get_fd());
-		TCPMessage reply = make_reply_JOIN(*client, *channel);
-		_tcp_server.schedule_sent_message(reply);
-		_tcp_server.schedule_sent_message(make_reply_RPL_TOPIC(*client, *channel));
-		std::string users_list = _get_formatted_clients_from_channel(*it_channel_name);
-		reply = make_reply_RPL_NAMREPLY(*client, *channel, users_list);
-		_tcp_server.schedule_sent_message(reply);
-		reply = make_reply_RPL_ENDOFNAMES(*client, *it_channel_name);
-		_tcp_server.schedule_sent_message(reply);
 	}
 }
+
 
 /**
  * @brief Executes a PART command.
