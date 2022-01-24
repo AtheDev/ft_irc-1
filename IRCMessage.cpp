@@ -29,13 +29,13 @@ bool
 bool
 	IRCMessage::has_prefix() const { return !_prefix.empty(); }
 
-std::string
+const std::string &
 	IRCMessage::get_prefix() const { return _prefix; }
 
-std::string
+const std::string &
 	IRCMessage::get_command() const { return _command; }
 
-std::vector<std::string>
+const std::vector<std::string> &
 	IRCMessage::get_params() const { return _params; }
 
 int

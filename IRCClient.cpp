@@ -34,17 +34,17 @@ bool IRCClient::is_mode(char mode) const {
 	return _mode.find(mode) != std::string::npos;
 }
 
-void IRCClient::set_nickname(std::string nickname) { _nickname = nickname; }
+void IRCClient::set_nickname(const std::string& nickname) { _nickname = nickname; }
 
-void IRCClient::set_username(std::string username) { _username = username; }
+void IRCClient::set_username(const std::string& username) { _username = username; }
 
-void IRCClient::set_hostname(std::string hostname) { _hostname = hostname; }
+void IRCClient::set_hostname(const std::string& hostname) { _hostname = hostname; }
 
-void IRCClient::set_realname(std::string realname) { _realname = realname; }
+void IRCClient::set_realname(const std::string& realname) { _realname = realname; }
 
-void IRCClient::set_password(std::string password) { _password = password; }
+void IRCClient::set_password(const std::string& password) { _password = password; }
 
-void IRCClient::set_away_message(std::string message) { _away_message = message; }
+void IRCClient::set_away_message(const std::string& message) { _away_message = message; }
 
 void IRCClient::set_status(int status) { _status = status; }
 
