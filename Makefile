@@ -12,7 +12,8 @@ SRCS_SERVER =	main.cpp \
 				TCPSocket.cpp \
 				TCPSocketActive.cpp \
 				TCPSocketPassive.cpp \
-				Utils.cpp
+				Utils.cpp \
+				fmatch.cpp
 
 
 OBJS_SERVER = $(SRCS_SERVER:.cpp=.o)
