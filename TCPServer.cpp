@@ -69,10 +69,10 @@ void TCPServer::update() {
 	_send_messages();
 	_messages_to_be_sent.clear();
 
-	std::vector<int>::iterator clients = _failed_clients_connections.begin();
-	for (; clients != _failed_clients_connections.end(); clients++)
+	std::vector<int>::iterator clients = _clients_to_disconnect.begin();
+	for (; clients != _clients_to_disconnect.end(); clients++)
 		_remove_client(*clients);
-	_failed_clients_connections.clear();
+	_clients_to_disconnect.clear();
 	
 	if (poll(&(*_pollfds.begin()), _pollfds.size(), 100) == -1) {
 		throw ErrorPollException();
@@ -266,12 +266,12 @@ std::list<TCPMessage> const & TCPServer::get_messages_received() const {
 	return _messages_received;
 }
 
-std::vector<int> & TCPServer::get_failed_clients_connections() {
-	return _failed_clients_connections;
-}
-
 void TCPServer::schedule_sent_message(const TCPMessage & message) {
 	_messages_to_be_sent.push_back(message);
+}
+
+void TCPServer::add_client_to_disconnect(int socketfd) {
+	_clients_to_disconnect.push_back(socketfd);
 }
 
 const char * TCPServer::ErrorSignalException::what() const throw() {

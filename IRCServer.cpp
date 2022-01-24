@@ -90,9 +90,12 @@ void IRCServer::_add_clients(const std::vector<int> & new_clients) {
 void IRCServer::_remove_clients(const std::vector<int> & disconnected_clients) {
 	std::vector<int>::const_iterator it_client = disconnected_clients.begin();
 	for (; it_client != disconnected_clients.end(); it_client++) {
-		_remove_client_from_all_channels(*it_client);
-		delete _clients[*it_client];
-		_clients.erase(*it_client);
+		try {
+			_clients.at(*it_client);
+			_remove_client_from_all_channels(*it_client);
+			delete _clients[*it_client];
+			_clients.erase(*it_client);
+		} catch (std::out_of_range & e) {};
 	}
 }
 
@@ -131,7 +134,7 @@ void IRCServer::_execute_pass(IRCMessage const & message) {
 		{
 			std::cout << "Wrong password" << std::endl; //DEBUG
 			std::vector<int> disconnected_client(1u, client->get_fd());
-			_tcp_server.get_failed_clients_connections().push_back(client->get_fd());
+			_tcp_server.add_client_to_disconnect(client->get_fd());
 			_remove_clients(disconnected_client);
 		}
 	} else {
@@ -153,7 +156,7 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 	{
 		std::cout << "PASS command not executed before NICK command" << std::endl; //DEBUG
 		std::vector<int> disconnected_client(1u, client->get_fd());
-		_tcp_server.get_failed_clients_connections().push_back(client->get_fd());
+		_tcp_server.add_client_to_disconnect(client->get_fd());
 		_remove_clients(disconnected_client);
 	}
 	else if (client->get_nickname() == nick) {
@@ -391,6 +394,7 @@ void IRCServer::_execute_quit(IRCMessage const & message) {
 			_channels.erase(channel_name);
 		}
 	}
+	_tcp_server.add_client_to_disconnect(client->get_fd());
 	_tcp_server.schedule_sent_message(make_reply_ERROR(*client, quit_message));
 }
 
