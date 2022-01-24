@@ -308,14 +308,14 @@ TCPMessage make_reply_ERR_NICKNAMEINUSE(const IRCClient & client, const std::str
 	return TCPMessage(receivers, payload);
 }
 
-TCPMessage make_reply_ERR_NICKCOLLISION(const IRCClient & client,
+/*TCPMessage make_reply_ERR_NICKCOLLISION(const IRCClient & client,
 										const IRCClient & collided_client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("436", client);
 	payload += collided_client.get_nickname() + " :Nickname collision KILL from ";
 	payload += collided_client.get_username() + "@" + collided_client.get_hostname();
 	return TCPMessage(receivers, payload);
-}
+}*/
 
 TCPMessage make_reply_ERR_USERNOTINCHANNEL(const IRCClient & client, const std::string & channel_name,
 											const std::string & target) {

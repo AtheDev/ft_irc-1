@@ -131,8 +131,8 @@ TCPMessage make_reply_ERR_NOTEXTTOSEND(const IRCClient & client);
 //433
 TCPMessage make_reply_ERR_NICKNAMEINUSE(const IRCClient & client, const std::string & nickname);
 //436
-TCPMessage make_reply_ERR_NICKCOLLISION(const IRCClient & client,
-										const IRCClient & collided_client);
+//TCPMessage make_reply_ERR_NICKCOLLISION(const IRCClient & client,
+//										const IRCClient & collided_client);
 //441
 TCPMessage make_reply_ERR_USERNOTINCHANNEL(const IRCClient & client, const std::string & channel_name, const std::string & target);
 //442

@@ -156,14 +156,9 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 		_tcp_server.get_failed_clients_connections().push_back(client->get_fd());
 		_remove_clients(disconnected_client);
 	}
-	else if (client->get_nickname() == nick) {
-		TCPMessage reply = make_reply_ERR_NICKNAMEINUSE(*client, nick);
-		_tcp_server.schedule_sent_message(reply);
-	} else if ((it_client = find_nickname(nick)) != _clients.end()) {
-		IRCClient * collided_client = it_client->second;
-		TCPMessage reply = make_reply_ERR_NICKCOLLISION(*client, *collided_client);
-		_tcp_server.schedule_sent_message(reply);
-	} else {
+	else if ((it_client = find_nickname(nick)) != _clients.end())
+		_tcp_server.schedule_sent_message(make_reply_ERR_NICKNAMEINUSE(*client, nick));
+	 else {
 		if (client->get_status() == PASSWORD) {
 			client->set_status(NICKNAME);
 		}
