@@ -288,7 +288,7 @@ void IRCServer::_execute_mode_channel(IRCMessage const & message)
 	int number = 2;
 	std::string channel_modes = CHANNEL_MODES();
 	std::string channel_modes_without_params = CHANNEL_MODES_WITHOUT_PARAMS();
-	std::string channel_modes_with_params = CHANNEL_MODES_WITHOUT_PARAMS();
+	std::string channel_modes_with_params = CHANNEL_MODES_WITH_PARAMS();
 	for (size_t i = 0; i < params[1].size(); i++)
 	{
 		if (params[1][i] == '+')
