@@ -284,37 +284,36 @@ void IRCServer::_execute_mode_channel(IRCMessage const & message)
 		return ;
 	}
 
-	bool sign = 1;
+	bool sign = true;
 	int number = 2;
+	bool ret = false;
 	std::string channel_modes = CHANNEL_MODES();
 	std::string channel_modes_without_params = CHANNEL_MODES_WITHOUT_PARAMS();
 	std::string channel_modes_with_params = CHANNEL_MODES_WITH_PARAMS();
 	for (size_t i = 0; i < params[1].size(); i++)
 	{
 		if (params[1][i] == '+')
-			sign = 1;
+			sign = true;
 		else if (params[1][i] == '-')
-			sign = 0;
+			sign = false;
 		else if (params[1][i] == 'o')
 		{
 			std::map<int, IRCClient *>::const_iterator it = find_nickname(params[number]);
 			if (it == _clients.end() ||
 			(find(channel->clients_begin(), channel->clients_end(), it->second->get_fd()) == channel->clients_end()))
 				_tcp_server.schedule_sent_message(make_reply_ERR_USERNOTINCHANNEL(*client, params[0], params[number]));
-			else if (sign == 1)
-			{
-				channel->add_client_to_channel_operator(it->first);
-			}
+			else if (sign == true)
+				ret = channel->add_client_to_channel_operator(it->first);
 			else
 			{
 				if (it->second->get_nickname() == client->get_nickname())
-					channel->remove_client_to_channel_operator(client->get_fd());
+					ret = channel->remove_client_to_channel_operator(client->get_fd());
 			}
 			number++;
 		}
 		else if (params[1][i] == 'k')
 		{
-			if (sign == 1)
+			if (sign == true)
 			{
 				std::string mode = channel->get_mode();
 				if (mode.find(params[1][i]) != std::string::npos)
@@ -323,6 +322,7 @@ void IRCServer::_execute_mode_channel(IRCMessage const & message)
 				{
 					channel->set_mode('+', 'k');
 					channel->set_key(params[number]);
+					ret = true;
 				}
 			}
 			else
@@ -331,6 +331,7 @@ void IRCServer::_execute_mode_channel(IRCMessage const & message)
 				{
 					channel->set_mode('-', 'k');
 					channel->set_key("");
+					ret = true;
 				}
 			}
 			number++;
@@ -341,8 +342,16 @@ void IRCServer::_execute_mode_channel(IRCMessage const & message)
 			number++;
 		else
 			_tcp_server.schedule_sent_message(make_reply_ERR_UNKNOWNMODE(*client, params[0], params[1][i]));
+		if (ret == true)
+		{
+			std::string channel_mode = "-";
+			if (sign == true)
+				channel_mode = "+";
+			channel_mode.push_back(params[1][i]);
+			_tcp_server.schedule_sent_message(make_reply_MODE(*client, *channel, channel_mode, params[number - 1]));
+			ret = false;
+		}
 	}
-	_tcp_server.schedule_sent_message(make_reply_MODE(*client, *channel));
 }
 
 /**

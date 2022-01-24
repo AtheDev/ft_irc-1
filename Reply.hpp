@@ -43,7 +43,8 @@ TCPMessage make_reply_ERROR(const IRCClient & client, const std::string & error_
 
 TCPMessage make_reply_NICK(const IRCClient & client, const std::string & new_nick, const std::vector<int> & receivers);
 
-TCPMessage make_reply_MODE(const IRCClient & client, const Channel & channel);
+TCPMessage make_reply_MODE(const IRCClient & client, const Channel & channel,
+							const std::string & channel_mode, const std::string & channel_key);
 
 //001
 TCPMessage make_reply_RPL_WELCOME(const IRCClient & client);
