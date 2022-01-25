@@ -379,6 +379,7 @@ TCPMessage make_reply_ERR_BADCHANNELKEY(const IRCClient & client, const std::str
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("475", client);
 	payload += channel_name + " :Cannot join channel (+k)";
+	return TCPMessage(receivers, payload);
 }
 
 TCPMessage make_reply_ERR_NOPRIVILEGES(const IRCClient & client) {
