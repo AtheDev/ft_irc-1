@@ -121,18 +121,24 @@ void IRCServer::_execute_command(IRCMessage const & message) {
 void IRCServer::_execute_pass(IRCMessage const & message) {
 	std::cout << "Executing PASS: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-	if (client->get_status() == UNREGISTERED) {
+	if (client->get_status() != UNREGISTERED) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_ALREADYREGISTRED(*client));
+		return ;
+	}
+/*	int err = message._sanity_check();
+	if (err == ERR_NEEDMOREPARAMS)
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+	else */if (client->get_status() == UNREGISTERED) {
 		if (_password == message.get_params().at(0)) {
 			client->set_password(message.get_params().at(0));
 			client->set_status(PASSWORD);
-		} else {
-			std::cout << "Wrong password" << std::endl; //DEBUG
-			std::vector<int> disconnected_client(1u, client->get_fd());
-			_tcp_server.add_client_to_disconnect(client->get_fd());
-			_remove_clients(disconnected_client);
 		}
-	} else {
-		_tcp_server.schedule_sent_message(make_reply_ERR_ALREADYREGISTRED(*client));
+	}
+	if (client->get_status() == UNREGISTERED) {
+		std::cout << "Wrong password or need more params" << std::endl; //DEBUG
+		std::vector<int> disconnected_client(1u, client->get_fd());
+		_tcp_server.add_client_to_disconnect(client->get_fd());
+		_remove_clients(disconnected_client);
 	}
 }
 
@@ -143,15 +149,30 @@ void IRCServer::_execute_pass(IRCMessage const & message) {
 void IRCServer::_execute_nick(IRCMessage const & message) {
 	std::cout << "Executing NICK: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-	std::string nick = message.get_params().at(0);
 
-	std::map<int, IRCClient *>::const_iterator it_client;
+/*	int err = message._sanity_check();
+	if (err == ERR_NONICKNAMEGIVEN)
+		_tcp_server.schedule_sent_message(make_reply_ERR_NONICKNAMEGIVEN(*client));
+	else if (err == ERR_ERRONEUSNICKNAME)
+		_tcp_server.schedule_sent_message(make_reply_ERR_ERRONEUSNICKNAME(*client, message.get_params()[0]));
+	if (err != 0)
+	{
+		if (client->get_status() == UNREGISTERED || client->get_status() == PASSWORD)
+		{
+			std::vector<int> disconnected_client(1u, client->get_fd());
+			_tcp_server.add_client_to_disconnect(client->get_fd());
+			_remove_clients(disconnected_client);
+		}
+		return ;
+	}
+*/
+	std::string nick = message.get_params().at(0);
 	if (client->get_status() == UNREGISTERED) {
 		std::cout << "PASS command not executed before NICK command" << std::endl; //DEBUG
 		std::vector<int> disconnected_client(1u, client->get_fd());
 		_tcp_server.add_client_to_disconnect(client->get_fd());
 		_remove_clients(disconnected_client);
-	} else if ((it_client = find_nickname(nick)) != _clients.end()) {
+	} else if (find_nickname(nick) != _clients.end()) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_NICKNAMEINUSE(*client, nick));
 	} else {
 		if (client->get_status() == PASSWORD) {
@@ -163,11 +184,10 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 		std::vector<Channel *>::const_iterator it_channel = channels.begin();
 		for (; it_channel != channels.end(); it_channel++) {
 			Channel * tmp = *it_channel;
-			//TODO: There are 2 it_clients ! Which is which ? Shadowing variables is dangerous !
-			std::vector<int>::const_iterator it_client = tmp->clients_begin();
-			for (; it_client != tmp->clients_end(); it_client++) {
-				if (find(receivers.begin(), receivers.end(), *it_client) == receivers.end()) {
-					receivers.push_back(*it_client);
+			std::vector<int>::const_iterator it = tmp->clients_begin();
+			for (; it != tmp->clients_end(); it++) {
+				if (find(receivers.begin(), receivers.end(), *it) == receivers.end()) {
+					receivers.push_back(*it);
 				}
 			}
 		}
@@ -186,15 +206,29 @@ void IRCServer::_execute_user(IRCMessage const & message) {
 	int status = client->get_status();
 
 	if (status == REGISTERED) {
-		TCPMessage reply = make_reply_ERR_ALREADYREGISTRED(*client);
-		_tcp_server.schedule_sent_message(reply);
-	} else if (status == NICKNAME) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_ALREADYREGISTRED(*client));
+		return ;
+	}
+/*	int err = message._sanity_check();
+	if (err == ERR_NEEDMOREPARAMS)
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+	if (ret != 0) {
+		if (client->get_status() != REGISTERED)
+		{
+			std::vector<int> disconnected_client(1u, client->get_fd());
+			_tcp_server.add_client_to_disconnect(client->get_fd());
+			_remove_clients(disconnected_client);
+		}
+		return ;
+	}
+*/
+	if (status == NICKNAME) {
 		client->set_username(message.get_params().at(0));
 		client->set_hostname(message.get_params().at(1)); // TODO: To change ?
 		client->set_realname(message.get_params().at(3));
 		client->set_status(REGISTERED);
 		// TODO: To change ?
-		std::string user_modes("USER_MODES"), channel_modes("CHANNEL_MODES");
+		std::string user_modes(USER_MODES()) , channel_modes(CHANNEL_MODES());
 
 		TCPMessage reply = make_reply_RPL_WELCOME(*client);
 		_tcp_server.schedule_sent_message(reply);
@@ -425,6 +459,14 @@ void IRCServer::_execute_join(IRCMessage const & message) {
 		it_keys_end = channel_keys.end();
 	}
 	std::vector<std::string>::const_iterator it_channel_name = channel_names.begin();
+	/*int err = message._sanity_check();
+	if (err == ERR_NEEDMOREPARAMS)
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+	else if (err == ERR_BADCHANMASK)
+		_tcp_server.schedule_sent_message(make_reply_ERR_BADCHANMASK(*client, *it_channel_name));
+	if (err != 0)
+		return ;
+*/
 	for (; it_channel_name != channel_names.end(); it_channel_name++) {
 	
 		Channel * channel;
@@ -438,7 +480,9 @@ void IRCServer::_execute_join(IRCMessage const & message) {
 			_tcp_server.schedule_sent_message(make_reply_ERR_TOOMANYCHANNELS(*client, *it_channel_name));
 		else if (new_channel == false)
 		{
-			if (channel->get_mode().find('k') != std::string::npos)
+			if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) != channel->clients_end())
+				;
+			else if (channel->get_mode().find('k') != std::string::npos)
 			{
 				if (it_keys == it_keys_end)
 					_tcp_server.schedule_sent_message(make_reply_ERR_BADCHANNELKEY(*client, *it_channel_name));
@@ -448,15 +492,10 @@ void IRCServer::_execute_join(IRCMessage const & message) {
 						_tcp_server.schedule_sent_message(make_reply_ERR_BADCHANNELKEY(*client, *it_channel_name));
 					else
 						_join_channel(*client, *channel);
-					it_keys++;
 				}
 			}
 			else
-			{
 				_join_channel(*client, *channel);
-				if (it_keys != it_keys_end)
-					it_keys++;
-			}
 		}
 		else
 		{
@@ -464,16 +503,9 @@ void IRCServer::_execute_join(IRCMessage const & message) {
 			channel->add_client_to_channel_operator(client->get_fd());
 			_channels.insert(std::pair<std::string, Channel *>(*it_channel_name, channel));
 			_join_channel(*client, *channel);
-			//TODO: maybe delete
-			if (it_keys != it_keys_end)
-			{
-				channel->set_key(*it_keys);
-				channel->set_mode('+', 'k');
-				std::string channel_mode = "+k";
-				_tcp_server.schedule_sent_message(make_reply_MODE(*client, *channel, channel_mode, *it_keys));
-				it_keys++;
-			}
 		}
+		if (it_keys != it_keys_end)
+			it_keys++;
 	}
 }
 
@@ -825,8 +857,12 @@ void IRCServer::_execute_away(IRCMessage const & message) {
 
 void IRCServer::_execute_oper(const IRCMessage & message) {
 	IRCClient * client = _clients.at(message.get_sender());
-	//TODO: Sanity check -> ERR_NEEDMOREPARAMS
-	if (message.get_params().at(0) != _operator_name ||
+	if (client->get_mode().find('o') != std::string::npos)
+		return ;
+/*	int err = message._sanity_check();
+	if (err == ERR_NEEDMOREPARAMS)
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+	else */if (message.get_params().at(0) != _operator_name ||
 		message.get_params().at(1) != _operator_password) {
 		// If operator name or password is incorrect, send ERR_PASSWDMISMATCH
 		_tcp_server.schedule_sent_message(make_reply_ERR_PASSWDMISMATCH(*client));
@@ -834,6 +870,7 @@ void IRCServer::_execute_oper(const IRCMessage & message) {
 		// Else, add operator mode to user and send RPL_YOUREOPER
 		client->set_mode('+', 'o');
 		_tcp_server.schedule_sent_message(make_reply_RPL_YOUREOPER(*client));
+		_tcp_server.schedule_sent_message(make_reply_RPL_UMODEIS(*client));
 	}
 }
 
