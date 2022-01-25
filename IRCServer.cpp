@@ -658,39 +658,42 @@ void IRCServer::_execute_notice(IRCMessage const & message) {
 void IRCServer::_execute_topic(IRCMessage const & message) {
 	std::cout << "Executing TOPIC: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
+
+/*	int err = message._sanity_check();
+	if (err == ERR_NEEDMOREPARAMS)
+	{
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+		return ;
+	}
+*/
+
 	std::string channel_name = message.get_params().at(0);
 
 	std::map<std::string, Channel *>::const_iterator it = find_channel(channel_name);
-	if (it == _channels.end()) {//TODO: change 403 ERR_NOSUHCHANNEL ??
-		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
-		_tcp_server.schedule_sent_message(reply);
+	if (it == _channels.end()) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_NOSUCHCHANNEL(*client, channel_name));
 		return;
 	}
 	Channel * channel_tmp = it->second;
-	if (find(channel_tmp->clients_begin(), channel_tmp->clients_end(), message.get_sender()) ==
+	if (find(channel_tmp->clients_begin(), channel_tmp->clients_end(), client->get_fd()) ==
 		channel_tmp->clients_end()) {
-		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
-		_tcp_server.schedule_sent_message(reply);
+		_tcp_server.schedule_sent_message(make_reply_ERR_NOTONCHANNEL(*client, channel_name));
 		return;
 	}
 	if (message.get_params().size() > 1) {
 		if (find(channel_tmp->channel_op_begin(), channel_tmp->channel_op_end(),
 				 message.get_sender()) == channel_tmp->channel_op_end()) {
-			TCPMessage reply = make_reply_ERR_CHANOPRIVSNEEDED(*client, channel_name);
-			_tcp_server.schedule_sent_message(TCPMessage(reply));
+			_tcp_server.schedule_sent_message(make_reply_ERR_CHANOPRIVSNEEDED(*client, channel_name));
 		} else {//TODO: if topic stored on several parameters ==> loop
 			channel_tmp->set_topic(message.get_params().at(1));
-			TCPMessage reply = make_reply_TOPIC(*client, *channel_tmp);
-			_tcp_server.schedule_sent_message(reply);
+			_tcp_server.schedule_sent_message(make_reply_TOPIC(*client, *channel_tmp));
 		}
 		return;
 	} else {
 		if (!channel_tmp->get_topic().empty()) {
-			TCPMessage reply = make_reply_RPL_TOPIC(*client, *channel_tmp);
-			_tcp_server.schedule_sent_message(reply);
+			_tcp_server.schedule_sent_message(make_reply_RPL_TOPIC(*client, *channel_tmp));
 		} else {
-			TCPMessage reply = make_reply_RPL_NOTOPIC(*client, *channel_tmp);
-			_tcp_server.schedule_sent_message(reply);
+			_tcp_server.schedule_sent_message(make_reply_RPL_NOTOPIC(*client, *channel_tmp));
 		}
 	}
 }
