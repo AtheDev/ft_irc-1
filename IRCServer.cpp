@@ -715,31 +715,26 @@ void IRCServer::_execute_names(IRCMessage const & message) {
 		std::map<std::string, Channel *>::iterator it = _channels.begin();
 		for (; it != _channels.end(); it++) {
 			users_list = _get_formatted_clients_from_channel(it->second->get_name());
-			TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(it->second), users_list);
-			_tcp_server.schedule_sent_message(reply);
-			reply = make_reply_RPL_ENDOFNAMES(*client, (*it->second).get_name());
-			_tcp_server.schedule_sent_message(reply);
+			_tcp_server.schedule_sent_message(make_reply_RPL_NAMREPLY(*client, *(it->second), users_list));
+			_tcp_server.schedule_sent_message(make_reply_RPL_ENDOFNAMES(*client, (*it->second).get_name()));
 		}
 		users_list = _get_formatted_clients_without_channel();
 		if (!users_list.empty()) {
 			std::string channel_name = "*";
 			Channel tmp(channel_name);
-			TCPMessage reply = make_reply_RPL_NAMREPLY(*client, tmp, users_list);
-			_tcp_server.schedule_sent_message(reply);
-			reply = make_reply_RPL_ENDOFNAMES(*client, channel_name);
-			_tcp_server.schedule_sent_message(reply);
+			_tcp_server.schedule_sent_message(make_reply_RPL_NAMREPLY(*client, tmp, users_list));
+			_tcp_server.schedule_sent_message(make_reply_RPL_ENDOFNAMES(*client, channel_name));
 		}
 	} else {
-		for (size_t i = 0; i < message.get_params().size(); i++) {
+		std::vector<std::string> channel_names = ft_split(message.get_params().at(0), ",");
+		for (size_t i = 0; i < channel_names.size(); i++) {
 			std::map<std::string, Channel *>::const_iterator
-					it = find_channel(message.get_params()[i]);
+					it = find_channel(channel_names[i]);
 			if (it != _channels.end()) {
 				users_list = _get_formatted_clients_from_channel(it->second->get_name());
-				TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(it->second), users_list);
-				_tcp_server.schedule_sent_message(reply);
-				reply = make_reply_RPL_ENDOFNAMES(*client, message.get_params()[i]);
-				_tcp_server.schedule_sent_message(reply);
+				_tcp_server.schedule_sent_message(make_reply_RPL_NAMREPLY(*client, *(it->second), users_list));
 			}
+			_tcp_server.schedule_sent_message(make_reply_RPL_ENDOFNAMES(*client, channel_names[i]));
 		}
 	}
 }
