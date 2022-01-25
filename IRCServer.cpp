@@ -517,6 +517,14 @@ void IRCServer::_execute_join(IRCMessage const & message) {
 void IRCServer::_execute_part(IRCMessage const & message) {
 	std::cout << "Executing PART: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
+
+/*	int err = message._sanity_check();
+	if (err == ERR_NEEDMOREPARAMS) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+		return ;
+	}
+*/
+
 	std::vector<std::string> channel_names = ft_split(message.get_params().at(0), ",");
 	std::string part_message;
 	if (message.get_params().size() == 2) {
@@ -528,13 +536,11 @@ void IRCServer::_execute_part(IRCMessage const & message) {
 			Channel * channel = _channels.at(*it_channel_name);
 			if (!channel->has_client(message.get_sender())) {
 				// If client isn't on the channel, send NOTONCHANNEL
-				TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, *it_channel_name);
-				_tcp_server.schedule_sent_message(reply);
+				_tcp_server.schedule_sent_message(make_reply_ERR_NOTONCHANNEL(*client, *it_channel_name));
 			} else {
 				// Else, broadcast to channel's users that a new user joined the channel
-				TCPMessage reply = make_reply_PART(*client, *channel, part_message);
+				_tcp_server.schedule_sent_message(make_reply_PART(*client, *channel, part_message));
 				channel->remove_client(message.get_sender());
-				_tcp_server.schedule_sent_message(reply);
 				// And remove the channel if it's empty
 				if (channel->get_clients().empty()) {
 					std::cout << "Channel " << *it_channel_name << " deleted." << std::endl;
@@ -544,8 +550,7 @@ void IRCServer::_execute_part(IRCMessage const & message) {
 			}
 		} catch (std::out_of_range & e) {
 			// If channel doesn't exist, send NOSUCHCHANNEL
-			TCPMessage reply = make_reply_ERR_NOSUCHCHANNEL(*client, *it_channel_name);
-			_tcp_server.schedule_sent_message(reply);
+			_tcp_server.schedule_sent_message(make_reply_ERR_NOSUCHCHANNEL(*client, *it_channel_name));
 		}
 	}
 }
