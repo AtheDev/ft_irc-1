@@ -2,7 +2,7 @@
 
 
 IRCServer::IRCServer(const std::string & port, const std::string & password) :
-		_tcp_server(port), _password(password), _servername("IRC Server VTA !"), _version("42.42") {
+		_tcp_server(port), _running(false), _password(password), _servername("IRC Server VTA !"), _version("42.42") {
 
 	time_t raw_time;
 	time(&raw_time);
@@ -27,14 +27,16 @@ IRCServer::IRCServer(const std::string & port, const std::string & password) :
 	_commands["PING"] = &IRCServer::_execute_ping;
 	_commands["AWAY"] = &IRCServer::_execute_away;
 	_commands["OPER"] = &IRCServer::_execute_oper;
-	_commands["KILL"] = &IRCServer::_execute_kill;
+	//TODO: IRCMessage should convert in all caps !
 	_commands["kill"] = &IRCServer::_execute_kill;
+	_commands["die"] = &IRCServer::_execute_die;
 }
 
 IRCServer::~IRCServer() {}
 
 void IRCServer::start() {
 	_tcp_server.start();
+	_running = true;
 	_run();
 }
 
@@ -42,11 +44,18 @@ void IRCServer::stop() {
 	_tcp_server.stop();
 	_commands.clear();
 	if (!(_clients.empty())) {
-		std::map<int, IRCClient *>::iterator it = _clients.begin();
-		for (; it != _clients.end(); it++) {
-			delete _clients[it->first];
+		std::map<int, IRCClient *>::iterator it_client = _clients.begin();
+		for (; it_client != _clients.end(); it_client++) {
+			delete _clients[it_client->first];
 		}
 		_clients.clear();
+	}
+	if (!_channels.empty()) {
+		std::map<std::string, Channel *>::iterator it_channel = _channels.begin();
+		for (; it_channel != _channels.end(); it_channel++) {
+			delete _channels[it_channel->first];
+		}
+		_channels.clear();
 	}
 }
 
@@ -58,6 +67,11 @@ void IRCServer::_run() {
 		} catch (TCPServer::ErrorSignalException & e) {
 			throw e;
 		}
+
+		if (!_running) {
+			break;
+		}
+
 		// Récupérer les nouveaux clients et supprimer les clients déconnectés
 		_add_clients(_tcp_server.get_new_clients());
 		_remove_clients(_tcp_server.get_disconnected_clients());
@@ -72,6 +86,7 @@ void IRCServer::_run() {
 			}
 		}
 	}
+	stop();
 }
 
 void IRCServer::_add_clients(const std::vector<int> & new_clients) {
@@ -896,8 +911,23 @@ void IRCServer::_execute_kill(const IRCMessage & message) {
 	IRCClient * killed = find_nickname(nick_killed)->second;
 	_tcp_server.schedule_sent_message(make_reply_KILL(*killer, *killed, comment));
 	//TODO: broadcast a QUIT message to all uses sharing a channel with killed ?
-	_tcp_server.add_client_to_disconnect(killed->get_fd()); //TODO: to check ?
+	_tcp_server.add_client_to_disconnect(killed->get_fd());
 	_tcp_server.schedule_sent_message(make_reply_ERROR(*killed, comment));
+}
+
+void IRCServer::_execute_die(const IRCMessage & message) {
+	IRCClient * killer = _clients.at(message.get_sender());
+	if (!killer->is_mode('o')) {
+		// If killer isn't oper -> ERR_NOPRIVILEGES
+		_tcp_server.schedule_sent_message(make_reply_ERR_NOPRIVILEGES(*killer));
+		return;
+	}
+	std::map<int, IRCClient *>::const_iterator it_client = _clients.begin();
+	for (; it_client != _clients.end(); it_client++) {
+		_tcp_server.add_client_to_disconnect(it_client->first);
+		_tcp_server.schedule_sent_message(make_reply_ERROR(*it_client->second, "Server is shutting down."));
+	}
+	_running = false;
 }
 
 std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(

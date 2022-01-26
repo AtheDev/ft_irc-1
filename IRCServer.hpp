@@ -32,6 +32,7 @@ class IRCServer {
 
 	private:
 		TCPServer _tcp_server;
+		bool _running;
 		std::string _password;
 		std::string _servername;
 		std::string _version;
@@ -68,6 +69,7 @@ class IRCServer {
 		void _execute_away(IRCMessage const & message);
 		void _execute_oper(IRCMessage const & message);
 		void _execute_kill(IRCMessage const & message);
+		void _execute_die(IRCMessage const & message);
 
 		void	_join_channel(const IRCClient & client, Channel & channel);
 		void	_leave_all_channels(const IRCClient & client);
