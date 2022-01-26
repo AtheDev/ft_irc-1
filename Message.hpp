@@ -59,6 +59,13 @@
 # define CHANNEL_LIST		CHANNEL "*((:)[," CHANNEL "])"
 # define KEY_LIST			KEY "*((:)[," KEY "])"
 
+
+
+#define ERR_NONICKNAMEGIVEN 431
+#define ERR_ERRONEUSNICKNAME 432
+#define ERR_NEEDMOREPARAMS 461
+#define ERR_BADCHANMASK 476
+
 enum err_ircmessage {
 	OK = 0,
 	ERR_INVALID_PARAM_AMOUNT,

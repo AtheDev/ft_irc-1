@@ -128,9 +128,9 @@ TCPMessage make_reply_ERR_NOTEXTTOSEND(const IRCClient & client);
 //414
 //TCPMessage make_reply_ERR_WILDTOPLEVEL(const IRCClient & client, mask) ("414" + mask + " :Wildcard in toplevel domain")
 //431
-//TCPMessage make_reply_ERR_NONICKNAMEGIVEN(const IRCClient & client, ) ("431 :No nickname given")
+TCPMessage make_reply_ERR_NONICKNAMEGIVEN(const IRCClient & client);
 //432
-//TCPMessage make_reply_ERR_ERRONEUSNICKNAME(const IRCClient & client, nick) ("432" + nick + " :Erroneous nickname")
+TCPMessage make_reply_ERR_ERRONEUSNICKNAME(const IRCClient & client, const std::string & nickname);
 //433
 TCPMessage make_reply_ERR_NICKNAMEINUSE(const IRCClient & client, const std::string & nickname);
 //436
@@ -141,7 +141,7 @@ TCPMessage make_reply_ERR_USERNOTINCHANNEL(const IRCClient & client, const std::
 //442
 TCPMessage make_reply_ERR_NOTONCHANNEL(const IRCClient & client, const std::string & channel_name);
 //461
-//TCPMessage make_reply_ERR_NEEDMOREPARAMS(const IRCClient & client, command) ("461" + command + " :Not enough parameters")
+TCPMessage make_reply_ERR_NEEDMOREPARAMS(const IRCClient & client, const std::string & command);
 //462
 TCPMessage make_reply_ERR_ALREADYREGISTRED(const IRCClient & client);
 //464
@@ -159,7 +159,7 @@ TCPMessage make_reply_ERR_UNKNOWNMODE(const IRCClient & client, const std::strin
 //475
 TCPMessage make_reply_ERR_BADCHANNELKEY(const IRCClient & client, const std::string & channel_name);
 //476
-//TCPMessage make_reply_ERR_BADCHANMASK(const IRCClient & client, channel) ("476" + channel + " :Bad Channel Mask")
+TCPMessage make_reply_ERR_BADCHANMASK(const IRCClient & client, const std::string & channel_name);
 //481
 TCPMessage make_reply_ERR_NOPRIVILEGES(const IRCClient & client);
 //482
