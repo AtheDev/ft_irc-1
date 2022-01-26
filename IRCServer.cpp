@@ -2,7 +2,8 @@
 
 
 IRCServer::IRCServer(const std::string & port, const std::string & password) :
-		_tcp_server(port), _running(false), _password(password), _servername("IRC Server VTA !"), _version("42.42") {
+		_tcp_server(port), _running(false), _password(password), _servername("IRC Server VTA !"),
+		_version("42.42") {
 
 	time_t raw_time;
 	time(&raw_time);
@@ -138,7 +139,7 @@ void IRCServer::_execute_pass(IRCMessage const & message) {
 	IRCClient * client = _clients.at(message.get_sender());
 	if (client->get_status() != UNREGISTERED) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_ALREADYREGISTRED(*client));
-		return ;
+		return;
 	}
 /*	int err = message._sanity_check();
 	if (err == ERR_NEEDMOREPARAMS)
@@ -221,7 +222,7 @@ void IRCServer::_execute_user(IRCMessage const & message) {
 
 	if (status == REGISTERED) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_ALREADYREGISTRED(*client));
-		return ;
+		return;
 	}
 /*	int err = message._sanity_check();
 	if (err == ERR_NEEDMOREPARAMS)
@@ -242,7 +243,7 @@ void IRCServer::_execute_user(IRCMessage const & message) {
 		client->set_realname(message.get_params().at(3));
 		client->set_status(REGISTERED);
 		// TODO: To change ?
-		std::string user_modes(USER_MODES()) , channel_modes(CHANNEL_MODES());
+		std::string user_modes(USER_MODES()), channel_modes(CHANNEL_MODES());
 
 		TCPMessage reply = make_reply_RPL_WELCOME(*client);
 		_tcp_server.schedule_sent_message(reply);
@@ -437,9 +438,8 @@ void IRCServer::_join_channel(const IRCClient & client, Channel & channel) {
 void IRCServer::_leave_all_channels(const IRCClient & client) {
 	std::vector<Channel *> channels = _get_client_channels(client.get_fd());
 	std::vector<Channel *>::iterator it_channel = channels.begin();
-	for (; it_channel != channels.end(); it_channel++)
-	{
-		Channel *channel = _channels.at((*it_channel)->get_name());
+	for (; it_channel != channels.end(); it_channel++) {
+		Channel * channel = _channels.at((*it_channel)->get_name());
 		_tcp_server.schedule_sent_message(make_reply_PART(client, *channel, ""));
 		channel->remove_client(client.get_fd());
 		if (channel->get_clients().empty()) {
@@ -457,20 +457,18 @@ void IRCServer::_execute_join(IRCMessage const & message) {
 	std::cout << "Executing JOIN: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	std::vector<std::string> channel_names = ft_split(message.get_params()[0], ",");
-	if (*channel_names.begin() == "0")
-	{
+	if (*channel_names.begin() == "0") {
 		_leave_all_channels(*client);
-		return ;
+		return;
 	}
-	bool new_channel = false;
+	bool channel_exists;
 	std::vector<std::string> channel_keys;
-	std::vector<std::string>::const_iterator it_keys;
-	std::vector<std::string>::const_iterator it_keys_end;
-	if (message.get_params().size() > 1)
-	{
+	std::vector<std::string>::const_iterator it_key;
+	std::vector<std::string>::const_iterator it_key_end;
+	if (message.get_params().size() > 1) {
 		channel_keys = ft_split(message.get_params()[1], ",");
-		it_keys = channel_keys.begin();
-		it_keys_end = channel_keys.end();
+		it_key = channel_keys.begin();
+		it_key_end = channel_keys.end();
 	}
 	std::vector<std::string>::const_iterator it_channel_name = channel_names.begin();
 	/*int err = message._sanity_check();
@@ -481,45 +479,40 @@ void IRCServer::_execute_join(IRCMessage const & message) {
 	if (err != 0)
 		return ;
 */
+	Channel * channel;
 	for (; it_channel_name != channel_names.end(); it_channel_name++) {
-	
-		Channel * channel;
+		// If client cannot join new channels, send ERR_TOMANYCHANNELS and continue
+		if (_get_client_channels(client->get_fd()).size() == MAX_CHANNELS) {
+			TCPMessage reply = make_reply_ERR_TOOMANYCHANNELS(*client, *it_channel_name);
+			_tcp_server.schedule_sent_message(reply);
+			continue;
+		}
+		// Get the channel if it exists
 		try {
 			channel = _channels.at(*it_channel_name);
-			new_channel = false;
+			channel_exists = true;
 		} catch (std::out_of_range & e) {
-			new_channel = true;
+			channel_exists = false;
 		}
-		if (_get_client_channels(client->get_fd()).size() == MAX_CHANNELS)
-			_tcp_server.schedule_sent_message(make_reply_ERR_TOOMANYCHANNELS(*client, *it_channel_name));
-		else if (new_channel == false)
-		{
-			if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) != channel->clients_end())
-				;
-			else if (channel->get_mode().find('k') != std::string::npos)
-			{
-				if (it_keys == it_keys_end)
-					_tcp_server.schedule_sent_message(make_reply_ERR_BADCHANNELKEY(*client, *it_channel_name));
-				else
-				{
-					if (*it_keys != channel->get_key())
-						_tcp_server.schedule_sent_message(make_reply_ERR_BADCHANNELKEY(*client, *it_channel_name));
-					else
-						_join_channel(*client, *channel);
-				}
-			}
-			else
+		if (channel_exists) {
+			if (channel->is_mode('k') && (it_key == it_key_end || *it_key != channel->get_key())) {
+				// If channel has a key and key doesn't correspond, send ERR_BADCHANNELKEY
+				TCPMessage reply = make_reply_ERR_BADCHANNELKEY(*client, *it_channel_name);
+				_tcp_server.schedule_sent_message(reply);
+			} else {
+				// Else, join channel
 				_join_channel(*client, *channel);
-		}
-		else
-		{
+			}
+		} else {
+			// If channel doesn't exist, create it and add client as chanop
 			channel = new Channel(*it_channel_name);
 			channel->add_client_to_channel_operator(client->get_fd());
 			_channels.insert(std::pair<std::string, Channel *>(*it_channel_name, channel));
 			_join_channel(*client, *channel);
 		}
-		if (it_keys != it_keys_end)
-			it_keys++;
+		if (it_key != it_key_end) {
+			it_key++;
+		}
 	}
 }
 
@@ -550,7 +543,8 @@ void IRCServer::_execute_part(IRCMessage const & message) {
 			Channel * channel = _channels.at(*it_channel_name);
 			if (!channel->has_client(message.get_sender())) {
 				// If client isn't on the channel, send NOTONCHANNEL
-				_tcp_server.schedule_sent_message(make_reply_ERR_NOTONCHANNEL(*client, *it_channel_name));
+				_tcp_server.schedule_sent_message(
+						make_reply_ERR_NOTONCHANNEL(*client, *it_channel_name));
 			} else {
 				// Else, broadcast to channel's users that a new user joined the channel
 				_tcp_server.schedule_sent_message(make_reply_PART(*client, *channel, part_message));
@@ -564,7 +558,8 @@ void IRCServer::_execute_part(IRCMessage const & message) {
 			}
 		} catch (std::out_of_range & e) {
 			// If channel doesn't exist, send NOSUCHCHANNEL
-			_tcp_server.schedule_sent_message(make_reply_ERR_NOSUCHCHANNEL(*client, *it_channel_name));
+			_tcp_server.schedule_sent_message(
+					make_reply_ERR_NOSUCHCHANNEL(*client, *it_channel_name));
 		}
 	}
 }
@@ -702,7 +697,8 @@ void IRCServer::_execute_topic(IRCMessage const & message) {
 	if (message.get_params().size() > 1) {
 		if (find(channel_tmp->channel_op_begin(), channel_tmp->channel_op_end(),
 				 message.get_sender()) == channel_tmp->channel_op_end()) {
-			_tcp_server.schedule_sent_message(make_reply_ERR_CHANOPRIVSNEEDED(*client, channel_name));
+			_tcp_server.schedule_sent_message(
+					make_reply_ERR_CHANOPRIVSNEEDED(*client, channel_name));
 		} else {//TODO: if topic stored on several parameters ==> loop
 			channel_tmp->set_topic(message.get_params().at(1));
 			_tcp_server.schedule_sent_message(make_reply_TOPIC(*client, *channel_tmp));
@@ -729,8 +725,10 @@ void IRCServer::_execute_names(IRCMessage const & message) {
 		std::map<std::string, Channel *>::iterator it = _channels.begin();
 		for (; it != _channels.end(); it++) {
 			users_list = _get_formatted_clients_from_channel(it->second->get_name());
-			_tcp_server.schedule_sent_message(make_reply_RPL_NAMREPLY(*client, *(it->second), users_list));
-			_tcp_server.schedule_sent_message(make_reply_RPL_ENDOFNAMES(*client, (*it->second).get_name()));
+			_tcp_server.schedule_sent_message(
+					make_reply_RPL_NAMREPLY(*client, *(it->second), users_list));
+			_tcp_server.schedule_sent_message(
+					make_reply_RPL_ENDOFNAMES(*client, (*it->second).get_name()));
 		}
 		users_list = _get_formatted_clients_without_channel();
 		if (!users_list.empty()) {
@@ -742,11 +740,11 @@ void IRCServer::_execute_names(IRCMessage const & message) {
 	} else {
 		std::vector<std::string> channel_names = ft_split(message.get_params().at(0), ",");
 		for (size_t i = 0; i < channel_names.size(); i++) {
-			std::map<std::string, Channel *>::const_iterator
-					it = find_channel(channel_names[i]);
+			std::map<std::string, Channel *>::const_iterator it = find_channel(channel_names[i]);
 			if (it != _channels.end()) {
 				users_list = _get_formatted_clients_from_channel(it->second->get_name());
-				_tcp_server.schedule_sent_message(make_reply_RPL_NAMREPLY(*client, *(it->second), users_list));
+				_tcp_server.schedule_sent_message(
+						make_reply_RPL_NAMREPLY(*client, *(it->second), users_list));
 			}
 			_tcp_server.schedule_sent_message(make_reply_RPL_ENDOFNAMES(*client, channel_names[i]));
 		}
@@ -874,13 +872,14 @@ void IRCServer::_execute_away(IRCMessage const & message) {
 
 void IRCServer::_execute_oper(const IRCMessage & message) {
 	IRCClient * client = _clients.at(message.get_sender());
-	if (client->get_mode().find('o') != std::string::npos)
-		return ;
+	if (client->get_mode().find('o') != std::string::npos) {
+		return;
+	}
 /*	int err = message._sanity_check();
 	if (err == ERR_NEEDMOREPARAMS)
 		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
 	else */if (message.get_params().at(0) != _operator_name ||
-		message.get_params().at(1) != _operator_password) {
+			   message.get_params().at(1) != _operator_password) {
 		// If operator name or password is incorrect, send ERR_PASSWDMISMATCH
 		_tcp_server.schedule_sent_message(make_reply_ERR_PASSWDMISMATCH(*client));
 	} else {
@@ -924,7 +923,8 @@ void IRCServer::_execute_die(const IRCMessage & message) {
 	std::map<int, IRCClient *>::const_iterator it_client = _clients.begin();
 	for (; it_client != _clients.end(); it_client++) {
 		_tcp_server.add_client_to_disconnect(it_client->first);
-		_tcp_server.schedule_sent_message(make_reply_ERROR(*it_client->second, "Server is shutting down."));
+		_tcp_server.schedule_sent_message(
+				make_reply_ERROR(*it_client->second, "Server is shutting down."));
 	}
 	_running = false;
 }

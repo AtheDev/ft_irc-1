@@ -34,6 +34,7 @@ class Channel {
 		bool remove_client_to_channel_operator(int socketfd);
 
 		bool has_client(int socketfd);
+		bool is_mode(const char mode);
 
 		std::vector<int>::const_iterator clients_begin() const;
 		std::vector<int>::const_iterator clients_end() const;
