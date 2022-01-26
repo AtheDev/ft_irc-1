@@ -1,7 +1,7 @@
 #include "IRCServer.hpp"
 
 
-IRCServer::IRCServer(std::string port, std::string password) :
+IRCServer::IRCServer(const std::string & port, const std::string & password) :
 		_tcp_server(port), _password(password), _servername("IRC Server VTA !"), _version("42.42") {
 
 	time_t raw_time;
@@ -27,6 +27,8 @@ IRCServer::IRCServer(std::string port, std::string password) :
 	_commands["PING"] = &IRCServer::_execute_ping;
 	_commands["AWAY"] = &IRCServer::_execute_away;
 	_commands["OPER"] = &IRCServer::_execute_oper;
+	_commands["KILL"] = &IRCServer::_execute_kill;
+	_commands["kill"] = &IRCServer::_execute_kill;
 }
 
 IRCServer::~IRCServer() {}
@@ -48,14 +50,6 @@ void IRCServer::stop() {
 	}
 }
 
-std::map<int, IRCClient *> IRCServer::get_clients() const { return _clients; }
-
-std::string const & IRCServer::get_servername() const { return _servername; }
-
-std::string const & IRCServer::get_version() const { return _version; }
-
-std::string const & IRCServer::get_server_creation_date() const { return _server_creation_date; }
-
 void IRCServer::_run() {
 	while (true) {
 		// Appel à update
@@ -73,8 +67,9 @@ void IRCServer::_run() {
 				it_message = _tcp_server.get_messages_received().begin();
 		for (; it_message != _tcp_server.get_messages_received().end(); it_message++) {
 			IRCMessage const & irc_message = IRCMessage(*it_message);
-			if (_is_connected(irc_message.get_sender()) == true)
+			if (_is_connected(irc_message.get_sender())) {
 				_execute_command(irc_message);
+			}
 		}
 	}
 }
@@ -90,9 +85,14 @@ void IRCServer::_add_clients(const std::vector<int> & new_clients) {
 void IRCServer::_remove_clients(const std::vector<int> & disconnected_clients) {
 	std::vector<int>::const_iterator it_client = disconnected_clients.begin();
 	for (; it_client != disconnected_clients.end(); it_client++) {
-		_remove_client_from_all_channels(*it_client);
-		delete _clients[*it_client];
-		_clients.erase(*it_client);
+		try {
+			_clients.at(*it_client);
+			_remove_client_from_all_channels(*it_client);
+			delete _clients[*it_client];
+			_clients.erase(*it_client);
+		} catch (std::out_of_range & e) {
+			// If the client doesn't exist, we ignore it.
+		};
 	}
 }
 
@@ -121,21 +121,24 @@ void IRCServer::_execute_command(IRCMessage const & message) {
 void IRCServer::_execute_pass(IRCMessage const & message) {
 	std::cout << "Executing PASS: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-	if (client->get_status() == UNREGISTERED) {
-		if (_password == message.get_params()[0])
-		{
-			client->set_password(message.get_params()[0]);
+	if (client->get_status() != UNREGISTERED) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_ALREADYREGISTRED(*client));
+		return ;
+	}
+/*	int err = message._sanity_check();
+	if (err == ERR_NEEDMOREPARAMS)
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+	else */if (client->get_status() == UNREGISTERED) {
+		if (_password == message.get_params().at(0)) {
+			client->set_password(message.get_params().at(0));
 			client->set_status(PASSWORD);
 		}
-		else
-		{
-			std::cout << "Wrong password" << std::endl; //DEBUG
-			std::vector<int> disconnected_client(1u, client->get_fd());
-			_tcp_server.get_failed_clients_connections().push_back(client->get_fd());
-			_remove_clients(disconnected_client);
-		}
-	} else {
-		_tcp_server.schedule_sent_message(make_reply_ERR_ALREADYREGISTRED(*client));
+	}
+	if (client->get_status() == UNREGISTERED) {
+		std::cout << "Wrong password or need more params" << std::endl; //DEBUG
+		std::vector<int> disconnected_client(1u, client->get_fd());
+		_tcp_server.add_client_to_disconnect(client->get_fd());
+		_remove_clients(disconnected_client);
 	}
 }
 
@@ -146,23 +149,31 @@ void IRCServer::_execute_pass(IRCMessage const & message) {
 void IRCServer::_execute_nick(IRCMessage const & message) {
 	std::cout << "Executing NICK: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-	std::string nick = message.get_params()[0];
 
-	std::map<int, IRCClient *>::const_iterator it_client;
-	if (client->get_status() == UNREGISTERED)
+/*	int err = message._sanity_check();
+	if (err == ERR_NONICKNAMEGIVEN)
+		_tcp_server.schedule_sent_message(make_reply_ERR_NONICKNAMEGIVEN(*client));
+	else if (err == ERR_ERRONEUSNICKNAME)
+		_tcp_server.schedule_sent_message(make_reply_ERR_ERRONEUSNICKNAME(*client, message.get_params()[0]));
+	if (err != 0)
 	{
+		if (client->get_status() == UNREGISTERED || client->get_status() == PASSWORD)
+		{
+			std::vector<int> disconnected_client(1u, client->get_fd());
+			_tcp_server.add_client_to_disconnect(client->get_fd());
+			_remove_clients(disconnected_client);
+		}
+		return ;
+	}
+*/
+	std::string nick = message.get_params().at(0);
+	if (client->get_status() == UNREGISTERED) {
 		std::cout << "PASS command not executed before NICK command" << std::endl; //DEBUG
 		std::vector<int> disconnected_client(1u, client->get_fd());
-		_tcp_server.get_failed_clients_connections().push_back(client->get_fd());
+		_tcp_server.add_client_to_disconnect(client->get_fd());
 		_remove_clients(disconnected_client);
-	}
-	else if (client->get_nickname() == nick) {
-		TCPMessage reply = make_reply_ERR_NICKNAMEINUSE(*client, nick);
-		_tcp_server.schedule_sent_message(reply);
-	} else if ((it_client = find_nickname(nick)) != _clients.end()) {
-		IRCClient * collided_client = it_client->second;
-		TCPMessage reply = make_reply_ERR_NICKCOLLISION(*client, *collided_client);
-		_tcp_server.schedule_sent_message(reply);
+	} else if (find_nickname(nick) != _clients.end()) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_NICKNAMEINUSE(*client, nick));
 	} else {
 		if (client->get_status() == PASSWORD) {
 			client->set_status(NICKNAME);
@@ -171,16 +182,17 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 		receivers.push_back(client->get_fd());
 		std::vector<Channel *> channels = _get_client_channels(client->get_fd());
 		std::vector<Channel *>::const_iterator it_channel = channels.begin();
-		for (; it_channel != channels.end(); it_channel++)
-		{
-			Channel *tmp = *it_channel;
-			std::vector<int>::const_iterator it_client = tmp->clients_begin();
-			for (; it_client != tmp->clients_end(); it_client++)
-				if (find(receivers.begin(), receivers.end(), *it_client) == receivers.end())
-					receivers.push_back(*it_client);
+		for (; it_channel != channels.end(); it_channel++) {
+			Channel * tmp = *it_channel;
+			std::vector<int>::const_iterator it = tmp->clients_begin();
+			for (; it != tmp->clients_end(); it++) {
+				if (find(receivers.begin(), receivers.end(), *it) == receivers.end()) {
+					receivers.push_back(*it);
+				}
+			}
 		}
 		_tcp_server.schedule_sent_message(make_reply_NICK(*client, nick, receivers));
-		client->set_nickname(message.get_params()[0]);
+		client->set_nickname(message.get_params().at(0));
 	}
 }
 
@@ -194,15 +206,29 @@ void IRCServer::_execute_user(IRCMessage const & message) {
 	int status = client->get_status();
 
 	if (status == REGISTERED) {
-		TCPMessage reply = make_reply_ERR_ALREADYREGISTRED(*client);
-		_tcp_server.schedule_sent_message(reply);
-	} else if (status == NICKNAME) {
-		client->set_username(message.get_params()[0]);
-		client->set_hostname(message.get_params()[1]); // TODO: To change ?
-		client->set_realname(message.get_params()[3]);
+		_tcp_server.schedule_sent_message(make_reply_ERR_ALREADYREGISTRED(*client));
+		return ;
+	}
+/*	int err = message._sanity_check();
+	if (err == ERR_NEEDMOREPARAMS)
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+	if (ret != 0) {
+		if (client->get_status() != REGISTERED)
+		{
+			std::vector<int> disconnected_client(1u, client->get_fd());
+			_tcp_server.add_client_to_disconnect(client->get_fd());
+			_remove_clients(disconnected_client);
+		}
+		return ;
+	}
+*/
+	if (status == NICKNAME) {
+		client->set_username(message.get_params().at(0));
+		client->set_hostname(message.get_params().at(1)); // TODO: To change ?
+		client->set_realname(message.get_params().at(3));
 		client->set_status(REGISTERED);
 		// TODO: To change ?
-		std::string user_modes("USER_MODES"), channel_modes("CHANNEL_MODES");
+		std::string user_modes(USER_MODES()) , channel_modes(CHANNEL_MODES());
 
 		TCPMessage reply = make_reply_RPL_WELCOME(*client);
 		_tcp_server.schedule_sent_message(reply);
@@ -219,33 +245,30 @@ void IRCServer::_execute_user(IRCMessage const & message) {
  * @brief Executes a MODE command for user.
  * @param message The message containing the MODE command for user.
  */
-void IRCServer::_execute_mode_user(IRCMessage const & message)
-{
+void IRCServer::_execute_mode_user(IRCMessage const & message) {
 	std::cout << "Executing MODE USER: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	std::vector<std::string> params = message.get_params();
-	if (params[0] != client->get_nickname())
+	if (params[0] != client->get_nickname()) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_USERSDONTMATCH(*client));
-	else if (params[0] == client->get_nickname() && params.size() == 1)
+	} else if (params[0] == client->get_nickname() && params.size() == 1) {
 		_tcp_server.schedule_sent_message(make_reply_RPL_UMODEIS(*client));
-	else if (params[0] == client->get_nickname())
-	{
+	} else if (params[0] == client->get_nickname()) {
 		//std::string	new_mode;
 		std::string user_modes = USER_MODES();
-		bool sign = 1;
-		for (size_t i = 0; i < params[1].size(); i++)
-		{
-			if (params[1][i] == '+')
-				sign = 1;
-			else if (params[1][i] == '-')
-				sign = 0;
-			else if (params[1][i] == 'o')
-			{
-				if (sign == 0)
-					client->set_mode(sign, params[1][i]);
-			}
-			else if (user_modes.find(params[1][i]) == std::string::npos)
+		bool sign = true;
+		for (size_t i = 0; i < params[1].size(); i++) {
+			if (params[1][i] == '+') {
+				sign = true;
+			} else if (params[1][i] == '-') {
+				sign = false;
+			} else if (params[1][i] == 'o') {
+				if (!sign) {
+					client->set_mode('-', params[1][i]);
+				}
+			} else if (user_modes.find(params[1][i]) == std::string::npos) {
 				_tcp_server.schedule_sent_message(make_reply_ERR_UMODEUNKNOWNFLAG(*client));
+			}
 		}
 		_tcp_server.schedule_sent_message(make_reply_RPL_UMODEIS(*client));
 	}
@@ -255,94 +278,95 @@ void IRCServer::_execute_mode_user(IRCMessage const & message)
  * @brief Executes a MODE command for channel.
  * @param message The message containing the MODE command for channel.
  */
-void IRCServer::_execute_mode_channel(IRCMessage const & message)
-{
+void IRCServer::_execute_mode_channel(IRCMessage const & message) {
 	std::cout << "Executing MODE CHANNEL: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	std::vector<std::string> params = message.get_params();
 	Channel * channel;
 	try {
 		channel = _channels.at(params[0]);
-	}
-	catch (std::out_of_range & e) {
+	} catch (std::out_of_range & e) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_NOSUCHCHANNEL(*client, params[0]));
-		return ;
+		return;
 	}
-	if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) == channel->clients_end())
-	{
+	if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) ==
+		channel->clients_end()) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_NOTONCHANNEL(*client, params[0]));
-		return ;
+		return;
 	}
-	if (params.size() == 1)
-	{
+	if (params.size() == 1) {
 		_tcp_server.schedule_sent_message(make_reply_RPL_CHANNELMODEIS(*client, *channel));
-		return ;
+		return;
 	}
-	if (find(channel->channel_op_begin(), channel->channel_op_end(), client->get_fd()) == channel->channel_op_end())
-	{
+	if (find(channel->channel_op_begin(), channel->channel_op_end(), client->get_fd()) ==
+		channel->channel_op_end()) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_CHANOPRIVSNEEDED(*client, params[0]));
-		return ;
+		return;
 	}
 
-	bool sign = 1;
+	bool sign = true;
 	int number = 2;
+	bool ret = false;
 	std::string channel_modes = CHANNEL_MODES();
 	std::string channel_modes_without_params = CHANNEL_MODES_WITHOUT_PARAMS();
-	std::string channel_modes_with_params = CHANNEL_MODES_WITHOUT_PARAMS();
-	for (size_t i = 0; i < params[1].size(); i++)
-	{
-		if (params[1][i] == '+')
-			sign = 1;
-		else if (params[1][i] == '-')
-			sign = 0;
-		else if (params[1][i] == 'o')
-		{
+	std::string channel_modes_with_params = CHANNEL_MODES_WITH_PARAMS();
+	for (size_t i = 0; i < params[1].size(); i++) {
+		if (params[1][i] == '+') {
+			sign = true;
+		} else if (params[1][i] == '-') {
+			sign = false;
+		} else if (params[1][i] == 'o') {
 			std::map<int, IRCClient *>::const_iterator it = find_nickname(params[number]);
 			if (it == _clients.end() ||
-			(find(channel->clients_begin(), channel->clients_end(), it->second->get_fd()) == channel->clients_end()))
-				_tcp_server.schedule_sent_message(make_reply_ERR_USERNOTINCHANNEL(*client, params[0], params[number]));
-			else if (sign == 1)
-			{
-				channel->add_client_to_channel_operator(it->first);
-			}
-			else
-			{
-				if (it->second->get_nickname() == client->get_nickname())
-					channel->remove_client_to_channel_operator(client->get_fd());
+				(find(channel->clients_begin(), channel->clients_end(), it->second->get_fd()) ==
+				 channel->clients_end())) {
+				_tcp_server.schedule_sent_message(
+						make_reply_ERR_USERNOTINCHANNEL(*client, params[0], params[number]));
+			} else if (sign) {
+				ret = channel->add_client_to_channel_operator(it->first);
+			} else {
+				if (it->second->get_nickname() == client->get_nickname()) {
+					ret = channel->remove_client_to_channel_operator(client->get_fd());
+				}
 			}
 			number++;
-		}
-		else if (params[1][i] == 'k')
-		{
-			if (sign == 1)
-			{
+		} else if (params[1][i] == 'k') {
+			if (sign) {
 				std::string mode = channel->get_mode();
-				if (mode.find(params[1][i]) != std::string::npos)
+				if (mode.find(params[1][i]) != std::string::npos) {
 					_tcp_server.schedule_sent_message(make_reply_ERR_KEYSET(*client, params[0]));
-				else
-				{
+				} else {
 					channel->set_mode('+', 'k');
 					channel->set_key(params[number]);
+					ret = true;
 				}
-			}
-			else
-			{
-				if (params[number] == channel->get_key())
-				{
+			} else {
+				if (params[number] == channel->get_key()) {
 					channel->set_mode('-', 'k');
 					channel->set_key("");
+					ret = true;
 				}
 			}
 			number++;
-		}
-		else if (channel_modes_without_params.find(params[1][i]) != std::string::npos)
-			continue ;
-		else if (channel_modes_with_params.find(params[1][i]) != std::string::npos)
+		} else if (channel_modes_without_params.find(params[1][i]) != std::string::npos) {
+			continue;
+		} else if (channel_modes_with_params.find(params[1][i]) != std::string::npos) {
 			number++;
-		else
-			_tcp_server.schedule_sent_message(make_reply_ERR_UNKNOWNMODE(*client, params[0], params[1][i]));
+		} else {
+			_tcp_server.schedule_sent_message(
+					make_reply_ERR_UNKNOWNMODE(*client, params[0], params[1][i]));
+		}
+		if (ret) {
+			std::string channel_mode = "-";
+			if (sign) {
+				channel_mode = "+";
+			}
+			channel_mode.push_back(params[1][i]);
+			_tcp_server.schedule_sent_message(
+					make_reply_MODE(*client, *channel, channel_mode, params[number - 1]));
+			ret = false;
+		}
 	}
-	_tcp_server.schedule_sent_message(make_reply_MODE(*client, *channel));
 }
 
 /**
@@ -351,10 +375,11 @@ void IRCServer::_execute_mode_channel(IRCMessage const & message)
  */
 void IRCServer::_execute_mode(IRCMessage const & message) {
 	std::cout << "Executing MODE: " << message.get_command() << std::endl;
-	if (message.get_params()[0].find('#') != std::string::npos)
+	if (message.get_params().at(0).find('#') != std::string::npos) {
 		_execute_mode_channel(message);
-	else
+	} else {
 		_execute_mode_user(message);
+	}
 }
 
 /**
@@ -367,7 +392,7 @@ void IRCServer::_execute_quit(IRCMessage const & message) {
 	IRCClient * client = _clients[message.get_sender()];
 	std::string quit_message;
 	if (message.get_params().size() == 1) {
-		quit_message = message.get_params()[0];
+		quit_message = message.get_params().at(0);
 	}
 	std::vector<Channel *> client_channels = _get_client_channels(client->get_fd());
 	std::vector<Channel *>::iterator it_channel = client_channels.begin();
@@ -382,7 +407,32 @@ void IRCServer::_execute_quit(IRCMessage const & message) {
 			_channels.erase(channel_name);
 		}
 	}
+	_tcp_server.add_client_to_disconnect(client->get_fd());
 	_tcp_server.schedule_sent_message(make_reply_ERROR(*client, quit_message));
+}
+
+void IRCServer::_join_channel(const IRCClient & client, Channel & channel) {
+	channel.add_client(client.get_fd());
+	_tcp_server.schedule_sent_message(make_reply_JOIN(client, channel));
+	_tcp_server.schedule_sent_message(make_reply_RPL_TOPIC(client, channel));
+	std::string users_list = _get_formatted_clients_from_channel(channel.get_name());
+	_tcp_server.schedule_sent_message(make_reply_RPL_NAMREPLY(client, channel, users_list));
+	_tcp_server.schedule_sent_message(make_reply_RPL_ENDOFNAMES(client, channel.get_name()));
+}
+
+void IRCServer::_leave_all_channels(const IRCClient & client) {
+	std::vector<Channel *> channels = _get_client_channels(client.get_fd());
+	std::vector<Channel *>::iterator it_channel = channels.begin();
+	for (; it_channel != channels.end(); it_channel++)
+	{
+		Channel *channel = _channels.at((*it_channel)->get_name());
+		_tcp_server.schedule_sent_message(make_reply_PART(client, *channel, ""));
+		channel->remove_client(client.get_fd());
+		if (channel->get_clients().empty()) {
+			delete channel;
+			_channels.erase((*it_channel)->get_name());
+		}
+	}
 }
 
 /**
@@ -391,39 +441,74 @@ void IRCServer::_execute_quit(IRCMessage const & message) {
  */
 void IRCServer::_execute_join(IRCMessage const & message) {
 	std::cout << "Executing JOIN: " << message.get_command() << std::endl;
-	//TODO: Support for keys (+ ERR_BADCHANNELKEY)
 	IRCClient * client = _clients.at(message.get_sender());
 	std::vector<std::string> channel_names = ft_split(message.get_params()[0], ",");
-	//TODO: validate channel names !
+	if (*channel_names.begin() == "0")
+	{
+		_leave_all_channels(*client);
+		return ;
+	}
+	bool new_channel = false;
+	std::vector<std::string> channel_keys;
+	std::vector<std::string>::const_iterator it_keys;
+	std::vector<std::string>::const_iterator it_keys_end;
+	if (message.get_params().size() > 1)
+	{
+		channel_keys = ft_split(message.get_params()[1], ",");
+		it_keys = channel_keys.begin();
+		it_keys_end = channel_keys.end();
+	}
 	std::vector<std::string>::const_iterator it_channel_name = channel_names.begin();
+	/*int err = message._sanity_check();
+	if (err == ERR_NEEDMOREPARAMS)
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+	else if (err == ERR_BADCHANMASK)
+		_tcp_server.schedule_sent_message(make_reply_ERR_BADCHANMASK(*client, *it_channel_name));
+	if (err != 0)
+		return ;
+*/
 	for (; it_channel_name != channel_names.end(); it_channel_name++) {
-		std::cout << *it_channel_name << std::endl; //DEBUG
+	
 		Channel * channel;
 		try {
-			// Get the channel
 			channel = _channels.at(*it_channel_name);
-			std::cout << "Channel exists" << std::endl; //DEBUG
-			std::cout << *_channels.at(*it_channel_name) << std::endl; //DEBUG
+			new_channel = false;
 		} catch (std::out_of_range & e) {
-			// If it doesn't exist, create one
+			new_channel = true;
+		}
+		if (_get_client_channels(client->get_fd()).size() == MAX_CHANNELS)
+			_tcp_server.schedule_sent_message(make_reply_ERR_TOOMANYCHANNELS(*client, *it_channel_name));
+		else if (new_channel == false)
+		{
+			if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) != channel->clients_end())
+				;
+			else if (channel->get_mode().find('k') != std::string::npos)
+			{
+				if (it_keys == it_keys_end)
+					_tcp_server.schedule_sent_message(make_reply_ERR_BADCHANNELKEY(*client, *it_channel_name));
+				else
+				{
+					if (*it_keys != channel->get_key())
+						_tcp_server.schedule_sent_message(make_reply_ERR_BADCHANNELKEY(*client, *it_channel_name));
+					else
+						_join_channel(*client, *channel);
+				}
+			}
+			else
+				_join_channel(*client, *channel);
+		}
+		else
+		{
 			channel = new Channel(*it_channel_name);
 			channel->add_client_to_channel_operator(client->get_fd());
 			_channels.insert(std::pair<std::string, Channel *>(*it_channel_name, channel));
-			std::cout << "Channel was created" << std::endl; //DEBUG
-			std::cout << *_channels.at(*it_channel_name) << std::endl; //DEBUG
+			_join_channel(*client, *channel);
 		}
-		// Add client and reply to client
-		channel->add_client(client->get_fd());
-		TCPMessage reply = make_reply_JOIN(*client, *channel);
-		_tcp_server.schedule_sent_message(reply);
-		_tcp_server.schedule_sent_message(make_reply_RPL_TOPIC(*client, *channel));
-		std::string users_list = _get_formatted_clients_from_channel(*it_channel_name);
-		reply = make_reply_RPL_NAMREPLY(*client, *channel, users_list);
-		_tcp_server.schedule_sent_message(reply);
-		reply = make_reply_RPL_ENDOFNAMES(*client, *it_channel_name);
-		_tcp_server.schedule_sent_message(reply);
+		if (it_keys != it_keys_end)
+			it_keys++;
 	}
 }
+
 
 /**
  * @brief Executes a PART command.
@@ -432,10 +517,18 @@ void IRCServer::_execute_join(IRCMessage const & message) {
 void IRCServer::_execute_part(IRCMessage const & message) {
 	std::cout << "Executing PART: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-	std::vector<std::string> channel_names = ft_split(message.get_params()[0], ",");
+
+/*	int err = message._sanity_check();
+	if (err == ERR_NEEDMOREPARAMS) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+		return ;
+	}
+*/
+
+	std::vector<std::string> channel_names = ft_split(message.get_params().at(0), ",");
 	std::string part_message;
 	if (message.get_params().size() == 2) {
-		part_message = message.get_params()[1];
+		part_message = message.get_params().at(1);
 	}
 	std::vector<std::string>::const_iterator it_channel_name = channel_names.begin();
 	for (; it_channel_name != channel_names.end(); it_channel_name++) {
@@ -443,13 +536,11 @@ void IRCServer::_execute_part(IRCMessage const & message) {
 			Channel * channel = _channels.at(*it_channel_name);
 			if (!channel->has_client(message.get_sender())) {
 				// If client isn't on the channel, send NOTONCHANNEL
-				TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, *it_channel_name);
-				_tcp_server.schedule_sent_message(reply);
+				_tcp_server.schedule_sent_message(make_reply_ERR_NOTONCHANNEL(*client, *it_channel_name));
 			} else {
 				// Else, broadcast to channel's users that a new user joined the channel
-				TCPMessage reply = make_reply_PART(*client, *channel, part_message);
+				_tcp_server.schedule_sent_message(make_reply_PART(*client, *channel, part_message));
 				channel->remove_client(message.get_sender());
-				_tcp_server.schedule_sent_message(reply);
 				// And remove the channel if it's empty
 				if (channel->get_clients().empty()) {
 					std::cout << "Channel " << *it_channel_name << " deleted." << std::endl;
@@ -459,8 +550,7 @@ void IRCServer::_execute_part(IRCMessage const & message) {
 			}
 		} catch (std::out_of_range & e) {
 			// If channel doesn't exist, send NOSUCHCHANNEL
-			TCPMessage reply = make_reply_ERR_NOSUCHCHANNEL(*client, *it_channel_name);
-			_tcp_server.schedule_sent_message(reply);
+			_tcp_server.schedule_sent_message(make_reply_ERR_NOSUCHCHANNEL(*client, *it_channel_name));
 		}
 	}
 }
@@ -482,7 +572,7 @@ void IRCServer::_execute_privmsg(IRCMessage const & message) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_NOTEXTTOSEND(*client));
 		return;
 	}
-	std::string target = message.get_params()[0];
+	std::string target = message.get_params().at(0);
 	if (target[0] == '#') {
 		Channel * channel;
 		try {
@@ -508,7 +598,8 @@ void IRCServer::_execute_privmsg(IRCMessage const & message) {
 				}
 			}
 		}
-		TCPMessage reply = make_reply_PRIVMSG_CHANNEL(*client, *channel, message.get_params()[1]);
+		TCPMessage
+				reply = make_reply_PRIVMSG_CHANNEL(*client, *channel, message.get_params().at(1));
 		_tcp_server.schedule_sent_message(reply);
 	} else {
 		std::map<int, IRCClient *>::const_iterator it = find_nickname(target);
@@ -523,7 +614,7 @@ void IRCServer::_execute_privmsg(IRCMessage const & message) {
 			_tcp_server.schedule_sent_message(reply);
 		}
 		TCPMessage reply = make_reply_PRIVMSG_USER(*client, *client_recipient, target,
-												   message.get_params()[1]);
+												   message.get_params().at(1));
 		_tcp_server.schedule_sent_message(reply);
 	}
 }
@@ -535,36 +626,33 @@ void IRCServer::_execute_privmsg(IRCMessage const & message) {
 void IRCServer::_execute_notice(IRCMessage const & message) {
 	std::cout << "Executing NOTICE: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-	if (message.get_params().empty()) {
+	if (message.get_params().empty() || message.get_params().size() == 1) {
 		return;
-	} else if (message.get_params().size() == 1) {
-		return;
-	} else {
-		std::string target = message.get_params()[0];
-		if (target[0] == '#') {
-			Channel * channel;
-			try {
-				channel = _channels.at(target);
-			} catch (std::out_of_range & e) {
-				return;
-			}
-			if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) ==
-				channel->clients_end()) {
-				return;
-			}
-			TCPMessage
-					reply = make_reply_NOTICE_CHANNEL(*client, *channel, message.get_params()[1]);
-			_tcp_server.schedule_sent_message(reply);
-		} else {
-			std::map<int, IRCClient *>::const_iterator it = find_nickname(target);
-			if (it == _clients.end()) {
-				return;
-			}
-			IRCClient * client_recipient = it->second;
-			TCPMessage reply = make_reply_NOTICE_USER(*client, *client_recipient, target,
-													  message.get_params()[1]);
-			_tcp_server.schedule_sent_message(reply);
+		//TODO: Shouldn't there be an error here ?
+	}
+	std::string target = message.get_params().at(0);
+	if (target[0] == '#') {
+		Channel * channel;
+		try {
+			channel = _channels.at(target);
+		} catch (std::out_of_range & e) {
+			return;
 		}
+		if (find(channel->clients_begin(), channel->clients_end(), client->get_fd()) ==
+			channel->clients_end()) {
+			return;
+		}
+		TCPMessage reply = make_reply_NOTICE_CHANNEL(*client, *channel, message.get_params().at(1));
+		_tcp_server.schedule_sent_message(reply);
+	} else {
+		std::map<int, IRCClient *>::const_iterator it = find_nickname(target);
+		if (it == _clients.end()) {
+			return;
+		}
+		IRCClient * client_recipient = it->second;
+		TCPMessage reply = make_reply_NOTICE_USER(*client, *client_recipient, target,
+												  message.get_params().at(1));
+		_tcp_server.schedule_sent_message(reply);
 	}
 }
 
@@ -575,39 +663,42 @@ void IRCServer::_execute_notice(IRCMessage const & message) {
 void IRCServer::_execute_topic(IRCMessage const & message) {
 	std::cout << "Executing TOPIC: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-	std::string channel_name = message.get_params()[0];
+
+/*	int err = message._sanity_check();
+	if (err == ERR_NEEDMOREPARAMS)
+	{
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+		return ;
+	}
+*/
+
+	std::string channel_name = message.get_params().at(0);
 
 	std::map<std::string, Channel *>::const_iterator it = find_channel(channel_name);
-	if (it == _channels.end()) {//TODO: change 403 ERR_NOSUHCHANNEL ??
-		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
-		_tcp_server.schedule_sent_message(reply);
+	if (it == _channels.end()) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_NOSUCHCHANNEL(*client, channel_name));
 		return;
 	}
 	Channel * channel_tmp = it->second;
-	if (find(channel_tmp->clients_begin(), channel_tmp->clients_end(), message.get_sender()) ==
+	if (find(channel_tmp->clients_begin(), channel_tmp->clients_end(), client->get_fd()) ==
 		channel_tmp->clients_end()) {
-		TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, channel_name);
-		_tcp_server.schedule_sent_message(reply);
+		_tcp_server.schedule_sent_message(make_reply_ERR_NOTONCHANNEL(*client, channel_name));
 		return;
 	}
 	if (message.get_params().size() > 1) {
 		if (find(channel_tmp->channel_op_begin(), channel_tmp->channel_op_end(),
 				 message.get_sender()) == channel_tmp->channel_op_end()) {
-			TCPMessage reply = make_reply_ERR_CHANOPRIVSNEEDED(*client, channel_name);
-			_tcp_server.schedule_sent_message(TCPMessage(reply));
+			_tcp_server.schedule_sent_message(make_reply_ERR_CHANOPRIVSNEEDED(*client, channel_name));
 		} else {//TODO: if topic stored on several parameters ==> loop
-			channel_tmp->set_topic(message.get_params()[1]);
-			TCPMessage reply = make_reply_TOPIC(*client, *channel_tmp);
-			_tcp_server.schedule_sent_message(reply);
+			channel_tmp->set_topic(message.get_params().at(1));
+			_tcp_server.schedule_sent_message(make_reply_TOPIC(*client, *channel_tmp));
 		}
 		return;
 	} else {
 		if (!channel_tmp->get_topic().empty()) {
-			TCPMessage reply = make_reply_RPL_TOPIC(*client, *channel_tmp);
-			_tcp_server.schedule_sent_message(reply);
+			_tcp_server.schedule_sent_message(make_reply_RPL_TOPIC(*client, *channel_tmp));
 		} else {
-			TCPMessage reply = make_reply_RPL_NOTOPIC(*client, *channel_tmp);
-			_tcp_server.schedule_sent_message(reply);
+			_tcp_server.schedule_sent_message(make_reply_RPL_NOTOPIC(*client, *channel_tmp));
 		}
 	}
 }
@@ -624,31 +715,26 @@ void IRCServer::_execute_names(IRCMessage const & message) {
 		std::map<std::string, Channel *>::iterator it = _channels.begin();
 		for (; it != _channels.end(); it++) {
 			users_list = _get_formatted_clients_from_channel(it->second->get_name());
-			TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(it->second), users_list);
-			_tcp_server.schedule_sent_message(reply);
-			reply = make_reply_RPL_ENDOFNAMES(*client, (*it->second).get_name());
-			_tcp_server.schedule_sent_message(reply);
+			_tcp_server.schedule_sent_message(make_reply_RPL_NAMREPLY(*client, *(it->second), users_list));
+			_tcp_server.schedule_sent_message(make_reply_RPL_ENDOFNAMES(*client, (*it->second).get_name()));
 		}
 		users_list = _get_formatted_clients_without_channel();
 		if (!users_list.empty()) {
 			std::string channel_name = "*";
 			Channel tmp(channel_name);
-			TCPMessage reply = make_reply_RPL_NAMREPLY(*client, tmp, users_list);
-			_tcp_server.schedule_sent_message(reply);
-			reply = make_reply_RPL_ENDOFNAMES(*client, channel_name);
-			_tcp_server.schedule_sent_message(reply);
+			_tcp_server.schedule_sent_message(make_reply_RPL_NAMREPLY(*client, tmp, users_list));
+			_tcp_server.schedule_sent_message(make_reply_RPL_ENDOFNAMES(*client, channel_name));
 		}
 	} else {
-		for (size_t i = 0; i < message.get_params().size(); i++) {
+		std::vector<std::string> channel_names = ft_split(message.get_params().at(0), ",");
+		for (size_t i = 0; i < channel_names.size(); i++) {
 			std::map<std::string, Channel *>::const_iterator
-					it = find_channel(message.get_params()[i]);
+					it = find_channel(channel_names[i]);
 			if (it != _channels.end()) {
 				users_list = _get_formatted_clients_from_channel(it->second->get_name());
-				TCPMessage reply = make_reply_RPL_NAMREPLY(*client, *(it->second), users_list);
-				_tcp_server.schedule_sent_message(reply);
-				reply = make_reply_RPL_ENDOFNAMES(*client, message.get_params()[i]);
-				_tcp_server.schedule_sent_message(reply);
+				_tcp_server.schedule_sent_message(make_reply_RPL_NAMREPLY(*client, *(it->second), users_list));
 			}
+			_tcp_server.schedule_sent_message(make_reply_RPL_ENDOFNAMES(*client, channel_names[i]));
 		}
 	}
 }
@@ -692,7 +778,7 @@ void IRCServer::_execute_list(IRCMessage const & message) {
 	for (;it_clients !=_clients.end(); it_clients++)
 	{
 		IRCClient * client_tmp = it_clients->second;
-		if (client_tmp->get_nickname() == message.get_params()[0])
+		if (client_tmp->get_nickname() == message.get_params().at(0))
 		{
 			TCPMessage reply = make_reply_RPL_WHOISUSER(*client,*client_tmp );
 			_tcp_server.schedule_sent_message(reply);
@@ -727,7 +813,7 @@ void IRCServer::_execute_list(IRCMessage const & message) {
 			return ;
 		}
 	}
-	TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, message.get_params()[0]);
+	TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, message.get_params().at(0));
 	_tcp_server.schedule_sent_message(reply);
 	reply = make_reply_RPL_ENDOFWHOIS(*client);
 	_tcp_server.schedule_sent_message(reply);
@@ -744,7 +830,7 @@ void IRCServer::_execute_ping(IRCMessage const & message) {
 		TCPMessage reply = make_reply_ERR_NOORIGIN(*client);
 		_tcp_server.schedule_sent_message(reply);
 	} else {
-		TCPMessage reply = make_reply_PONG(*client, message.get_params()[0]);
+		TCPMessage reply = make_reply_PONG(*client, message.get_params().at(0));
 		_tcp_server.schedule_sent_message(reply);
 	}
 }
@@ -757,40 +843,65 @@ void IRCServer::_execute_away(IRCMessage const & message) {
 	std::cout << "Executing AWAY: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 
-	if (message.get_params().empty())
-	{
-		if (client->get_mode().find('a') != std::string::npos)
-		{
+	if (message.get_params().empty()) {
+		if (client->get_mode().find('a') != std::string::npos) {
 			client->set_mode('-', 'a');
 			client->set_away_message("");
 			_tcp_server.schedule_sent_message(make_reply_RPL_UNAWAY(*client));
 		}
-	}
-	else
-	{
-		if (client->get_mode().find('a') == std::string::npos)
+	} else {
+		if (client->get_mode().find('a') == std::string::npos) {
 			client->set_mode('+', 'a');
-		client->set_away_message(message.get_params()[0]);
+		}
+		client->set_away_message(message.get_params().at(0));
 		_tcp_server.schedule_sent_message(make_reply_RPL_NOWAWAY(*client));
 	}
 }
 
 void IRCServer::_execute_oper(const IRCMessage & message) {
 	IRCClient * client = _clients.at(message.get_sender());
-	//TODO: Sanity check -> ERR_NEEDMOREPARAMS
-	if (message.get_params()[0] != _operator_name
-	|| message.get_params()[1] != _operator_password) {
+	if (client->get_mode().find('o') != std::string::npos)
+		return ;
+/*	int err = message._sanity_check();
+	if (err == ERR_NEEDMOREPARAMS)
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+	else */if (message.get_params().at(0) != _operator_name ||
+		message.get_params().at(1) != _operator_password) {
 		// If operator name or password is incorrect, send ERR_PASSWDMISMATCH
 		_tcp_server.schedule_sent_message(make_reply_ERR_PASSWDMISMATCH(*client));
 	} else {
 		// Else, add operator mode to user and send RPL_YOUREOPER
 		client->set_mode('+', 'o');
 		_tcp_server.schedule_sent_message(make_reply_RPL_YOUREOPER(*client));
+		_tcp_server.schedule_sent_message(make_reply_RPL_UMODEIS(*client));
 	}
 }
 
+void IRCServer::_execute_kill(const IRCMessage & message) {
+	IRCClient * killer = _clients.at(message.get_sender());
+	//TODO: Sanity check -> ERR_NEEDMOREPARAMS
+	//TODO: Pass as ref sur const !
+	std::string nick_killed = message.get_params().at(0);
+	std::string comment = message.get_params().at(1);
+	if (!killer->is_mode('o')) {
+		// If killer isn't oper -> ERR_NOPRIVILEGES
+		_tcp_server.schedule_sent_message(make_reply_ERR_NOPRIVILEGES(*killer));
+		return;
+	} else if (find_nickname(nick_killed) == _clients.end()) {
+		// If nick doesn't exist -> ERR_NOSUCHNICK
+		_tcp_server.schedule_sent_message(make_reply_ERR_NOSUCHNICK(*killer, nick_killed));
+		return;
+	}
+	// Else send them a kill message, broadcast a QUIT, send them an ERROR and finally remove them
+	IRCClient * killed = find_nickname(nick_killed)->second;
+	_tcp_server.schedule_sent_message(make_reply_KILL(*killer, *killed, comment));
+	//TODO: broadcast a QUIT message to all uses sharing a channel with killed ?
+	_tcp_server.add_client_to_disconnect(killed->get_fd()); //TODO: to check ?
+	_tcp_server.schedule_sent_message(make_reply_ERROR(*killed, comment));
+}
 
-std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(std::string & nickname) const {
+std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(
+		const std::string & nickname) const {
 	std::map<int, IRCClient *>::const_iterator it = _clients.begin();
 	for (; it != _clients.end(); it++) {
 		if (it->second->get_nickname() == nickname) {
@@ -801,7 +912,7 @@ std::map<int, IRCClient *>::const_iterator IRCServer::find_nickname(std::string 
 }
 
 std::map<std::string, Channel *>::const_iterator IRCServer::find_channel(
-		std::string & channel_name) const {
+		const std::string & channel_name) const {
 	std::map<std::string, Channel *>::const_iterator it = _channels.begin();
 	for (; it != _channels.end(); it++) {
 		if (it->second->get_name() == channel_name) {
@@ -837,7 +948,7 @@ std::string IRCServer::_get_formatted_clients_from_channel(const std::string & c
 	return users_list;
 }
 
-std::string IRCServer::_get_formatted_clients_without_channel(void) {
+std::string IRCServer::_get_formatted_clients_without_channel() {
 	std::string users_list;
 	int find_client;
 	std::map<int, IRCClient *>::const_iterator it_client = _clients.begin();
@@ -866,8 +977,7 @@ bool IRCServer::_is_connected(int client_socketfd) {
 	try {
 		_clients.at(client_socketfd);
 		return true;
-	}
-	catch (std::out_of_range & e) {
+	} catch (std::out_of_range & e) {
 		return false;
 	}
 }

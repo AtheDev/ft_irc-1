@@ -8,6 +8,7 @@
 #include <netdb.h>
 
 #define USER_MODES() ("aiwroO")
+#define MAX_CHANNELS 10
 
 enum e_user_status {
 	UNREGISTERED, PASSWORD, NICKNAME, REGISTERED
@@ -28,13 +29,14 @@ class IRCClient {
 		std::string const & get_away_message(void) const;
 		int get_status(void) const;
 		std::string get_prefix() const;
+		bool is_mode(char mode) const;
 
-		void set_nickname(std::string nickname);
-		void set_username(std::string username);
-		void set_hostname(std::string username);
-		void set_realname(std::string realname);
-		void set_password(std::string password);
-		void set_away_message(std::string message);
+		void set_nickname(const std::string& nickname);
+		void set_username(const std::string& username);
+		void set_hostname(const std::string& username);
+		void set_realname(const std::string& realname);
+		void set_password(const std::string& password);
+		void set_away_message(const std::string& message);
 		void set_mode(char sign, char mode);
 		void set_status(int status);
 

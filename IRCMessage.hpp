@@ -20,9 +20,9 @@ class IRCMessage
 		~IRCMessage();
 		bool empty() const;
 		bool has_prefix() const;
-		std::string get_prefix() const;
-		std::string get_command() const;
-		std::vector<std::string> get_params() const;
+		const std::string & get_prefix() const;
+		const std::string & get_command() const;
+		const std::vector<std::string> & get_params() const;
 		int get_sender(void) const;
 		std::vector<int> get_receivers() const;
 

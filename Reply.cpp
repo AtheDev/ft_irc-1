@@ -92,11 +92,19 @@ TCPMessage make_reply_NICK(const IRCClient & client, const std::string & new_nic
 	return TCPMessage(receivers, payload);
 }
 
-TCPMessage make_reply_MODE(const IRCClient & client, const Channel & channel) {
+TCPMessage make_reply_MODE(const IRCClient & client, const Channel & channel,
+							const std::string & channel_mode, const std::string & channel_key) {
 	const std::vector<int> & receivers = channel.get_clients();
-	//std::string payload = prepare_reply_command("MODE", client) + " :" + channel.get_name();
-	std::string payload = ":" + client.get_hostname() + " MODE " + channel.get_name();
-	payload += " " + channel.get_mode();
+	std::string payload = prepare_reply_command("MODE", client) + channel.get_name();
+	payload += " " + channel_mode + " " + channel_key;
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_KILL(const IRCClient & client_killer, const IRCClient & client_killed,
+						   const std::string & comment) {
+	std::vector<int> receivers(1u, client_killed.get_fd());
+	std::string payload = prepare_reply_command("KILL", client_killer);
+	payload += client_killed.get_nickname() + " " + comment;
 	return TCPMessage(receivers, payload);
 }
 
@@ -282,6 +290,13 @@ TCPMessage make_reply_ERR_CANNOTSENDTOCHAN(const IRCClient & client,
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_ERR_TOOMANYCHANNELS(const IRCClient & client, const std::string & channel_name) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("405", client);
+	payload += channel_name + " :You have joined too many channels";
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_ERR_NOORIGIN(const IRCClient & client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("409", client) + ":No origin specified";
@@ -308,14 +323,14 @@ TCPMessage make_reply_ERR_NICKNAMEINUSE(const IRCClient & client, const std::str
 	return TCPMessage(receivers, payload);
 }
 
-TCPMessage make_reply_ERR_NICKCOLLISION(const IRCClient & client,
+/*TCPMessage make_reply_ERR_NICKCOLLISION(const IRCClient & client,
 										const IRCClient & collided_client) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("436", client);
 	payload += collided_client.get_nickname() + " :Nickname collision KILL from ";
 	payload += collided_client.get_username() + "@" + collided_client.get_hostname();
 	return TCPMessage(receivers, payload);
-}
+}*/
 
 TCPMessage make_reply_ERR_USERNOTINCHANNEL(const IRCClient & client, const std::string & channel_name,
 											const std::string & target) {
@@ -348,7 +363,7 @@ TCPMessage make_reply_ERR_PASSWDMISMATCH(const IRCClient & client) {
 TCPMessage make_reply_ERR_KEYSET(const IRCClient & client, const std::string & channel_name) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("467", client);
-	payload += channel_name + " :Channel key already set";
+	payload += ":" + channel_name + " :Channel key already set";
 	return TCPMessage(receivers, payload);
 }
 
@@ -357,6 +372,20 @@ TCPMessage make_reply_ERR_UNKNOWNMODE(const IRCClient & client, const std::strin
 	std::string payload = prepare_reply_RPL_ERR("472", client);
 	payload.push_back(mode);
 	payload += " :is unknown mode char to me for " + channel_name;
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_ERR_BADCHANNELKEY(const IRCClient & client, const std::string & channel_name) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("475", client);
+	payload += channel_name + " :Cannot join channel (+k)";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_ERR_NOPRIVILEGES(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("481", client);
+	payload += ":Permission Denied- You\'re not an IRC operator";
 	return TCPMessage(receivers, payload);
 }
 
