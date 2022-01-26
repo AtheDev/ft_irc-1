@@ -39,6 +39,8 @@ TCPMessage make_reply_PONG(const IRCClient & client, const std::string & servern
 
 TCPMessage make_reply_QUIT(const IRCClient & client, const std::string & quit_message);
 
+TCPMessage make_reply_QUIT(const IRCClient & client, const Channel & channel, const std::string & quit_message);
+
 TCPMessage make_reply_ERROR(const IRCClient & client, const std::string & error_message);
 
 TCPMessage make_reply_NICK(const IRCClient & client, const std::string & new_nick, const std::vector<int> & receivers);

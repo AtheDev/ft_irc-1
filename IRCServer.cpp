@@ -412,7 +412,7 @@ void IRCServer::_execute_quit(IRCMessage const & message) {
 	std::vector<Channel *> client_channels = _get_client_channels(client->get_fd());
 	std::vector<Channel *>::iterator it_channel = client_channels.begin();
 	for (; it_channel != client_channels.end(); it_channel++) {
-		TCPMessage reply = make_reply_PART(*client, **it_channel, quit_message);
+		TCPMessage reply = make_reply_QUIT(*client, **it_channel, quit_message);
 		_tcp_server.schedule_sent_message(reply);
 		(*it_channel)->remove_client(message.get_sender());
 		if ((*it_channel)->get_clients().empty()) {
@@ -912,7 +912,15 @@ void IRCServer::_execute_kill(const IRCMessage & message) {
 	// Else send them a kill message, broadcast a QUIT, send them an ERROR and finally remove them
 	IRCClient * killed = find_nickname(nick_killed)->second;
 	_tcp_server.schedule_sent_message(make_reply_KILL(*killer, *killed, comment));
-	//TODO: broadcast a QUIT message to all uses sharing a channel with killed ?
+	std::map<std::string, Channel *>::const_iterator it_channel = _channels.begin();
+	for (; it_channel != _channels.end(); it_channel++) {
+		if (it_channel->second->has_client(killed->get_fd())) {
+			TCPMessage reply = make_reply_QUIT(*killed, *it_channel->second, "was killed");
+			_tcp_server.schedule_sent_message(reply);
+		}
+	}
+	//TODO: Kill should remove empty channels
+	//TODO: Kill doesn't close properly the channels on IRSSI, why ?
 	_tcp_server.add_client_to_disconnect(killed->get_fd());
 	_tcp_server.schedule_sent_message(make_reply_ERROR(*killed, comment));
 }
