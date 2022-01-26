@@ -539,29 +539,31 @@ void IRCServer::_execute_part(IRCMessage const & message) {
 	if (message.get_params().size() == 2) {
 		part_message = message.get_params().at(1);
 	}
+	Channel * channel;
 	std::vector<std::string>::const_iterator it_channel_name = channel_names.begin();
 	for (; it_channel_name != channel_names.end(); it_channel_name++) {
 		try {
-			Channel * channel = _channels.at(*it_channel_name);
-			if (!channel->has_client(message.get_sender())) {
-				// If client isn't on the channel, send NOTONCHANNEL
-				_tcp_server.schedule_sent_message(
-						make_reply_ERR_NOTONCHANNEL(*client, *it_channel_name));
-			} else {
-				// Else, broadcast to channel's users that a new user joined the channel
-				_tcp_server.schedule_sent_message(make_reply_PART(*client, *channel, part_message));
-				channel->remove_client(message.get_sender());
-				// And remove the channel if it's empty
-				if (channel->get_clients().empty()) {
-					std::cout << "Channel " << *it_channel_name << " deleted." << std::endl;
-					delete channel;
-					_channels.erase(*it_channel_name);
-				}
-			}
+			channel = _channels.at(*it_channel_name);
 		} catch (std::out_of_range & e) {
-			// If channel doesn't exist, send NOSUCHCHANNEL
-			_tcp_server.schedule_sent_message(
-					make_reply_ERR_NOSUCHCHANNEL(*client, *it_channel_name));
+			// If channel doesn't exist, send NOSUCHCHANNEL and continue
+			TCPMessage reply = make_reply_ERR_NOSUCHCHANNEL(*client, *it_channel_name);
+			_tcp_server.schedule_sent_message(reply);
+			continue;
+		}
+		if (!channel->has_client(message.get_sender())) {
+			// If client isn't on the channel, send NOTONCHANNEL
+			TCPMessage reply = make_reply_ERR_NOTONCHANNEL(*client, *it_channel_name);
+			_tcp_server.schedule_sent_message(reply);
+		} else {
+			// Else, broadcast to channel's users that a new user joined the channel
+			_tcp_server.schedule_sent_message(make_reply_PART(*client, *channel, part_message));
+			channel->remove_client(message.get_sender());
+			// And remove the channel if it's empty
+			if (channel->get_clients().empty()) {
+				std::cout << "Channel " << *it_channel_name << " deleted." << std::endl;
+				delete channel;
+				_channels.erase(*it_channel_name);
+			}
 		}
 	}
 }
