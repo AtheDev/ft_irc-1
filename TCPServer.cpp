@@ -69,6 +69,11 @@ void TCPServer::update() {
 	_send_messages();
 	_messages_to_be_sent.clear();
 
+	std::vector<int>::iterator clients = _clients_to_disconnect.begin();
+	for (; clients != _clients_to_disconnect.end(); clients++)
+		_remove_client(*clients);
+	_clients_to_disconnect.clear();
+
 	if (poll(&(*_pollfds.begin()), _pollfds.size(), 100) == -1) {
 		throw ErrorPollException();
 	}
@@ -89,11 +94,6 @@ void TCPServer::update() {
 			}
 		}
 	}
-
-	std::vector<int>::iterator clients = _clients_to_disconnect.begin();
-	for (; clients != _clients_to_disconnect.end(); clients++)
-		_remove_client(*clients);
-	_clients_to_disconnect.clear();
 }
 
 /**
