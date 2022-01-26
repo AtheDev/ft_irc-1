@@ -48,7 +48,6 @@ class IRCClient {
 		std::string _username;
 		std::string _realname;
 		std::string	_mode;
-		//TODO: to be removed?
 		std::string _hostname;
 		std::string	_away_message;
 

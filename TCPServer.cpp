@@ -73,7 +73,7 @@ void TCPServer::update() {
 	for (; clients != _clients_to_disconnect.end(); clients++)
 		_remove_client(*clients);
 	_clients_to_disconnect.clear();
-	
+
 	if (poll(&(*_pollfds.begin()), _pollfds.size(), 100) == -1) {
 		throw ErrorPollException();
 	}

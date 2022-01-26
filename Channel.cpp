@@ -156,3 +156,7 @@ std::vector<int> Channel::get_channel_op() const {
 bool Channel::has_client(int socketfd) {
 	return std::find(_clients.begin(), _clients.end(), socketfd) != _clients.end();
 }
+
+bool Channel::is_mode(const char mode) {
+	return _mode.find(mode) != std::string::npos;
+}
