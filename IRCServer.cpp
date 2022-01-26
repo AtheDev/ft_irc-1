@@ -429,7 +429,9 @@ void IRCServer::_execute_quit(IRCMessage const & message) {
 void IRCServer::_join_channel(const IRCClient & client, Channel & channel) {
 	channel.add_client(client.get_fd());
 	_tcp_server.schedule_sent_message(make_reply_JOIN(client, channel));
-	_tcp_server.schedule_sent_message(make_reply_RPL_TOPIC(client, channel));
+	if (!channel.get_topic().empty()) {
+		_tcp_server.schedule_sent_message(make_reply_RPL_TOPIC(client, channel));
+	}
 	std::string users_list = _get_formatted_clients_from_channel(channel.get_name());
 	_tcp_server.schedule_sent_message(make_reply_RPL_NAMREPLY(client, channel, users_list));
 	_tcp_server.schedule_sent_message(make_reply_RPL_ENDOFNAMES(client, channel.get_name()));
