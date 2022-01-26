@@ -137,14 +137,13 @@ void
 int
 	IRCMessage::sanity_check() const
 {
-	if (_command == "PASS")	// OK
+	if (_command == "PASS")
 	{
 		if (_params.size() != 1)
 			return ERR_NEEDMOREPARAMS;
-		//is there forbidden octets for passwords?
 		return OK;
 	}
-	else if (_command == "NICK") // OK
+	else if (_command == "NICK")
 	{
 		if (_params.size() != 1)
 			return ERR_NONICKNAMEGIVEN;
@@ -156,25 +155,20 @@ int
 	{
 		if (_params.size() != 4)
 			return ERR_NEEDMOREPARAMS;
-	// =========== VOIR COMMENT ON GERE ======================
-	/*	if (!fmatch(_params[0], USERNAME))
-			return ERR_INVALID_USERNAME;
-		if (!fmatch(_params[1], "%(1)[0:9]")) //not 100% sure about this one (usermode)
-			return ERR_INVALID_USERMODEBYTE;
-		//third param is unused
+		if (!fmatch(_params[0], USERNAME))
+			return ERR_ERROR;
+		if (!fmatch(_params[1], HOSTNAME))
+			return ERR_ERROR;
+		if (!fmatch(_params[2], SERVERNAME))
+			return ERR_ERROR;
 		if (!fmatch(_params[3], REALNAME))
-			return ERR_INVALID_REALNAME;
-	*/
+			return ERR_ERROR;
 		return OK;
 	}
 	else if (_command == "OPER")
 	{
 		if (_params.size() != 2)
 			return ERR_NEEDMOREPARAMS;
-	// =========== A RETIRER ==================
-		/*if (!fmatch(_params[0], USERNAME))
-			return ERR_INVALID_USERNAME;*/
-		//is there forbidden octets for password?
 		return OK;
 	}
 	/*else if (_command == "MODE")
@@ -187,132 +181,65 @@ int
 			return ERR_INVALID_USERMODE;
 		return OK;
 	}*/
-	// ============= PEUT ETRE RETIRE -> forcement 1 params ==================
 	else if (_command == "QUIT")
 	{
-		/*if (_params.size() > 1)
-			return ERR_INVALID_PARAM_AMOUNT;*/
-		//is there forbidden octets in quit message?
+		if (_params.size() > 1)
+			return ERR_NEEDMOREPARAMS;
 		return OK;
 	}
 	else if (_command == "JOIN")
 	{
 		if (_params.size() > 2 || _params.size() == 0)
 			return ERR_NEEDMOREPARAMS;
-		if (_params[0] == "0")
-		{
-			if (_params.size() != 1)
-				return ERR_NEEDMOREPARAMS;
-		}
-		else
-		{
-			// ====== A RETIRER => REPETITIF =====
-			/*if (_params.size() != 1 || _params.size() != 2)
-				return ERR_INVALID_PARAM_AMOUNT;*/
-			if (!fmatch(_params[0], CHANNEL_LIST))
-				return ERR_BADCHANMASK;
-			if (_params.size() == 2 && !fmatch(_params[1], KEY_LIST))
-				return ERR_BADCHANMASK;
-		}
+		if (!fmatch(_params[0], CHANNEL_LIST))
+			return ERR_BADCHANMASK;
+		if (_params.size() == 2 && !fmatch(_params[1], KEY_LIST))
+			return ERR_BADCHANMASK;
 		return OK;
 	}
 	else if (_command == "PART")
 	{
 		if (_params.size() < 1 || _params.size() > 2)
 			return ERR_NEEDMOREPARAMS;
-	// ======= PEUT ETRE RETIRE =========
-		/*if (!fmatch(_params[0], CHANNEL_LIST))
-			return ERR_INVALID_CHANNEL;*/
-		//Is there forbidden octets in part message?
 		return OK;
 	}
-	/*else if (_command == "PRIVMSG")
+	else if (_command == "PRIVMSG")
 	{
-		if (_params.size() != 2)
-			return ERR_INVALID_PARAM_AMOUNT;
-		//todo: targetmask
-		//we don't use this part here yet, this is for eventual future lexing
-		//also I'm not parsing USER[%HOST]@SERVERNAME bc we are not doing multiserver
-		if (_params[0].find_last_of('%') != _params[0].npos) //if param contains '%'
-		{
-			std::string user = _params[0].substr(0, _params[0].find_last_of('%'));
-			std::string host = _params[0].substr(_params[0].find_last_of('%') + 1);
-
-			if (	(!fmatch(user, USERNAME) && !fmatch(host, HOST))
-					|| !fmatch(_params[0], NICK_USER_HOST)
-					|| !fmatch(_params[0], CHANNEL))
-				return ERR_INVALID_MSGTARGET;
-		}
-		else if (!fmatch(_params[0], NICKNAME)) //no '%' in param
-			return ERR_INVALID_MSGTARGET;
-		//Is there forbidden octets in privmsg body?
+		if (_params.size() > 2)
+			return ERR_NEEDMOREPARAMS;
+		else if (_params.size() == 0)
+			return ERR_NORECIPIENT;
+		else if (_params.size() == 1)
+			return ERR_NOTEXTTOSEND;
 		return OK;
 	}
 	else if (_command == "PING" || _command == "PONG")
 	{
-		if (_params.size() == 0 || _params.size() > 2)
-			return ERR_INVALID_PARAM_AMOUNT;
-		if (!fmatch(_params[0], SERVERNAME))
-			return ERR_INVALID_SERVERNAME;
-		if (_params.size() == 2 && !fmatch(_params[0], SERVERNAME))
-			return ERR_INVALID_SERVERNAME;
-		return OK;
-	}*/
-	// ======= PEUT ETRE RETIRE => PAS DE COMMANDE ERROR =========
-	else if (_command == "ERROR")
-	{
-		/*if (_params.size() != 1)
-			return ERR_INVALID_PARAM_AMOUNT;*/
-		//forbidden octets in error message?
+		if (_params.size() == 0)
+			return ERR_NOORIGIN;
+		if (_params.size() > 2)
+			return ERR_NEEDMOREPARAMS;
 		return OK;
 	}
-	// ======= PEUT ETRE RETIRE CAR NE RENVOIE PAS D'ERREUR =========
 	else if (_command == "NOTICE")
 	{
-	/*	if (_params.size() != 2)
-			return ERR_INVALID_PARAM_AMOUNT;
-		//todo: targetmask
-		//we don't use this part here yet, this is for eventual future lexing
-		//also I'm not parsing USER[%HOST]@SERVERNAME bc we are not doing multiserver
-		if (_params[0].find_last_of('%') != _params[0].npos) //if param contains '%'
-		{
-			std::string user = _params[0].substr(0, _params[0].find_last_of('%'));
-			std::string host = _params[0].substr(_params[0].find_last_of('%') + 1);
-
-			if (	(!fmatch(user, USERNAME) && !fmatch(host, HOST))
-					|| !fmatch(_params[0], NICK_USER_HOST)
-					|| !fmatch(_params[0], CHANNEL))
-				return ERR_INVALID_MSGTARGET;
-		}
-		else if (!fmatch(_params[0], NICKNAME)) //no '%' in param
-			return ERR_INVALID_MSGTARGET;*/
-		//Is there forbidden octets in notice text?
+		if (_params.size() != 2)
+			return ERR_NEEDMOREPARAMS;
 		return OK;
 	}
 	else if (_command == "TOPIC")
 	{
 		if (_params.size() == 0 || _params.size() > 2)
 			return ERR_NEEDMOREPARAMS;
-	// ======= PEUT ETRE RETIRE ============
-		/*if (!fmatch(_params[0], CHANNEL))
-			return ERR_INVALID_CHANNEL;*/
-		//is there forbidden octets for topic?
 		return OK;
 	}
-	//
-	// ========= PEUT ETRE RETIRE -> si erreur de channel_name alors ignoré =======
-	// ========= VOIR POUR LIST -YES ?? ===============
 	else if (_command == "NAMES" || _command == "LIST")
 	{
 		//I assume there must be no target bc we don't do multiserver
-		// =============== ?? PEUT NE PAS AVOIR DE PARAMETRE ==============
-		/*if (_params.size() != 1)
-			return ERR_INVALID_PARAM_AMOUNT;
-		if (!fmatch(_params[0], CHANNEL_LIST))
-			return ERR_INVALID_CHANNEL;*/
+		if (_params.size() > 1)
+			return ERR_NEEDMOREPARAMS;
 		return OK;
 	}
-	// ============= PEUT ETRE RETIRE -> forcement 0 ou 1 params ==================
 	else if (_command == "AWAY")
 	{
 		if (_params.size() > 1)
@@ -327,6 +254,5 @@ int
 		return OK;
 	}
 	else
-		return ERR_INVALID_COMMAND;
-	
+		return KO;	
 }
