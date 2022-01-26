@@ -145,7 +145,6 @@ void IRCServer::_execute_pass(IRCMessage const & message) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
 	else */if (client->get_status() == UNREGISTERED) {
 		if (_password == message.get_params().at(0)) {
-			client->set_password(message.get_params().at(0));
 			client->set_status(PASSWORD);
 		}
 	}
@@ -896,8 +895,8 @@ void IRCServer::_execute_kill(const IRCMessage & message) {
 	IRCClient * killer = _clients.at(message.get_sender());
 	//TODO: Sanity check -> ERR_NEEDMOREPARAMS
 	//TODO: Pass as ref sur const !
-	std::string nick_killed = message.get_params().at(0);
-	std::string comment = message.get_params().at(1);
+	const std::string & nick_killed = message.get_params().at(0);
+	const std::string & comment = message.get_params().at(1);
 	if (!killer->is_mode('o')) {
 		// If killer isn't oper -> ERR_NOPRIVILEGES
 		_tcp_server.schedule_sent_message(make_reply_ERR_NOPRIVILEGES(*killer));

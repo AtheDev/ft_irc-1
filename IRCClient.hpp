@@ -35,7 +35,6 @@ class IRCClient {
 		void set_username(const std::string& username);
 		void set_hostname(const std::string& username);
 		void set_realname(const std::string& realname);
-		void set_password(const std::string& password);
 		void set_away_message(const std::string& message);
 		void set_mode(char sign, char mode);
 		void set_status(int status);
@@ -48,9 +47,7 @@ class IRCClient {
 		std::string _nickname;
 		std::string _username;
 		std::string _realname;
-		std::string _password;
 		std::string	_mode;
-		//TODO: to be removed?
 		std::string _hostname;
 		std::string	_away_message;
 

@@ -201,7 +201,6 @@ TCPMessage make_reply_RPL_WHOISCHANNELS(const IRCClient & client, const IRCClien
 										const std::string & channels_names) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("319", client);
-	//TODO: to be verified
 	payload += client_target.get_nickname() + " :" + channels_names;
 	return TCPMessage(receivers, payload);
 }
@@ -220,7 +219,6 @@ TCPMessage make_reply_RPL_LISTEND(const IRCClient & client) {
 	return TCPMessage(receivers, payload);
 }
 
-//TODO: to be verified
 TCPMessage make_reply_RPL_CHANNELMODEIS(const IRCClient & client, const Channel & channel) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("324", client);
