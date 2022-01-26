@@ -41,7 +41,8 @@
 //It's not clear in rfc2812 but I assume a CHANSTRING is a least one char long
 # define CHANNELID			"%(5)[A:Z]+" DIGIT
 # define CHANNEL			"*((1)[#+%0x2B+&]+(1)[!" CHANNELID "])" CHANSTRING "*((0:1)[:" CHANSTRING "])"
-# define KEY				"%(1:23)[%0x01:%0x05]+[%0x07:%0x08]+%0x0C+[%0x0E:%0x1F]+[%0x21:%0x7F]"
+//I assume KEY cannot contain ',' else we can't parse KEY_LIST
+# define KEY				"%(1:23)[%0x01:%0x05]+[%0x07:%0x08]+%0x0C+[%0x0E:%0x1F]+[%0x21:%0x2B]+[%0x2D:%0x7F]"
 //Must SHORTNAME end with letter or digit (and not -)? bnf is not clear
 # define SHORTNAME			"%" LETTER "+" DIGIT "%(:)" LETTER "+" DIGIT "+-" "%(:)" LETTER "+" DIGIT
 # define HOSTNAME			SHORTNAME "*((:)[." SHORTNAME "])"
@@ -50,12 +51,27 @@
 # define IP6ADDR			"*((1)[%(1)" HEXDIGIT "*((7)[:" HEXDIGIT "])]+(1)[0:0:0:0:0:%0+(4)F:" IP4ADDR "])"
 # define HOSTADDR			"*((1)[" IP4ADDR "]+(1)[" IP6ADDR "])"
 # define HOST				"*((1)[" HOSTNAME "]+(1)[" HOSTADDR "])"
-# define MSGTO				"*((1)[" CHANNEL "]+(1)[" USERNAME "*((0:1)[%0x25" HOST "])" "@" SERVERNAME "\
-]+(1)[" USERNAME "%0x25" HOST "]+(1)[" NICKNAME "]+(1)[" NICKNAME "!" USERNAME "@" HOST "])"
+# define NICK_USER_HOST		NICKNAME "!" USERNAME "@" HOST
+//# define MSGTO				"*((1)[" CHANNEL "]+(1)[" USERNAME "*((0:1)[%0x25" HOST "])" "@" SERVERNAME "\
+//]+(1)[" USERNAME "%0x25" HOST "]+(1)[" NICKNAME "]+(1)[" NICKNAME "!" USERNAME "@" HOST "])"
 
 # define MSGTARGET			MSGTO "*((:)[," MSGTO "])"
 # define CHANNEL_LIST		CHANNEL "*((:)[," CHANNEL "])"
 # define KEY_LIST			KEY "*((:)[," KEY "])"
 
+enum err_ircmessage {
+	OK = 0,
+	ERR_INVALID_PARAM_AMOUNT,
+	ERR_INVALID_NICKNAME,
+	ERR_INVALID_USERNAME,
+	ERR_INVALID_REALNAME,
+	ERR_INVALID_USERMODE,
+	ERR_INVALID_USERMODEBYTE,
+	ERR_INVALID_CHANNEL,
+	ERR_INVALID_KEY,
+	ERR_INVALID_SERVERNAME,
+	ERR_INVALID_MSGTARGET,
+	ERR_INVALID_COMMAND
+};
 
 #endif

@@ -27,9 +27,6 @@
 //	}
 //	std::cout << '|' << std::endl;
 //}
-//
-//static bool
-//	is_digit(int c) { return c >= '0' && c <= '9'; }
 
 void
 	remove_percentage(std::string &str)

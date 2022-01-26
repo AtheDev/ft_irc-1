@@ -29,6 +29,8 @@ class IRCMessage
 		TCPMessage to_tcp_message();
 		void set_command(std::string cmd);
 
+		int							sanity_check();
+
 		class Error_message_empty : public std::exception {
 			public:
 				virtual const char *what() const throw();
@@ -38,46 +40,6 @@ class IRCMessage
 				virtual const char *what() const throw();
 		};
 		class Error_message_invalid_prefix : public std::exception {
-			public:
-				virtual const char *what() const throw();
-		};
-		class Error_wrong_param_amount : public std::exception {
-			public:
-				virtual const char *what() const throw();
-		};
-		class Error_invalid_nickname : public std::exception {
-			public:
-				virtual const char *what() const throw();
-		};
-		class Error_invalid_username : public std::exception {
-			public:
-				virtual const char *what() const throw();
-		};
-		class Error_invalid_usermodebyte : public std::exception {
-			public:
-				virtual const char *what() const throw();
-		};
-		class Error_invalid_usermode : public std::exception {
-			public:
-				virtual const char *what() const throw();
-		};
-		class Error_invalid_realname : public std::exception {
-			public:
-				virtual const char *what() const throw();
-		};
-		class Error_invalid_channel : public std::exception {
-			public:
-				virtual const char *what() const throw();
-		};
-		class Error_invalid_key : public std::exception {
-			public:
-				virtual const char *what() const throw();
-		};
-		class Error_invalid_msgtarget : public std::exception {
-			public:
-				virtual const char *what() const throw();
-		};
-		class Error_invalid_servername : public std::exception {
 			public:
 				virtual const char *what() const throw();
 		};
@@ -93,7 +55,6 @@ class IRCMessage
 		std::vector<int>							_receivers;
 
 		void						_parse_line(std::string line);
-		void						_sanity_check();
 
 };
 
