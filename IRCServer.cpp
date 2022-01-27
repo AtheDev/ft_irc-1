@@ -28,9 +28,8 @@ IRCServer::IRCServer(const std::string & port, const std::string & password) :
 	_commands["PING"] = &IRCServer::_execute_ping;
 	_commands["AWAY"] = &IRCServer::_execute_away;
 	_commands["OPER"] = &IRCServer::_execute_oper;
-	//TODO: IRCMessage should convert in all caps !
-	_commands["kill"] = &IRCServer::_execute_kill;
-	_commands["die"] = &IRCServer::_execute_die;
+	_commands["KILL"] = &IRCServer::_execute_kill;
+	_commands["DIE"] = &IRCServer::_execute_die;
 }
 
 IRCServer::~IRCServer() {}

@@ -88,7 +88,6 @@ void
 {
 	size_t	pos1 = 0, pos2 = 0;
 
-	std::transform(line.begin(), line.end(), line.begin(), ::toupper);
 	try
 	{
 		if (line.empty())
@@ -131,6 +130,8 @@ void
 	if (line[pos1] == ':')
 		pos1++;
 	_params.push_back(line.substr(pos1));
+
+	std::transform(_command.begin(),  _command.end(), _command.begin(), ::toupper);
 }
 
 /**
@@ -264,5 +265,5 @@ int
 		return OK;
 	}
 	else
-		return KO;	
+		return KO;
 }
