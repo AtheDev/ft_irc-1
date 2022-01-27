@@ -167,10 +167,11 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_NONICKNAMEGIVEN(*client));
 	else if (err == ERR_ERRONEUSNICKNAME)
 		_tcp_server.schedule_sent_message(make_reply_ERR_ERRONEUSNICKNAME(*client, message.get_params()[0]));
-	if (err != 0)
+	if (err != 0 || client->get_status() == UNREGISTERED)
 	{
 		if (client->get_status() == UNREGISTERED || client->get_status() == PASSWORD)
 		{
+			std::cout << "PASS command not executed before NICK command" << std::endl; //DEBUG
 			std::vector<int> disconnected_client(1u, client->get_fd());
 			_tcp_server.add_client_to_disconnect(client->get_fd());
 			_remove_clients(disconnected_client);
@@ -178,13 +179,14 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 		return ;
 	}
 	std::string nick = message.get_params().at(0);
-	if (client->get_status() == UNREGISTERED) {
-		std::cout << "PASS command not executed before NICK command" << std::endl; //DEBUG
-		std::vector<int> disconnected_client(1u, client->get_fd());
-		_tcp_server.add_client_to_disconnect(client->get_fd());
-		_remove_clients(disconnected_client);
-	} else if (find_nickname(nick) != _clients.end()) {
+	if (find_nickname(nick) != _clients.end()) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_NICKNAMEINUSE(*client, nick));
+		if (client->get_status() != REGISTERED) {
+			std::cout << "PASS command not executed before NICK command" << std::endl; //DEBUG
+			std::vector<int> disconnected_client(1u, client->get_fd());
+			_tcp_server.add_client_to_disconnect(client->get_fd());
+			_remove_clients(disconnected_client);
+		}
 	} else {
 		if (client->get_status() == PASSWORD) {
 			client->set_status(NICK);
@@ -224,7 +226,7 @@ void IRCServer::_execute_user(IRCMessage const & message) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
 	else if (err == ERR_ERROR)
 		_tcp_server.schedule_sent_message(make_reply_ERROR(*client, (message.get_command() + " :bad format")));
-	if (err != 0) {
+	if (err != 0 || status == UNREGISTERED || status == PASSWORD) {
 		std::vector<int> disconnected_client(1u, client->get_fd());
 		_tcp_server.add_client_to_disconnect(client->get_fd());
 		_remove_clients(disconnected_client);
