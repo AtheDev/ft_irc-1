@@ -112,9 +112,11 @@ void
 	if ((pos2 = line.find(' ', pos1)) == line.npos)
 	{
 		_command = line.substr(pos1);
+		std::transform(_command.begin(),  _command.end(), _command.begin(), ::toupper);
 		return ;
 	}
 	_command = line.substr(pos1, pos2 - pos1);
+	std::transform(_command.begin(),  _command.end(), _command.begin(), ::toupper);
 	pos1 = pos2 + 1;
 	//here we get optional parameters
 	while ((pos2 = line.find(' ', pos1 + 1)) != line.npos)
@@ -130,8 +132,6 @@ void
 	if (line[pos1] == ':')
 		pos1++;
 	_params.push_back(line.substr(pos1));
-
-	std::transform(_command.begin(),  _command.end(), _command.begin(), ::toupper);
 }
 
 /**
