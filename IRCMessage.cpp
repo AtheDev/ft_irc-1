@@ -1,6 +1,8 @@
 #include "IRCMessage.hpp"
 #include "Message.hpp"
 
+#include <algorithm>
+
 bool fmatch(std::string token, std::string format);
 
 IRCMessage::IRCMessage(const TCPMessage &tcpmessage)
@@ -110,9 +112,11 @@ void
 	if ((pos2 = line.find(' ', pos1)) == line.npos)
 	{
 		_command = line.substr(pos1);
+		std::transform(_command.begin(),  _command.end(), _command.begin(), ::toupper);
 		return ;
 	}
 	_command = line.substr(pos1, pos2 - pos1);
+	std::transform(_command.begin(),  _command.end(), _command.begin(), ::toupper);
 	pos1 = pos2 + 1;
 	//here we get optional parameters
 	while ((pos2 = line.find(' ', pos1 + 1)) != line.npos)
@@ -171,16 +175,23 @@ int
 			return ERR_NEEDMOREPARAMS;
 		return OK;
 	}
-	/*else if (_command == "MODE")
+	else if (_command == "MODE")
 	{
-		if (_params.size() != 2)
-			return ERR_INVALID_PARAM_AMOUNT;
-		if (!fmatch(_params[0], NICKNAME))
-			return ERR_INVALID_NICKNAME;
-		if (!fmatch(_params[1], USERMODE))
-			return ERR_INVALID_USERMODE;
+		if (fmatch(_params[0], NICKNAME)) //User mode
+		{
+			if (_params.size() == 1)
+				return ERR_NEEDMOREPARAMS;
+			if (!fmatch(_params[1], USERMODE))
+				return ERR_UMODEUNKNOWNFLAG;
+		}
+		else if (fmatch(_params[0], CHANNEL)) //Channel mode
+		{
+
+		}
+		else
+			; //?
 		return OK;
-	}*/
+	}
 	else if (_command == "QUIT")
 	{
 		if (_params.size() > 1)
@@ -254,5 +265,5 @@ int
 		return OK;
 	}
 	else
-		return KO;	
+		return KO;
 }

@@ -28,9 +28,8 @@ IRCServer::IRCServer(const std::string & port, const std::string & password) :
 	_commands["PING"] = &IRCServer::_execute_ping;
 	_commands["AWAY"] = &IRCServer::_execute_away;
 	_commands["OPER"] = &IRCServer::_execute_oper;
-	//TODO: IRCMessage should convert in all caps !
-	_commands["kill"] = &IRCServer::_execute_kill;
-	_commands["die"] = &IRCServer::_execute_die;
+	_commands["KILL"] = &IRCServer::_execute_kill;
+	_commands["DIE"] = &IRCServer::_execute_die;
 }
 
 IRCServer::~IRCServer() {}
@@ -412,7 +411,7 @@ void IRCServer::_execute_quit(IRCMessage const & message) {
 	std::vector<Channel *> client_channels = _get_client_channels(client->get_fd());
 	std::vector<Channel *>::iterator it_channel = client_channels.begin();
 	for (; it_channel != client_channels.end(); it_channel++) {
-		TCPMessage reply = make_reply_PART(*client, **it_channel, quit_message);
+		TCPMessage reply = make_reply_QUIT(*client, **it_channel, quit_message);
 		_tcp_server.schedule_sent_message(reply);
 		(*it_channel)->remove_client(message.get_sender());
 		if ((*it_channel)->get_clients().empty()) {
@@ -916,12 +915,26 @@ void IRCServer::_execute_kill(const IRCMessage & message) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_NOSUCHNICK(*killer, nick_killed));
 		return;
 	}
-	// Else send them a kill message, broadcast a QUIT, send them an ERROR and finally remove them
+	// Else send them a kill message, broadcast QUIT and PART, send them an ERROR and remove them
 	IRCClient * killed = find_nickname(nick_killed)->second;
 	_tcp_server.schedule_sent_message(make_reply_KILL(*killer, *killed, comment));
-	//TODO: broadcast a QUIT message to all uses sharing a channel with killed ?
-	_tcp_server.add_client_to_disconnect(killed->get_fd());
+	std::vector<Channel *> client_channels = _get_client_channels(killed->get_fd());
+	TCPMessage reply = make_reply_QUIT(*killed, _get_client_friends(killed->get_fd()), comment);
+	std::vector<Channel *>::iterator it_channel = client_channels.begin();
+	for (; it_channel != client_channels.end(); it_channel++) {
+		// For all client's channel, broadcast PART, remove the client and remove channel if empty
+		_tcp_server.schedule_sent_message(make_reply_PART(*killed, **it_channel, "Has been killed."));
+		(*it_channel)->remove_client(killed->get_fd());
+		if ((*it_channel)->get_clients().empty()) {
+			std::string channel_name = (*it_channel)->get_name();
+			std::cout << "Channel " << channel_name << " deleted." << std::endl;
+			delete *it_channel;
+			_channels.erase(channel_name);
+		}
+	}
+	_tcp_server.schedule_sent_message(reply);
 	_tcp_server.schedule_sent_message(make_reply_ERROR(*killed, comment));
+	_tcp_server.add_client_to_disconnect(killed->get_fd());
 }
 
 void IRCServer::_execute_die(const IRCMessage & message) {
@@ -971,6 +984,21 @@ std::vector<Channel *> IRCServer::_get_client_channels(int client_socketfd) {
 		}
 	}
 	return client_channels;
+}
+
+std::vector<int> IRCServer::_get_client_friends(int client_socketfd) {
+	std::vector<int> client_friends;
+	std::vector<Channel *> client_channels = _get_client_channels(client_socketfd);
+	std::vector<Channel *>::iterator it_channel = client_channels.begin();
+	for (; it_channel != client_channels.end(); it_channel++) {
+		std::vector<int>::const_iterator it_client = (*it_channel)->clients_begin();
+		for (; it_client != (*it_channel)->clients_end(); it_client++) {
+			if (std::find(client_friends.begin(), client_friends.end(), *it_client) == client_friends.end()) {
+				client_friends.push_back(*it_client);
+			}
+		}
+	}
+	return client_friends;
 }
 
 std::string IRCServer::_get_formatted_clients_from_channel(const std::string & channel_name) {

@@ -75,6 +75,7 @@ class IRCServer {
 		void	_join_channel(const IRCClient & client, Channel & channel);
 		void	_leave_all_channels(const IRCClient & client);
 		std::vector<Channel *> _get_client_channels(int client_socketfd);
+		std::vector<int> _get_client_friends(int client_socketfd);
 		std::string _get_formatted_clients_from_channel(const std::string & channel_name);
 		std::string _get_formatted_clients_without_channel(void);
 		bool _is_connected(int client_socketfd);
