@@ -1,6 +1,8 @@
 #include "IRCMessage.hpp"
 #include "Message.hpp"
 
+#include <algorithm>
+
 bool fmatch(std::string token, std::string format);
 
 IRCMessage::IRCMessage(const TCPMessage &tcpmessage)
@@ -86,6 +88,7 @@ void
 {
 	size_t	pos1 = 0, pos2 = 0;
 
+	std::transform(line.begin(), line.end(), line.begin(), ::toupper);
 	try
 	{
 		if (line.empty())
@@ -171,16 +174,23 @@ int
 			return ERR_NEEDMOREPARAMS;
 		return OK;
 	}
-	/*else if (_command == "MODE")
+	else if (_command == "MODE")
 	{
-		if (_params.size() != 2)
-			return ERR_INVALID_PARAM_AMOUNT;
-		if (!fmatch(_params[0], NICKNAME))
-			return ERR_INVALID_NICKNAME;
-		if (!fmatch(_params[1], USERMODE))
-			return ERR_INVALID_USERMODE;
+		if (fmatch(_params[0], NICKNAME)) //User mode
+		{
+			if (_params.size() == 1)
+				return ERR_NEEDMOREPARAMS;
+			if (!fmatch(_params[1], USERMODE))
+				return ERR_UMODEUNKNOWNFLAG;
+		}
+		else if (fmatch(_params[0], CHANNEL)) //Channel mode
+		{
+
+		}
+		else
+			; //?
 		return OK;
-	}*/
+	}
 	else if (_command == "QUIT")
 	{
 		if (_params.size() > 1)
