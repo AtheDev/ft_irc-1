@@ -80,10 +80,15 @@ TCPMessage make_reply_QUIT(const IRCClient & client, const std::string & quit_me
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_QUIT(const IRCClient & client, const std::vector<int> & client_friends,
+						   const std::string & quit_message) {
+	std::string payload = prepare_reply_command("QUIT", client) + ":" + quit_message;
+	return TCPMessage(client_friends, payload);
+}
+
 TCPMessage make_reply_QUIT(const IRCClient & client, const Channel & channel,
 						   const std::string & quit_message) {
 	std::vector<int> receivers = channel.get_clients();
-//receivers.erase(std::find(receivers.begin(), receivers.end(), client.get_fd()));
 	std::string payload = prepare_reply_command("QUIT", client) + ":" + quit_message;
 	return TCPMessage(receivers, payload);
 }
