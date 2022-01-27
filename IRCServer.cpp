@@ -141,13 +141,11 @@ void IRCServer::_execute_pass(IRCMessage const & message) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_ALREADYREGISTRED(*client));
 		return;
 	}
-/*	int err = message._sanity_check();
+	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS)
 		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
-	else */if (client->get_status() == UNREGISTERED) {
-		if (_password == message.get_params().at(0)) {
-			client->set_status(PASSWORD);
-		}
+	else if (_password == message.get_params().at(0)) {
+		client->set_status(PASSWORD);
 	}
 	if (client->get_status() == UNREGISTERED) {
 		std::cout << "Wrong password or need more params" << std::endl; //DEBUG
@@ -164,8 +162,7 @@ void IRCServer::_execute_pass(IRCMessage const & message) {
 void IRCServer::_execute_nick(IRCMessage const & message) {
 	std::cout << "Executing NICK: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-
-/*	int err = message._sanity_check();
+	int err = message.sanity_check();
 	if (err == ERR_NONICKNAMEGIVEN)
 		_tcp_server.schedule_sent_message(make_reply_ERR_NONICKNAMEGIVEN(*client));
 	else if (err == ERR_ERRONEUSNICKNAME)
@@ -180,7 +177,6 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 		}
 		return ;
 	}
-*/
 	std::string nick = message.get_params().at(0);
 	if (client->get_status() == UNREGISTERED) {
 		std::cout << "PASS command not executed before NICK command" << std::endl; //DEBUG
@@ -191,7 +187,7 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_NICKNAMEINUSE(*client, nick));
 	} else {
 		if (client->get_status() == PASSWORD) {
-			client->set_status(NICKNAME);
+			client->set_status(NICK);
 		}
 		std::vector<int> receivers;
 		receivers.push_back(client->get_fd());
@@ -219,25 +215,22 @@ void IRCServer::_execute_user(IRCMessage const & message) {
 	std::cout << "Executing USER: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
 	int status = client->get_status();
-
 	if (status == REGISTERED) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_ALREADYREGISTRED(*client));
 		return;
 	}
-/*	int err = message._sanity_check();
+	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS)
 		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
-	if (ret != 0) {
-		if (client->get_status() != REGISTERED)
-		{
-			std::vector<int> disconnected_client(1u, client->get_fd());
-			_tcp_server.add_client_to_disconnect(client->get_fd());
-			_remove_clients(disconnected_client);
-		}
+	else if (err == ERR_ERROR)
+		_tcp_server.schedule_sent_message(make_reply_ERROR(*client, (message.get_command() + " :bad format")));
+	if (err != 0) {
+		std::vector<int> disconnected_client(1u, client->get_fd());
+		_tcp_server.add_client_to_disconnect(client->get_fd());
+		_remove_clients(disconnected_client);
 		return ;
 	}
-*/
-	if (status == NICKNAME) {
+	if (status == NICK) {
 		client->set_username(message.get_params().at(0));
 		client->set_hostname(message.get_params().at(1)); // TODO: To change ?
 		client->set_realname(message.get_params().at(3));
@@ -405,6 +398,11 @@ void IRCServer::_execute_quit(IRCMessage const & message) {
 
 	std::cout << "Executing QUIT: " << message.get_command() << std::endl;
 	IRCClient * client = _clients[message.get_sender()];
+	int err = message.sanity_check();
+	if (err == ERR_NEEDMOREPARAMS) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+		return ;
+	}
 	std::string quit_message;
 	if (message.get_params().size() == 1) {
 		quit_message = message.get_params().at(0);
@@ -473,14 +471,13 @@ void IRCServer::_execute_join(IRCMessage const & message) {
 		it_key_end = channel_keys.end();
 	}
 	std::vector<std::string>::const_iterator it_channel_name = channel_names.begin();
-	/*int err = message._sanity_check();
+	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS)
 		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
 	else if (err == ERR_BADCHANMASK)
 		_tcp_server.schedule_sent_message(make_reply_ERR_BADCHANMASK(*client, *it_channel_name));
 	if (err != 0)
 		return ;
-*/
 	Channel * channel;
 	for (; it_channel_name != channel_names.end(); it_channel_name++) {
 		// If client cannot join new channels, send ERR_TOMANYCHANNELS and continue
@@ -526,14 +523,11 @@ void IRCServer::_execute_join(IRCMessage const & message) {
 void IRCServer::_execute_part(IRCMessage const & message) {
 	std::cout << "Executing PART: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-
-/*	int err = message._sanity_check();
+	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
 		return ;
 	}
-*/
-
 	std::vector<std::string> channel_names = ft_split(message.get_params().at(0), ",");
 	std::string part_message;
 	if (message.get_params().size() == 2) {
@@ -575,16 +569,18 @@ void IRCServer::_execute_part(IRCMessage const & message) {
 void IRCServer::_execute_privmsg(IRCMessage const & message) {
 	std::cout << "Executing PRIVMSG: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-	if (message.get_params().empty()) {
+	int err = message.sanity_check();
+	if (err == ERR_NEEDMOREPARAMS) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+	} else if (err == ERR_NORECIPIENT) {
 		// If no params, send ERR_NORECIPIENT
-		TCPMessage reply = make_reply_ERR_NORECIPIENT(*client, message.get_command());
-		_tcp_server.schedule_sent_message(reply);
-		return;
-	} else if (message.get_params().size() == 1) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_NORECIPIENT(*client, message.get_command()));
+	} else if (err == ERR_NOTEXTTOSEND) {
 		// If 1 param, send ERR_NOTEXTTOSEND
 		_tcp_server.schedule_sent_message(make_reply_ERR_NOTEXTTOSEND(*client));
-		return;
 	}
+	if (err != 0)
+		return;
 	std::string target = message.get_params().at(0);
 	if (target[0] == '#') {
 		Channel * channel;
@@ -639,10 +635,9 @@ void IRCServer::_execute_privmsg(IRCMessage const & message) {
 void IRCServer::_execute_notice(IRCMessage const & message) {
 	std::cout << "Executing NOTICE: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-	if (message.get_params().empty() || message.get_params().size() == 1) {
-		return;
-		//TODO: Shouldn't there be an error here ?
-	}
+	int err = message.sanity_check();
+	if (err == ERR_NEEDMOREPARAMS)
+		return ;
 	std::string target = message.get_params().at(0);
 	if (target[0] == '#') {
 		Channel * channel;
@@ -676,15 +671,12 @@ void IRCServer::_execute_notice(IRCMessage const & message) {
 void IRCServer::_execute_topic(IRCMessage const & message) {
 	std::cout << "Executing TOPIC: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-
-/*	int err = message._sanity_check();
+	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS)
 	{
 		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
 		return ;
 	}
-*/
-
 	std::string channel_name = message.get_params().at(0);
 
 	std::map<std::string, Channel *>::const_iterator it = find_channel(channel_name);
@@ -724,6 +716,12 @@ void IRCServer::_execute_topic(IRCMessage const & message) {
 void IRCServer::_execute_names(IRCMessage const & message) {
 	std::cout << "Executing NAMES: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
+	int err = message.sanity_check();
+	if (err == ERR_NEEDMOREPARAMS)
+	{
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+		return ;
+	}
 	std::string users_list;
 	if (message.get_params().empty()) {
 		std::map<std::string, Channel *>::iterator it = _channels.begin();
@@ -762,7 +760,12 @@ void IRCServer::_execute_names(IRCMessage const & message) {
 void IRCServer::_execute_list(IRCMessage const & message) {
 	std::cout << "Executing LIST: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-	//TODO: see for the LIST command and the -YES parameter
+	int err = message.sanity_check();
+	if (err == ERR_NEEDMOREPARAMS)
+	{
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+		return ;
+	}
 	if (message.get_params().empty()) {
 		std::map<std::string, Channel *>::iterator it = _channels.begin();
 		for (; it != _channels.end(); it++) {
@@ -842,9 +845,12 @@ void IRCServer::_execute_list(IRCMessage const & message) {
 void IRCServer::_execute_ping(IRCMessage const & message) {
 	std::cout << "Executing PING: " << message.get_command() << std::endl;
 	IRCClient * client = _clients.at(message.get_sender());
-	if (message.get_params().empty()) {
-		TCPMessage reply = make_reply_ERR_NOORIGIN(*client);
-		_tcp_server.schedule_sent_message(reply);
+	int err = message.sanity_check();
+	if (err == ERR_NEEDMOREPARAMS) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
+	}
+	else if (err == ERR_NOORIGIN) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_NOORIGIN(*client));
 	} else {
 		TCPMessage reply = make_reply_PONG(*client, message.get_params().at(0));
 		_tcp_server.schedule_sent_message(reply);
@@ -876,14 +882,13 @@ void IRCServer::_execute_away(IRCMessage const & message) {
 
 void IRCServer::_execute_oper(const IRCMessage & message) {
 	IRCClient * client = _clients.at(message.get_sender());
-	if (client->get_mode().find('o') != std::string::npos) {
-		return;
-	}
-/*	int err = message._sanity_check();
+	if (client->get_mode().find('o') != std::string::npos)
+		return ;
+	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS)
 		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*client, message.get_command()));
-	else */if (message.get_params().at(0) != _operator_name ||
-			   message.get_params().at(1) != _operator_password) {
+	else if (message.get_params().at(0) != _operator_name ||
+		message.get_params().at(1) != _operator_password) {
 		// If operator name or password is incorrect, send ERR_PASSWDMISMATCH
 		_tcp_server.schedule_sent_message(make_reply_ERR_PASSWDMISMATCH(*client));
 	} else {

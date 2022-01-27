@@ -29,7 +29,7 @@ class IRCMessage
 		TCPMessage to_tcp_message();
 		void set_command(std::string cmd);
 
-		int							sanity_check();
+		int							sanity_check() const;
 
 		class Error_message_empty : public std::exception {
 			public:

@@ -327,6 +327,20 @@ TCPMessage make_reply_ERR_NOTEXTTOSEND(const IRCClient & client) {
 	return TCPMessage(receivers, payload);
 }
 
+TCPMessage make_reply_ERR_NONICKNAMEGIVEN(const IRCClient & client) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("431", client);
+	payload += ":No nickname given";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_ERR_ERRONEUSNICKNAME(const IRCClient & client, const std::string & nickname) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("432", client);
+	payload += nickname + " :Erroneous nickname";
+	return TCPMessage(receivers, payload);
+}
+
 TCPMessage make_reply_ERR_NICKNAMEINUSE(const IRCClient & client, const std::string & nickname) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("433", client);
@@ -355,6 +369,13 @@ TCPMessage make_reply_ERR_NOTONCHANNEL(const IRCClient & client, const std::stri
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("442", client);
 	payload += channel_name + " :You're not on that channel";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_ERR_NEEDMOREPARAMS(const IRCClient & client, const std::string & command) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("461", client);
+	payload += command + " :Not enough parameters";
 	return TCPMessage(receivers, payload);
 }
 
@@ -390,6 +411,13 @@ TCPMessage make_reply_ERR_BADCHANNELKEY(const IRCClient & client, const std::str
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("475", client);
 	payload += channel_name + " :Cannot join channel (+k)";
+	return TCPMessage(receivers, payload);
+}
+
+TCPMessage make_reply_ERR_BADCHANMASK(const IRCClient & client, const std::string & channel_name) {
+	std::vector<int> receivers(1u, client.get_fd());
+	std::string payload = prepare_reply_RPL_ERR("476", client);
+	payload += channel_name + " :Bad Channel Mask)";
 	return TCPMessage(receivers, payload);
 }
 
