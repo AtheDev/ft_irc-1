@@ -258,6 +258,12 @@ int
 		//I assume there is no forbidden octets for away message
 		return OK;
 	}
+	else if (_command == "KILL")
+	{
+		if (_params.size() < 2)
+			return ERR_NEEDMOREPARAMS;
+		return OK;
+	}
 	// ============= PEUT ETRE RETIRE SI ON NE FAIT PAS ==================
 	else if (_command == "WHOIS")
 	{
