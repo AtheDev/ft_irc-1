@@ -7,21 +7,21 @@
  */
 TCPSocketPassive::TCPSocketPassive(int port) {
 	int opt = 1;
+	struct sockaddr_in6 serveraddr;
 
-	//TODO: How to handle both ipv4 and ipv6?
-	if ((_socketfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+	if ((_socketfd = socket(AF_INET6, SOCK_STREAM, 0)) == -1)
 		throw Cexception();
-	}
-	if (setsockopt(_socketfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) == -1) {
+	if (setsockopt(_socketfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) == -1)
 		throw Cexception();
-	}
-	_address.sin_family = AF_INET;
-	_address.sin_addr.s_addr = INADDR_ANY;
-	_address.sin_port = htons(port);
 	fcntl(_socketfd, F_SETFL, O_NONBLOCK);
-	if (bind(_socketfd, (struct sockaddr *) &_address, sizeof(_address)) == -1) {
-		throw Cexception();
-	}
+
+    memset(&serveraddr, 0, sizeof(serveraddr));
+    serveraddr.sin6_family = AF_INET6;
+	serveraddr.sin6_port   = htons(port);
+	serveraddr.sin6_addr   = in6addr_any;
+	
+	if(bind(_socketfd, (struct sockaddr *)&serveraddr, sizeof(serveraddr)) == -1)
+        throw Cexception();
 }
 
 TCPSocketPassive::~TCPSocketPassive() {}
