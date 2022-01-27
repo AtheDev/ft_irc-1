@@ -902,8 +902,11 @@ void IRCServer::_execute_oper(const IRCMessage & message) {
 
 void IRCServer::_execute_kill(const IRCMessage & message) {
 	IRCClient * killer = _clients.at(message.get_sender());
-	//TODO: Sanity check -> ERR_NEEDMOREPARAMS
-	//TODO: Pass as ref sur const !
+	int err = message.sanity_check();
+	if (err == ERR_NEEDMOREPARAMS) {
+		_tcp_server.schedule_sent_message(make_reply_ERR_NEEDMOREPARAMS(*killer, "KILL"));
+		return ;
+	}
 	const std::string & nick_killed = message.get_params().at(0);
 	const std::string & comment = message.get_params().at(1);
 	if (!killer->is_mode('o')) {
