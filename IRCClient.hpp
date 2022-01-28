@@ -17,7 +17,7 @@ enum e_user_status {
 class IRCClient {
 	public:
 
-		IRCClient(int fd);
+		IRCClient(int fd, std::string servername);
 		~IRCClient();
 
 		int get_fd() const;
@@ -27,6 +27,7 @@ class IRCClient {
 		std::string const & get_realname(void) const;
 		std::string const & get_mode(void) const;
 		std::string const & get_away_message(void) const;
+		std::string const & get_servername(void) const;
 		int get_status(void) const;
 		std::string get_prefix() const;
 		bool is_mode(char mode) const;
@@ -50,6 +51,7 @@ class IRCClient {
 		std::string	_mode;
 		std::string _hostname;
 		std::string	_away_message;
+		std::string _servername;
 
 		IRCClient();
 		IRCClient(IRCClient const & cpy);

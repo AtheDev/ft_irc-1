@@ -2,7 +2,7 @@
 
 
 IRCServer::IRCServer(const std::string & port, const std::string & password) :
-		_tcp_server(port), _running(false), _password(password), _servername("IRC Server VTA !"),
+		_tcp_server(port), _running(false), _password(password), _servername("IRC.Server.VTA"),
 		_version("42.42") {
 
 	time_t raw_time;
@@ -92,7 +92,7 @@ void IRCServer::_run() {
 void IRCServer::_add_clients(const std::vector<int> & new_clients) {
 	std::vector<int>::const_iterator it = new_clients.begin();
 	for (; it != new_clients.end(); it++) {
-		IRCClient * new_client = new IRCClient(*it);
+		IRCClient * new_client = new IRCClient(*it, _servername);
 		_clients.insert(std::pair<int, IRCClient *>(*it, new_client));
 	}
 }

@@ -1,9 +1,9 @@
 #include "IRCClient.hpp"
 
 
-IRCClient::IRCClient(int fd) :
+IRCClient::IRCClient(int fd, std::string servername) :
 		_fd(fd), _status(UNREGISTERED), _nickname(), _username(), _realname(),
-		_mode(""), _hostname(), _away_message() {
+		_mode(""), _hostname(), _away_message(), _servername(servername) {
 }
 
 IRCClient::~IRCClient() {}
@@ -23,11 +23,25 @@ std::string const & IRCClient::get_mode(void) const { return _mode; }
 
 std::string const & IRCClient::get_away_message(void) const { return _away_message; }
 
+std::string const & IRCClient::get_servername(void) const { return _servername; }
 
 int IRCClient::get_status(void) const { return _status; }
 
 std::string IRCClient::get_prefix() const {
-	return std::string(_nickname + "!" + _username + "@" + _hostname);
+	std::string prefix;
+	if (get_nickname().empty())
+		prefix = "*!";
+	else
+		prefix = _nickname + "!";
+	if (get_username().empty())
+		prefix += "*@";
+	else
+		prefix += _username + "@";
+	if (get_hostname().empty())
+		prefix += "*";
+	else
+		prefix += _hostname;
+	return prefix;
 }
 
 bool IRCClient::is_mode(char mode) const {

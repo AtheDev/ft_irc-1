@@ -6,7 +6,12 @@ std::string prepare_reply_command(const std::string & command, const IRCClient &
 }
 
 std::string prepare_reply_RPL_ERR(const std::string & numeric, const IRCClient & client) {
-	return ":" + client.get_hostname() + " " + numeric + " " + client.get_nickname() + " ";
+	std::string payload = ":" + client.get_servername() + " " + numeric + " " ;
+	if (client.get_nickname().empty())
+		payload += "* ";
+	else
+		payload += client.get_nickname() + " ";
+	return payload;
 }
 
 TCPMessage make_reply_PRIVMSG_CHANNEL(const IRCClient & client, const Channel & channel,
@@ -101,7 +106,7 @@ TCPMessage make_reply_ERROR(const IRCClient & client, const std::string & error_
 
 TCPMessage make_reply_NICK(const IRCClient & client, const std::string & new_nick, const std::vector<int> & receivers_nick) {
 	std::vector<int> receivers = receivers_nick;
-	std::string payload = prepare_reply_command("NICK", client) + " :" + new_nick;
+	std::string payload = prepare_reply_command("NICK", client) + ":" + new_nick;
 	return TCPMessage(receivers, payload);
 }
 
