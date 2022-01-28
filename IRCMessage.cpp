@@ -165,8 +165,6 @@ int
 			return ERR_ERROR;
 		if (!fmatch(_params[2], SERVERNAME))
 			return ERR_ERROR;
-		if (!fmatch(_params[3], REALNAME))
-			return ERR_ERROR;
 		return OK;
 	}
 	else if (_command == "OPER")
