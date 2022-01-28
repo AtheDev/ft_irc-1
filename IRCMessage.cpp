@@ -186,10 +186,17 @@ int
 		}
 		else if (fmatch(_params[0], CHANNEL)) //Channel mode
 		{
-
+			for (size_t i = 1; i < _params.size(); ++i)
+			{
+				if (_params[i][0] == '+' || _params[i][0] == '-')
+				{
+					if (!fmatch(_params[i], CHANNELMODE))
+						return ERR_UNKNOWNMODE;
+				}
+			}
 		}
 		else
-			; //?
+			; //? Something went wrong if we get there
 		return OK;
 	}
 	else if (_command == "QUIT")

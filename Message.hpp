@@ -37,6 +37,7 @@
 # define REALNAME			"%" LETTER "%(:)" LETTER "+ "
 //I assume real name start with a letter and then any letter and spaces (like in the example)
 # define USERMODE			"*((:)[%%0x2B+-%(:)i+w+o+O+r])"
+# define CHANNELMODE		"*((:)[%%0x2B+-%(:)O+o+v+a+i+m+n+q+p+r+s+t+k+l+b+e+I])"
 # define CHANSTRING			"%(1:)[%0x01:%0x09]+[%0x0B:%0x0C]+[%0x0E:%0x1F]+[%0x21:%0x2B]+[%0x2D:%0x39]+[%0x3B:%0xFF]"
 //It's not clear in rfc2812 but I assume a CHANSTRING is a least one char long
 # define CHANNELID			"%(5)[A:Z]+" DIGIT
@@ -68,6 +69,7 @@
 #define ERR_NEEDMOREPARAMS 461
 #define ERR_BADCHANMASK 476
 #define ERR_UMODEUNKNOWNFLAG 501
+#define ERR_UNKNOWNMODE 472
 #define ERR_ERROR 600
 
 #define OK 0
