@@ -148,9 +148,6 @@ void IRCServer::_execute_pass(IRCMessage const & message) {
 	}
 	if (client->get_status() == UNREGISTERED) {
 		std::cout << "Wrong password or need more params" << std::endl; //DEBUG
-		std::vector<int> disconnected_client(1u, client->get_fd());
-		_tcp_server.add_client_to_disconnect(client->get_fd());
-		_remove_clients(disconnected_client);
 	}
 }
 
@@ -171,9 +168,6 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 		if (client->get_status() == UNREGISTERED || client->get_status() == PASSWORD)
 		{
 			std::cout << "PASS command not executed before NICK command" << std::endl; //DEBUG
-			std::vector<int> disconnected_client(1u, client->get_fd());
-			_tcp_server.add_client_to_disconnect(client->get_fd());
-			_remove_clients(disconnected_client);
 		}
 		return ;
 	}
@@ -182,9 +176,6 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_NICKNAMEINUSE(*client, nick));
 		if (client->get_status() != REGISTERED) {
 			std::cout << "PASS command not executed before NICK command" << std::endl; //DEBUG
-			std::vector<int> disconnected_client(1u, client->get_fd());
-			_tcp_server.add_client_to_disconnect(client->get_fd());
-			_remove_clients(disconnected_client);
 		}
 	} else {
 		if (client->get_status() == PASSWORD) {
@@ -226,9 +217,6 @@ void IRCServer::_execute_user(IRCMessage const & message) {
 	else if (err == ERR_ERROR)
 		_tcp_server.schedule_sent_message(make_reply_ERROR(*client, (message.get_command() + " :bad format")));
 	if (err != 0 || status == UNREGISTERED || status == PASSWORD) {
-		std::vector<int> disconnected_client(1u, client->get_fd());
-		_tcp_server.add_client_to_disconnect(client->get_fd());
-		_remove_clients(disconnected_client);
 		return ;
 	}
 	if (status == NICK) {
