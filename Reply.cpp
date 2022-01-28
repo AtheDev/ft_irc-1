@@ -342,14 +342,15 @@ TCPMessage make_reply_ERR_NONICKNAMEGIVEN(const IRCClient & client) {
 TCPMessage make_reply_ERR_ERRONEUSNICKNAME(const IRCClient & client, const std::string & nickname) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("432", client);
-	payload += nickname + " :Erroneous nickname";
+	payload += nickname + ":Erroneous nickname";
 	return TCPMessage(receivers, payload);
 }
 
 TCPMessage make_reply_ERR_NICKNAMEINUSE(const IRCClient & client, const std::string & nickname) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("433", client);
-	payload += nickname + " :Nickname is already in use";
+	payload += nickname.empty() ? "*" : nickname;
+	payload += ":Nickname is already in use";
 	return TCPMessage(receivers, payload);
 }
 
