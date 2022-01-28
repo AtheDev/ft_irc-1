@@ -237,7 +237,7 @@ void IRCServer::_execute_user(IRCMessage const & message) {
 		client->set_realname(message.get_params().at(3));
 		client->set_status(REGISTERED);
 		// TODO: To change ?
-		std::string user_modes(USER_MODES()), channel_modes(CHANNEL_MODES());
+		std::string user_modes("available user mode : +ao"), channel_modes("available channel mode : +ko");
 
 		TCPMessage reply = make_reply_RPL_WELCOME(*client);
 		_tcp_server.schedule_sent_message(reply);

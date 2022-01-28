@@ -156,8 +156,8 @@ TCPMessage make_reply_RPL_MYINFO(const IRCClient & client, const std::string & s
 								 const std::string & channel_modes) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("004", client);
-	payload += ":" + servername + " " + version + " ";
-	payload += user_modes + " " + channel_modes;
+	payload += ":" + servername + " " + version + ", ";
+	payload += user_modes + ", " + channel_modes;
 	return TCPMessage(receivers, payload);
 }
 
