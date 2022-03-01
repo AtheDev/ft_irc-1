@@ -17,10 +17,6 @@ class TCPSocketActive : public TCPSocket {
 
 		int get_socket_fd(void) const;
 
-	protected:
-
-	private:
-
 };
 
 #endif

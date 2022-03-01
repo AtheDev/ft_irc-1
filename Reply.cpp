@@ -1,6 +1,5 @@
 #include "Reply.hpp"
 
-
 std::string prepare_reply_command(const std::string & command, const IRCClient & client) {
 	return ":" + client.get_prefix() + " " + command + " ";
 }
@@ -193,36 +192,6 @@ TCPMessage make_reply_RPL_NOWAWAY(const IRCClient & client) {
 	return TCPMessage(receivers, payload);
 }
 
-TCPMessage make_reply_RPL_WHOISUSER(const IRCClient & client, const IRCClient & client_target) {
-	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload;
-	payload = prepare_reply_RPL_ERR("311", client);
-	payload += client_target.get_nickname() + " " + client_target.get_username() + " ";
-	payload += client_target.get_hostname() + " * :" + client_target.get_realname();
-	return TCPMessage(receivers, payload);
-}
-
-TCPMessage make_reply_RPL_WHOISOPERATOR(const IRCClient & client, const IRCClient & client_target) {
-	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = prepare_reply_RPL_ERR("313", client);
-	payload += client_target.get_nickname() + " :is an IRC operator";
-	return TCPMessage(receivers, payload);
-}
-
-TCPMessage make_reply_RPL_ENDOFWHOIS(const IRCClient & client) {
-	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = prepare_reply_RPL_ERR("318", client) + ":End of WHOIS list";
-	return TCPMessage(receivers, payload);
-}
-
-TCPMessage make_reply_RPL_WHOISCHANNELS(const IRCClient & client, const IRCClient & client_target,
-										const std::string & channels_names) {
-	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = prepare_reply_RPL_ERR("319", client);
-	payload += client_target.get_nickname() + " :" + channels_names;
-	return TCPMessage(receivers, payload);
-}
-
 TCPMessage make_reply_RPL_LIST(const IRCClient & client, const Channel & channel) {
 	std::vector<int> receivers(1u, client.get_fd());
 	std::string payload = prepare_reply_RPL_ERR("322", client);
@@ -352,15 +321,6 @@ TCPMessage make_reply_ERR_NICKNAMEINUSE(const IRCClient & client, const std::str
 	payload += nickname + ":Nickname is already in use";
 	return TCPMessage(receivers, payload);
 }
-
-/*TCPMessage make_reply_ERR_NICKCOLLISION(const IRCClient & client,
-										const IRCClient & collided_client) {
-	std::vector<int> receivers(1u, client.get_fd());
-	std::string payload = prepare_reply_RPL_ERR("436", client);
-	payload += collided_client.get_nickname() + " :Nickname collision KILL from ";
-	payload += collided_client.get_username() + "@" + collided_client.get_hostname();
-	return TCPMessage(receivers, payload);
-}*/
 
 TCPMessage make_reply_ERR_USERNOTINCHANNEL(const IRCClient & client, const std::string & channel_name,
 											const std::string & target) {

@@ -4,29 +4,12 @@
 #include <climits>
 #include <utility>
 
+#include <cstdio>
+
 #define MIN 0
 #define MAX 1
 
 #define CHAR_MASK_SIZE 255
-
-#include <cstdio> //for printf, debug
-#include <iostream> //for std::cout, debug
-
-/**
- * @brief
- * This is just for debug purposes
- */
-//static void
-//	display_char_mask(bool char_mask[CHAR_MASK_SIZE])
-//{
-//	std::cout << "char_mask:\t|";
-//	for (int i = 0; i < CHAR_MASK_SIZE; ++i)
-//	{
-//		if (char_mask[i])
-//			printf("%c", i);
-//	}
-//	std::cout << '|' << std::endl;
-//}
 
 void
 	remove_percentage(std::string &str)
@@ -38,7 +21,7 @@ void
 			if (*it == '%')
 			{
 				str.erase(it);
-				break; //erase invalidates iterators
+				break;
 			}
 		}
 	}
@@ -181,8 +164,7 @@ static std::pair<size_t, bool>
 		repetition[MIN] = 1;
 		repetition[MAX] = 1;
 	}
-	//std::cout << "subpattern rep min: " << repetition[MIN] << "\tmax: " << repetition[MAX] << std::endl;
-	//std::cout << format.substr(pos_format) << std::endl;
+
 	do //editing the char_mask
 	{
 		if (format[pos_format] == '+')
@@ -201,7 +183,7 @@ static std::pair<size_t, bool>
 		else //plain char
 			pos_format += fadd_char_mask(format.substr(pos_format, 1), char_mask);
 	} while (format[pos_format] == '+');
-	//display_char_mask(char_mask);
+
 	while (n_repetition < repetition[MAX] && token[pos_token])
 	{
 		if (!char_mask[static_cast<size_t>(token[pos_token])])
@@ -258,8 +240,7 @@ static std::pair<size_t, bool>
 		if (r_pattern.second)
 			return r_pattern;
 	}
-	//std::cout << "pattern rep min: " << repetition[MIN] << "\tmax: " << repetition[MAX] << std::endl;
-	//std::cout << "pattern_str: " << subppatern_str << std::endl;
+
 	while (n_repetition < repetition[MAX] && token[pos_token] && !match_fail)
 	{
 		pos_subpattern_str = 0; //it's ugly but we pass pos_format by ref so we need this to not make another function
@@ -350,7 +331,6 @@ bool
 	std::pair<size_t, int>	char_read;
 	std::pair<size_t, bool>	r_subpattern, r_pattern;
 
-	//while (format[pos_format] && token[pos_token])
 	while (format[pos_format])
 	{
 		if (format[pos_format] == '*') //matching pattern(s)
@@ -364,7 +344,7 @@ bool
 		}
 		else if (format[pos_format] == '%' && format[pos_format + 1] != '0') //matching subpattern(s)
 		{
-			//++pos_format;
+
 			r_subpattern = fmatch_subpattern(token, format, pos_token, pos_format);
 			if (!r_subpattern.second)
 				return false;

@@ -46,11 +46,8 @@ class Channel {
 	private:
 		std::string _name; // The channel's name
 		std::vector<int> _clients; // The channel's clients
-		//int _channel_creator; // The channel's creator
 		std::vector<int> _channel_operators; // The channel's operators
-		//std::vector<int> _banned_clients; // The channel ban list
 
-		//2811::2.3: Channels with '+' as prefix do not support channel modes !
 		std::string	_topic;
 		std::string _key;
 		std::string _mode;

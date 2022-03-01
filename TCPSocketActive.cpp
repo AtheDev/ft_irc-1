@@ -1,8 +1,5 @@
 #include "TCPSocketActive.hpp"
 
-//DEBUG
-#include <iostream>
-
 /**
  *  @brief Constructs a TCPSocketActive given its accepted socketfd.
  */
@@ -42,8 +39,6 @@ std::string TCPSocketActive::receive_data() {
 		}
 	}
 	std::string data(buf);
-
-	//std::cout << "TCPSocketActive received : \"" << buf << "\"" << std::endl;
 
 	return data;
 }

@@ -24,7 +24,6 @@ IRCServer::IRCServer(const std::string & port, const std::string & password) :
 	_commands["TOPIC"] = &IRCServer::_execute_topic;
 	_commands["NAMES"] = &IRCServer::_execute_names;
 	_commands["LIST"] = &IRCServer::_execute_list;
-	//_commands["WHOIS"] = &IRCServer::_execute_whois;
 	_commands["PING"] = &IRCServer::_execute_ping;
 	_commands["AWAY"] = &IRCServer::_execute_away;
 	_commands["OPER"] = &IRCServer::_execute_oper;
@@ -100,6 +99,7 @@ void IRCServer::_add_clients(const std::vector<int> & new_clients) {
 void IRCServer::_remove_clients(const std::vector<int> & disconnected_clients) {
 	std::vector<int>::const_iterator it_client = disconnected_clients.begin();
 	for (; it_client != disconnected_clients.end(); it_client++) {
+		
 		try {
 			_clients.at(*it_client);
 			_remove_client_from_all_channels(*it_client);
@@ -221,10 +221,10 @@ void IRCServer::_execute_user(IRCMessage const & message) {
 	}
 	if (status == NICK) {
 		client->set_username(message.get_params().at(0));
-		client->set_hostname(message.get_params().at(1)); // TODO: To change ?
+		client->set_hostname(message.get_params().at(1));
 		client->set_realname(message.get_params().at(3));
 		client->set_status(REGISTERED);
-		// TODO: To change ?
+
 		std::string user_modes("available user mode : +ao"), channel_modes("available channel mode : +ko");
 
 		TCPMessage reply = make_reply_RPL_WELCOME(*client);
@@ -251,7 +251,6 @@ void IRCServer::_execute_mode_user(IRCMessage const & message) {
 	} else if (params[0] == client->get_nickname() && params.size() == 1) {
 		_tcp_server.schedule_sent_message(make_reply_RPL_UMODEIS(*client));
 	} else if (params[0] == client->get_nickname()) {
-		//std::string	new_mode;
 		std::string user_modes = USER_MODES();
 		bool sign = true;
 		for (size_t i = 0; i < params[1].size(); i++) {
@@ -684,7 +683,7 @@ void IRCServer::_execute_topic(IRCMessage const & message) {
 				 message.get_sender()) == channel_tmp->channel_op_end()) {
 			_tcp_server.schedule_sent_message(
 					make_reply_ERR_CHANOPRIVSNEEDED(*client, channel_name));
-		} else {//TODO: if topic stored on several parameters ==> loop
+		} else {
 			channel_tmp->set_topic(message.get_params().at(1));
 			_tcp_server.schedule_sent_message(make_reply_TOPIC(*client, *channel_tmp));
 		}
@@ -774,58 +773,6 @@ void IRCServer::_execute_list(IRCMessage const & message) {
 	TCPMessage reply = make_reply_RPL_LISTEND(*client);
 	_tcp_server.schedule_sent_message(reply);
 }
-
-/**
- * @brief Executes a WHOIS command.
- * @param message The message containing the WHOIS command.
- */
-/*void IRCServer::_execute_whois(IRCMessage const & message) {
-	std::cout << "Executing WHOIS: " << message.get_command() << std::endl;
-    IRCClient * client = _clients.at(message.get_sender());
-	std::map<int, IRCClient *>::iterator it_clients = _clients.begin();
-	for (;it_clients !=_clients.end(); it_clients++)
-	{
-		IRCClient * client_tmp = it_clients->second;
-		if (client_tmp->get_nickname() == message.get_params().at(0))
-		{
-			TCPMessage reply = make_reply_RPL_WHOISUSER(*client,*client_tmp );
-			_tcp_server.schedule_sent_message(reply);
-			if (client_tmp->get_mode().find('a') != std::string::npos)
-			{
-				reply = make_reply_RPL_AWAY(*client, *client_tmp);
-				_tcp_server.schedule_sent_message(reply);
-			}
-			if (client_tmp->get_mode().find('o') != std::string::npos)
-			{
-				reply = make_reply_RPL_WHOISOPERATOR(*client, *client_tmp);
-				_tcp_server.schedule_sent_message(reply);
-			}
-			std::vector<std::string> client_channels = client_tmp->get_channels();
-			std::string	channels_names;
-			std::vector<std::string>::iterator it = client_channels.begin();
-			for (; it != client_channels.end(); it++)
-			{
-				Channel *tmp = _channels[*it];
-				if (find(tmp->channel_op_begin(), tmp->channel_op_end(), client_tmp->get_fd()) != tmp->channel_op_end())
-					channels_names += ("@" + tmp->get_name() + " ");
-				else if (client_tmp->is_visible())
-					channels_names += (tmp->get_name() + " ");
-			}
-			if (!client_channels.empty())
-			{
-				reply = make_reply_RPL_WHOISCHANNELS(*client, *client_tmp, channels_names);
-				_tcp_server.schedule_sent_message(reply);	
-			}
-			reply = make_reply_RPL_ENDOFWHOIS(*client);
-			_tcp_server.schedule_sent_message(reply);
-			return ;
-		}
-	}
-	TCPMessage reply = make_reply_ERR_NOSUCHNICK(*client, message.get_params().at(0));
-	_tcp_server.schedule_sent_message(reply);
-	reply = make_reply_RPL_ENDOFWHOIS(*client);
-	_tcp_server.schedule_sent_message(reply);
-}*/
 
 /**
  * @brief Executes a PING command.

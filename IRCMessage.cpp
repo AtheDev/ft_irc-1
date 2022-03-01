@@ -15,14 +15,6 @@ IRCMessage::IRCMessage(const TCPMessage &tcpmessage)
 	catch (Error_message_invalid_prefix &e) { std::cerr << "Error: message has invalid prefix" << std::endl; return ; }
 }
 
-IRCMessage::IRCMessage(std::string line)
-{
-	try { _parse_line(line); }
-	catch (Error_message_empty &e) { std::cerr << "Error: message is empty" << std::endl; return ; }
-	catch (Error_message_nocrlf &e) { std::cerr << "Error: message has no crlf" << std::endl; return ; }
-	catch (Error_message_invalid_prefix &e) { std::cerr << "Error: message has invalid prefix" << std::endl; return ; }
-}
-
 IRCMessage::~IRCMessage() {}
 
 bool
@@ -99,7 +91,6 @@ void
 			if (line[pos1] == ' ' || line[pos1] == '\0')
 				throw Error_message_invalid_prefix();
 			pos2 = line.find(' ');
-			//error if pos2 == line.npos?
 			_prefix = line.substr(pos1, pos2 - pos1);
 			pos1 = pos2 + 1;
 		}
@@ -108,7 +99,6 @@ void
 	catch (Error_message_nocrlf &e) { std::cerr << "Error: message has no crlf" << std::endl; return ; } //this is useless
 	catch (Error_message_invalid_prefix &e) { std::cerr << "Error: message has invalid prefix" << std::endl; return ; }
 	//here we get command
-	//todo: error when there is no command?
 	if ((pos2 = line.find(' ', pos1)) == line.npos)
 	{
 		_command = line.substr(pos1);
@@ -194,7 +184,7 @@ int
 			}
 		}
 		else
-			; //? Something went wrong if we get there
+			return KO;
 		return OK;
 	}
 	else if (_command == "QUIT")
@@ -267,12 +257,6 @@ int
 	{
 		if (_params.size() < 2)
 			return ERR_NEEDMOREPARAMS;
-		return OK;
-	}
-	// ============= PEUT ETRE RETIRE SI ON NE FAIT PAS ==================
-	else if (_command == "WHOIS")
-	{
-		//todo
 		return OK;
 	}
 	else

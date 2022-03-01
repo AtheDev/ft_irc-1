@@ -16,12 +16,6 @@ class TCPSocketPassive : public TCPSocket {
 
 		int get_socket_fd(void) const;
 
-	protected:
-
-	private:
-		//TODO: Use _address_info !
-		//struct addrinfo	_address_info;
-
 };
 
 #endif
