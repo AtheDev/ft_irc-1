@@ -124,8 +124,6 @@ void IRCServer::_execute_command(IRCMessage const & message) {
 			it = _commands.find(message.get_command());
 	if (it != _commands.end()) {
 		(this->*_commands[message.get_command()])(message);
-	} else {
-		std::cout << "Command not found: " << message.get_command() << std::endl;
 	}
 }
 
@@ -134,7 +132,7 @@ void IRCServer::_execute_command(IRCMessage const & message) {
  * @param message The message containing the PASS command.
  */
 void IRCServer::_execute_pass(IRCMessage const & message) {
-	std::cout << "Executing PASS: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 	if (client->get_status() != UNREGISTERED) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_ALREADYREGISTRED(*client));
@@ -146,9 +144,6 @@ void IRCServer::_execute_pass(IRCMessage const & message) {
 	else if (_password == message.get_params().at(0)) {
 		client->set_status(PASSWORD);
 	}
-	if (client->get_status() == UNREGISTERED) {
-		std::cout << "Wrong password or need more params" << std::endl; //DEBUG
-	}
 }
 
 /**
@@ -156,7 +151,7 @@ void IRCServer::_execute_pass(IRCMessage const & message) {
  * @param message The message containing the NICK command.
  */
 void IRCServer::_execute_nick(IRCMessage const & message) {
-	std::cout << "Executing NICK: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 	int err = message.sanity_check();
 	if (err == ERR_NONICKNAMEGIVEN)
@@ -165,9 +160,8 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_ERRONEUSNICKNAME(*client, message.get_params()[0]));
 	if (err != 0 || client->get_status() == UNREGISTERED)
 	{
-		if (client->get_status() == UNREGISTERED || client->get_status() == PASSWORD)
-		{
-			std::cout << "PASS command not executed before NICK command" << std::endl; //DEBUG
+		if (client->get_status() == UNREGISTERED || client->get_status() == PASSWORD) {
+			_tcp_server.add_client_to_disconnect(client->get_fd());
 		}
 		return ;
 	}
@@ -175,7 +169,7 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
 	if (find_nickname(nick) != _clients.end()) {
 		_tcp_server.schedule_sent_message(make_reply_ERR_NICKNAMEINUSE(*client, nick));
 		if (client->get_status() != REGISTERED) {
-			std::cout << "PASS command not executed before NICK command" << std::endl; //DEBUG
+			_tcp_server.add_client_to_disconnect(client->get_fd());
 		}
 	} else {
 		if (client->get_status() == PASSWORD) {
@@ -204,7 +198,7 @@ void IRCServer::_execute_nick(IRCMessage const & message) {
  * @param message The message containing the USER command.
  */
 void IRCServer::_execute_user(IRCMessage const & message) {
-	std::cout << "Executing USER: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 	int status = client->get_status();
 	if (status == REGISTERED) {
@@ -243,7 +237,7 @@ void IRCServer::_execute_user(IRCMessage const & message) {
  * @param message The message containing the MODE command for user.
  */
 void IRCServer::_execute_mode_user(IRCMessage const & message) {
-	std::cout << "Executing MODE USER: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 	std::vector<std::string> params = message.get_params();
 	if (params[0] != client->get_nickname()) {
@@ -275,7 +269,7 @@ void IRCServer::_execute_mode_user(IRCMessage const & message) {
  * @param message The message containing the MODE command for channel.
  */
 void IRCServer::_execute_mode_channel(IRCMessage const & message) {
-	std::cout << "Executing MODE CHANNEL: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 	std::vector<std::string> params = message.get_params();
 	Channel * channel;
@@ -370,7 +364,7 @@ void IRCServer::_execute_mode_channel(IRCMessage const & message) {
  * @param message The message containing the MODE command.
  */
 void IRCServer::_execute_mode(IRCMessage const & message) {
-	std::cout << "Executing MODE: " << message.get_command() << std::endl;
+
 	if (message.get_params().at(0).find('#') != std::string::npos) {
 		_execute_mode_channel(message);
 	} else {
@@ -384,7 +378,6 @@ void IRCServer::_execute_mode(IRCMessage const & message) {
  */
 void IRCServer::_execute_quit(IRCMessage const & message) {
 
-	std::cout << "Executing QUIT: " << message.get_command() << std::endl;
 	IRCClient * client = _clients[message.get_sender()];
 	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS) {
@@ -403,7 +396,6 @@ void IRCServer::_execute_quit(IRCMessage const & message) {
 		(*it_channel)->remove_client(message.get_sender());
 		if ((*it_channel)->get_clients().empty()) {
 			std::string channel_name = (*it_channel)->get_name();
-			std::cout << "Channel " << channel_name << " deleted." << std::endl;
 			delete *it_channel;
 			_channels.erase(channel_name);
 		}
@@ -442,7 +434,7 @@ void IRCServer::_leave_all_channels(const IRCClient & client) {
  * @param message The message containing the JOIN command.
  */
 void IRCServer::_execute_join(IRCMessage const & message) {
-	std::cout << "Executing JOIN: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 	std::vector<std::string> channel_names = ft_split(message.get_params()[0], ",");
 	if (*channel_names.begin() == "0") {
@@ -509,7 +501,7 @@ void IRCServer::_execute_join(IRCMessage const & message) {
  * @param message The message containing the PART command.
  */
 void IRCServer::_execute_part(IRCMessage const & message) {
-	std::cout << "Executing PART: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS) {
@@ -542,7 +534,6 @@ void IRCServer::_execute_part(IRCMessage const & message) {
 			channel->remove_client(message.get_sender());
 			// And remove the channel if it's empty
 			if (channel->get_clients().empty()) {
-				std::cout << "Channel " << *it_channel_name << " deleted." << std::endl;
 				delete channel;
 				_channels.erase(*it_channel_name);
 			}
@@ -555,7 +546,7 @@ void IRCServer::_execute_part(IRCMessage const & message) {
  * @param message The message containing the PRIVMSG command.
  */
 void IRCServer::_execute_privmsg(IRCMessage const & message) {
-	std::cout << "Executing PRIVMSG: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS) {
@@ -621,7 +612,7 @@ void IRCServer::_execute_privmsg(IRCMessage const & message) {
  * @param message The message containing the NOTICE command.
  */
 void IRCServer::_execute_notice(IRCMessage const & message) {
-	std::cout << "Executing NOTICE: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS)
@@ -657,7 +648,7 @@ void IRCServer::_execute_notice(IRCMessage const & message) {
  * @param message The message containing the TOPIC command.
  */
 void IRCServer::_execute_topic(IRCMessage const & message) {
-	std::cout << "Executing TOPIC: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS)
@@ -702,7 +693,7 @@ void IRCServer::_execute_topic(IRCMessage const & message) {
  * @param message The message containing the NAMES command.
  */
 void IRCServer::_execute_names(IRCMessage const & message) {
-	std::cout << "Executing NAMES: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS)
@@ -746,7 +737,7 @@ void IRCServer::_execute_names(IRCMessage const & message) {
  * @param message The message containing the LIST command.
  */
 void IRCServer::_execute_list(IRCMessage const & message) {
-	std::cout << "Executing LIST: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS)
@@ -779,7 +770,7 @@ void IRCServer::_execute_list(IRCMessage const & message) {
  * @param message The message containing the PING command.
  */
 void IRCServer::_execute_ping(IRCMessage const & message) {
-	std::cout << "Executing PING: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 	int err = message.sanity_check();
 	if (err == ERR_NEEDMOREPARAMS) {
@@ -798,7 +789,7 @@ void IRCServer::_execute_ping(IRCMessage const & message) {
  * @param message The message containing the AWAY command.
  */
 void IRCServer::_execute_away(IRCMessage const & message) {
-	std::cout << "Executing AWAY: " << message.get_command() << std::endl;
+
 	IRCClient * client = _clients.at(message.get_sender());
 
 	if (message.get_params().empty()) {
@@ -865,7 +856,6 @@ void IRCServer::_execute_kill(const IRCMessage & message) {
 		(*it_channel)->remove_client(killed->get_fd());
 		if ((*it_channel)->get_clients().empty()) {
 			std::string channel_name = (*it_channel)->get_name();
-			std::cout << "Channel " << channel_name << " deleted." << std::endl;
 			delete *it_channel;
 			_channels.erase(channel_name);
 		}

@@ -173,7 +173,6 @@ void TCPServer::_handle_reception(std::vector<struct pollfd>::iterator & it) {
 	for (; it_message != messages.end(); it_message++) {
 		TCPMessage new_message = TCPMessage(it->fd, *it_message);
 		_messages_received.push_back(new_message);
-		std::cout << "Message received: " << new_message << std::endl;
 	}
 }
 
@@ -209,7 +208,6 @@ void TCPServer::_send_failed_messages() {
 		} catch (TCPSocket::WouldBlockException & e) {
 			// If EWOULDBLOCK is still received, store the message in tmp
 			tmp.push_back(*it_failed_message);
-			std::cout << "A message failed to be sent. It will be sent again soon." << std::endl;
 		}
 	}
 	// Clear failed messages
@@ -236,10 +234,8 @@ void TCPServer::_send_message(TCPMessage & message) {
 			// Ignore if the client doesn't exist anymore !
 		} catch (TCPSocket::WouldBlockException & e) {
 			_add_failed_message(*it_receiver, message.get_payload());
-			std::cout << "A message failed to be sent. It will be sent again soon." << std::endl;
 		}
 	}
-	std::cout << "Message(s) sent: " << message << std::endl;
 }
 
 /**
